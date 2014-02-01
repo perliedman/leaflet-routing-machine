@@ -46,7 +46,8 @@
 					name: response.route_name,
 					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
 					instructions: response.route_instructions,
-					summary: response.route_summary
+					summary: response.route_summary,
+					viaPoints: response.via_points
 				}],
 			    i;
 
@@ -55,7 +56,8 @@
 					name: response.alternative_names[i],
 					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
 					instructions: response.alternative_instructions[i],
-					summary: response.alternative_summaries[i]
+					summary: response.alternative_summaries[i],
+					viaPoints: response.via_points
 				})
 			}
 
@@ -98,6 +100,8 @@
 			}
 		},
 
+		// Adapted from
+		// https://github.com/DennisSchiefer/Project-OSRM-Web/blob/develop/WebContent/routing/OSRM.RoutingGeometry.js
 		_decode: function(encoded, precision) {
 			var len = encoded.length,
 			    index=0,
