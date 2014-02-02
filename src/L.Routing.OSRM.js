@@ -25,16 +25,13 @@
 
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
-			this._hints = {};
+			this._hints = {
+				locations: {}
+			};
 		},
 
 		route: function(waypoints) {
 			var url = this._buildRouteUrl(waypoints);
-
-			this._hints = {
-				checksum: null,
-				locations: {}
-			};
 
 			L.Routing.jsonp(url, function(data) {
 				this._routeDone(data, waypoints);
@@ -74,7 +71,7 @@
 				locationKey = this._locationKey(waypoints[i]);
 				locs.push('loc=' + locationKey);
 
-				hint = this._hints[locationKey];
+				hint = this._hints.locations[locationKey];
 				if (hint) {
 					locs.push('hint=' + hint);
 				}
@@ -83,7 +80,7 @@
 			return this.options.serviceUrl + '?' +
 				'instructions=true&' +
 				locs.join('&') +
-				(this._hints.checksum ? '&checksum=' + this._hints.checksum : '');
+				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
 		},
 
 		_locationKey: function(location) {
@@ -93,7 +90,10 @@
 		_saveHintData: function(route, waypoints) {
 			var hintData = route.hint_data,
 			    loc;
-			this._hints.checksum = hintData.checksum;
+			this._hints = {
+				checksum: hintData.checksum,
+				locations: {}
+			};
 			for (var i = hintData.locations.length - 1; i >= 0; i--) {
 				loc = waypoints[i];
 				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
