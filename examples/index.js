@@ -22,6 +22,11 @@ function hookEvents(l) {
             router.route(vias);
         }, 1000);
     });
+
+    l.on('viaadded', function(e) {
+        vias.splice(e.afterIndex + 1, 0, e.latlng);
+        router.route(vias);
+    });
 }
 
 router.on('routeFound', function(routes) {

@@ -8,13 +8,17 @@
 
 		options: {
 			styles: [
-				{color: 'red'}
+				{color: 'black', opacity: 0.15, weight: 7},
+				{color: 'white', opacity: 0.8, weight: 4},
+				{color: 'orange', opacity: 1, weight: 2}
 			]
 		},
 
 		initialize: function(route, options) {
 			L.Util.setOptions(this, options);
 			this._route = route;
+
+			this._viaIndices = this._findViaIndices();
 		},
 
 		addTo: function(map) {
@@ -30,10 +34,18 @@
 
 			this._map = map;
 			this._layers = [];
-			this._markers = [];
 			for (i = 0; i < this.options.styles.length; i++) {
 				pl = L.polyline(geom, this.options.styles[i])
 					.addTo(map);
+				pl.on('mousedown', function(e) {
+					this._newVia = {
+						afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
+						marker: L.marker(e.latlng).addTo(this._map)
+					};
+					this._layers.push(this._newVia.marker);
+					this._map.on('mousemove', this._onDragNewVia, this);
+					this._map.on('mouseup', this._onViaRelease, this);
+				}, this);
 				this._layers.push(pl);
 			}
 
@@ -41,13 +53,13 @@
 				m = L.marker(this._route.viaPoints[i], { draggable: true }).addTo(map);
 				(function(i) {
 					m.on('dragstart', function(e) {
-						this.fire('viadragstart', {index: i, latlng: e.target.getLatLng()});
+						this.fire('viadragstart', this._createViaEvent(i, e));
 					}, _this);
 					m.on('drag', function(e) {
-						this.fire('viadrag', {index: i, latlng: e.target.getLatLng()});
+						this.fire('viadrag', this._createViaEvent(i, e));
 					}, _this);
 					m.on('dragend', function(e) {
-						this.fire('viadragend', {index: i, latlng: e.target.getLatLng()});
+						this.fire('viadragend', this._createViaEvent(i, e));
 					}, _this);
 				})(i);
 				this._layers.push(m);
@@ -65,6 +77,61 @@
 
 		getBounds: function() {
 			return L.latLngBounds(this._route.geometry);
+		},
+
+		_createViaEvent: function(i, e) {
+			return {index: i, latlng: e.target.getLatLng()};
+		},
+
+		_findViaIndices: function() {
+			var vias = this._route.viaPoints,
+			    indices = [],
+			    i;
+			for (i = 0; i < vias.length; i++) {
+				indices.push(this._findClosestRoutePoint(L.latLng(vias[i])));
+			}
+
+			return indices;
+		},
+
+		_findClosestRoutePoint: function(latlng) {
+			var minDist = Number.MAX_VALUE,
+				minIndex,
+			    i,
+			    d;
+
+			for (i = this._route.geometry.length - 1; i >= 0 ; i--) {
+				// TODO: maybe do this in pixel space instead?
+				d = latlng.distanceTo(this._route.geometry[i]);
+				if (d < minDist) {
+					minIndex = i;
+					minDist = d;
+				}
+			}
+
+			return minIndex;
+		},
+
+		_findNearestViaBefore: function(i) {
+			var j = this._viaIndices.length - 1;
+			while (j >= 0 && this._viaIndices[j] > i) {
+				j--;
+			}
+
+			return j;
+		},
+
+		_onDragNewVia: function(e) {
+			this._newVia.marker.setLatLng(e.latlng);
+		},
+
+		_onViaRelease: function(e) {
+			this._map.off('mouseup', this._onViaRelease, this);
+			this._map.off('mousemove', this._onViaDrag, this);
+			this.fire('viaadded', {
+				afterIndex: this._newVia.afterIndex,
+				latlng: e.latlng
+			});
 		}
 	});
 
