@@ -30,8 +30,7 @@ function hookEvents(l) {
 }
 
 router.on('routeFound', function(routes) {
-    var e = L.DomUtil.get('results'),
-        route = routes[0];
+    var route = routes[0];
 
     if (line) {
         map.removeLayer(line);
@@ -42,8 +41,6 @@ router.on('routeFound', function(routes) {
     map.fitBounds(line.getBounds());
 
     hookEvents(line);
-
-    e.innerHTML = JSON.stringify({summary: route.summary, geometry: route.geometry, instructions: route.instructions});
   });
 
 router.route(vias);
