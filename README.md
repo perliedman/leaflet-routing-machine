@@ -5,6 +5,8 @@ Find the way from A to B on a Leaflet map, using [OSRM](http://project-osrm.org/
 
 This is a work in progress, most functionality is very basic.
 
+Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-machine/).
+
 ## Features
 
 * Wrapper to handle OSRM's API
