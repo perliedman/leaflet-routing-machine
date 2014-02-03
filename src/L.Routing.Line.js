@@ -11,7 +11,9 @@
 				{color: 'black', opacity: 0.15, weight: 7},
 				{color: 'white', opacity: 0.8, weight: 4},
 				{color: 'orange', opacity: 1, weight: 2}
-			]
+			],
+			draggableVias: true,
+			addVias: true
 		},
 
 		initialize: function(route, options) {
@@ -27,7 +29,6 @@
 
 		onAdd: function(map) {
 			var geom = this._route.geometry,
-			    _this = this,
 			    i,
 			    pl,
 			    m;
@@ -37,31 +38,17 @@
 			for (i = 0; i < this.options.styles.length; i++) {
 				pl = L.polyline(geom, this.options.styles[i])
 					.addTo(map);
-				pl.on('mousedown', function(e) {
-					this._newVia = {
-						afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
-						marker: L.marker(e.latlng).addTo(this._map)
-					};
-					this._layers.push(this._newVia.marker);
-					this._map.on('mousemove', this._onDragNewVia, this);
-					this._map.on('mouseup', this._onViaRelease, this);
-				}, this);
+				if (this.options.addVias) {
+					pl.on('mousedown', this._onLineTouched, this);
+				}
 				this._layers.push(pl);
 			}
 
 			for (i = 0; i < this._route.viaPoints.length; i++) {
 				m = L.marker(this._route.viaPoints[i], { draggable: true }).addTo(map);
-				(function(i) {
-					m.on('dragstart', function(e) {
-						this.fire('viadragstart', this._createViaEvent(i, e));
-					}, _this);
-					m.on('drag', function(e) {
-						this.fire('viadrag', this._createViaEvent(i, e));
-					}, _this);
-					m.on('dragend', function(e) {
-						this.fire('viadragend', this._createViaEvent(i, e));
-					}, _this);
-				})(i);
+				if (this.options.draggableVias) {
+					this._hookViaEvents(m, i);
+				}
 				this._layers.push(m);
 			}
 		},
@@ -119,6 +106,28 @@
 			}
 
 			return j;
+		},
+
+		_hookViaEvents: function(m, i) {
+			m.on('dragstart', function(e) {
+				this.fire('viadragstart', this._createViaEvent(i, e));
+			}, this);
+			m.on('drag', function(e) {
+				this.fire('viadrag', this._createViaEvent(i, e));
+			}, this);
+			m.on('dragend', function(e) {
+				this.fire('viadragend', this._createViaEvent(i, e));
+			}, this);
+		},
+
+		_onLineTouched: function(e) {
+			this._newVia = {
+				afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
+				marker: L.marker(e.latlng).addTo(this._map)
+			};
+			this._layers.push(this._newVia.marker);
+			this._map.on('mousemove', this._onDragNewVia, this);
+			this._map.on('mouseup', this._onViaRelease, this);
 		},
 
 		_onDragNewVia: function(e) {
