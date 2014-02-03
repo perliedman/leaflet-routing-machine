@@ -39,6 +39,14 @@
 		},
 
 		_routeDone: function(response, waypoints) {
+			if (response.status !== 0) {
+				this.fire('error', {
+					status: response.status,
+					message: response.message
+				});
+				return;
+			}
+
 			var alts = [{
 					name: response.route_name,
 					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
