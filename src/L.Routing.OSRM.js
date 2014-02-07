@@ -4,7 +4,7 @@
 	L.Routing = L.Routing || {};
 
 	L.Routing._jsonpCallbackId = 0;
-	L.Routing.jsonp = function(url, callback, context, jsonpParam) {
+	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
 		var callbackId = '_l_geocoder_' + (L.Routing._jsonpCallbackId++),
 		    script;
 		url += '&' + jsonpParam + '=' + callbackId;
@@ -33,12 +33,20 @@
 		route: function(waypoints) {
 			var url = this._buildRouteUrl(waypoints);
 
-			L.Routing.jsonp(url, function(data) {
+			L.Routing._jsonp(url, function(data) {
 				this._routeDone(data, waypoints);
 			}, this, 'jsonp');
 		},
 
 		_routeDone: function(response, waypoints) {
+			if (response.status !== 0) {
+				this.fire('error', {
+					status: response.status,
+					message: response.message
+				});
+				return;
+			}
+
 			var alts = [{
 					name: response.route_name,
 					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
@@ -59,7 +67,7 @@
 			}
 
 			this._saveHintData(response, waypoints);
-			this.fire('routeFound', alts);
+			this.fire('routefound', {routes: alts});
 		},
 
 		_buildRouteUrl: function(waypoints) {
