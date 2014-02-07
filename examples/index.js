@@ -29,8 +29,8 @@ function hookEvents(l) {
 	});
 }
 
-router.on('routeFound', function(routes) {
-	var route = routes[0];
+router.on('routefound', function(e) {
+	var route = e.routes[0];
 
 	if (line) {
 		map.removeLayer(line);
@@ -47,5 +47,7 @@ router.on('error', function(err) {
 	var e = L.DomUtil.get('response');
 	e.innerHTML = 'Error ' + err.status + ': ' + err.message;
 });
+
+map.addControl(L.Routing.itinerary(router));
 
 router.route(vias);
