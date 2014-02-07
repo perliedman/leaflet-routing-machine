@@ -1,0 +1,30 @@
+{
+  "name": "leaflet-routing-machine",
+  "version": "0.0.0",
+  "description": "Routing for Leaflet",
+  "main": "dist/leaflet-routing-machine.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/perliedman/leaflet-routing-machine.git"
+  },
+  "keywords": [
+    "leaflet",
+    "routing",
+    "osrm"
+  ],
+  "author": "Per Liedman <per@liedman.net>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
+  },
+  "homepage": "https://github.com/perliedman/leaflet-routing-machine",
+  "devDependencies": {
+    "uglifyjs": "~2.3.6"
+  }
+}
