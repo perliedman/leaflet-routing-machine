@@ -4,6 +4,7 @@
 	L.Routing = L.Routing || {};
 
 	L.Routing.Itinerary = L.Control.extend({
+		includes: L.Mixin.Events,
 		initialize: function(router) {
 			this._router = router;
 		},
@@ -24,6 +25,8 @@
 			    alt,
 			    altDiv;
 
+			this._routes = e.routes;
+
 			this._container.innerHTML = '';
 			for (i = 0; i < e.routes.length; i++) {
 				alt = e.routes[i];
@@ -37,11 +40,12 @@
 
 				altDiv.appendChild(this._createItineraryTable(alt));
 			}
+
+			this.fire('routeselected', {route: this._routes[0]});
 		},
 
 		_createItineraryTable: function(r) {
 			var table = L.DomUtil.create('table', ''),
-			    header = L.DomUtil.create('thead', '', table),
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
@@ -62,18 +66,24 @@
 		},
 
 		_onAltClicked: function(e) {
-			var alt,
+			var altElem,
 			    j,
-			    n;
+			    n,
+			    isCurrentSelection;
 
-			alt = e.target;
-			while (!L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-				alt = alt.parentElement;
+			altElem = e.target;
+			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
+				altElem = altElem.parentElement;
 			}
 
 			for (j = 0; j < this._container.children.length; j++) {
 				n = this._container.children[j];
-				L.DomUtil[alt === n ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+				isCurrentSelection = altElem === n;
+				L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+
+				if (isCurrentSelection) {
+					this.fire('routeselected', {route: this._routes[j]});
+				}
 			}
 
 			L.DomEvent.stop(e);
