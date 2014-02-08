@@ -2,7 +2,6 @@
     width: 320px;
     background-color: white;
     padding-top: 4px;
-    padding-right: 4px;
 }
 
 .leaflet-routing-container h2 {
@@ -30,13 +29,20 @@
 
 .leaflet-routing-alt-minimized {
     color: #888;
-    max-height: 72px;
+    max-height: 64px;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .leaflet-routing-alt table {
-    font-size: 12px;
+    border-collapse: collapse;
 }
+
+.leaflet-routing-alt tr:hover {
+    background-color: #eee;
+    cursor: pointer;
+}
+
 ::-webkit-scrollbar {
     width: 8px;
 }
