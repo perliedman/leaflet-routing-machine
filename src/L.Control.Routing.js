@@ -59,6 +59,7 @@
 
 		_hookEvents: function(l) {
 			var vias = this._vias,
+			    _this = this,
 				t;
 
 			l.on('viadrag', function(e) {
@@ -67,7 +68,7 @@
 					clearTimeout(t);
 				}
 				t = setTimeout(function() {
-					this._router.route(vias);
+					_this._router.route(vias);
 				}, 1000);
 			});
 
