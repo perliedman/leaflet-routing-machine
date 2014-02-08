@@ -49,17 +49,14 @@
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
-			    driveDir,
 			    row;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
-				driveDir = instr[0].split('-');
 				row = L.DomUtil.create('tr', '', body);
-				row.innerHTML = '<td>' + L.Routing.Itinerary._instructions[driveDir[0]] + '</td>' +
-					'<td>' + instr[1] + '</td>' +
-					'<td>' + this._formatDistance(instr[2]) + '</td>' +
-					'<td>' + this._formatTime(instr[4]) + '</td>';
+				row.innerHTML =
+					'<td>' + this._instruction(instr, i) + '</td>' +
+					'<td>' + this._formatDistance(instr[2]) + '</td>';
 			}
 
 			return table;
@@ -112,31 +109,95 @@
 			} else {
 				return t + ' s';
 			}
+		},
+
+		_instruction: function(instr, i) {
+			var template,
+			    driveDir = instr[0].split('-');
+
+			switch (parseInt(driveDir, 10)) {
+			case 0:
+				template = '';
+				break;
+			case 1:
+				template = (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr[1] ? ' on {1}' : '');
+				break;
+			case 2:
+				template = 'Slight right' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 3:
+				template = 'Right' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 4:
+				template = 'Sharp right' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 5:
+				template = 'Turn around';
+				break;
+			case 6:
+				template = 'Sharp left' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 7:
+				template = 'Left' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 8:
+				template = 'Slight left' + (instr[1] ? ' onto {1}' : '');
+				break;
+			case 9:
+				template = 'Waypoint reached';
+				break;
+			case 10:
+				template =  'Head {dir}';
+				break;
+			case 11:
+				template =  'Take the {exit} exit in the roundabout';
+				break;
+			case 12:
+				template =  'Leave the roundabout by the {exit} exit';
+				break;
+			case 13:
+				template =  'Stay on roundabout';
+				break;
+			case 14:
+				template =  'Start at end of {1}';
+				break;
+			case 15:
+				template =  'Destination reached';
+				break;
+			case 16:
+				template =  'Enter against allowed direction';
+				break;
+			case 17:
+				template =  'Leave against allowed direction';
+				break;
+			}
+
+			return L.Util.template(template, L.extend({exit: this._formatOrder(driveDir[1]), dir: this._dir[instr[6]]}, instr));
+		},
+
+		_formatOrder: function(n) {
+			var i = n % 10 - 1,
+				suffix = ['st', 'nd', 'rd'];
+
+			return suffix[i] ? n + suffix[i] : n + 'th';
+		},
+
+		_dir: {
+			N: 'north',
+			NE: 'northeast',
+			E: 'east',
+			SE: 'southeast',
+			S: 'south',
+			SW: 'southwest',
+			W: 'west',
+			NW: 'northwest'
 		}
 	});
 
 	L.Routing.Itinerary._instructions = {
-		'0': '',
-		'1': 'Straight',
-		'2': 'Slight right',
-		'3': 'Right',
-		'4': 'Sharp right',
-		'5': 'Turn around',
-		'6': 'Sharp left',
-		'7': 'Left',
-		'8': 'Slight left',
-		'9': '',
-		'10': 'Continue',
-		'11': 'Enter the roundabout',
-		'12': 'Leave the roundabout',
-		'13': 'Stay on roundabout',
-		'14': 'Start at end of',
-		'15': 'Destination reached',
-		'16': 'Enter against allowed direction',
-		'17': 'Leave against allowed direction'
 	};
 
 	L.Routing.itinerary = function(router) {
 		return new L.Routing.Itinerary(router);
-	}
+	};
 })();
