@@ -1,85 +1,303 @@
 (function() {
 	'use strict';
 
-	L.Control.Routing = L.Routing.Itinerary.extend({
+	L.Routing = L.Routing || {};
+
+	L.Routing._jsonpCallbackId = 0;
+	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
+		var callbackId = '_l_geocoder_' + (L.Routing._jsonpCallbackId++),
+		    script;
+		url += '&' + jsonpParam + '=' + callbackId;
+		window[callbackId] = L.Util.bind(callback, context);
+		script = document.createElement('script');
+		script.type = 'text/javascript';
+		script.src = url;
+		script.id = callbackId;
+		document.getElementsByTagName('head')[0].appendChild(script);
+	};
+
+	L.Routing.OSRM = L.Class.extend({
+		includes: L.Mixin.Events,
 		options: {
+			serviceUrl: 'http://router.project-osrm.org/viaroute',
+			geometryPrecision: 6
 		},
 
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
-
-			this._router = this.options.router || new L.Routing.OSRM();
-			this._vias = this.options.vias || [];
-
-			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
-
-			this.on('routeselected', this._routeSelected, this);
-
-			if (this._vias) {
-				this._router.route(this._vias);
-			}
+			this._hints = {
+				locations: {}
+			};
 		},
 
-		onAdd: function(map) {
-			this._map = map;
-			return L.Routing.Itinerary.prototype.onAdd.call(this, map);
+		route: function(waypoints) {
+			var url = this._buildRouteUrl(waypoints);
+
+			L.Routing._jsonp(url, function(data) {
+				this._routeDone(data, waypoints);
+			}, this, 'jsonp');
 		},
 
-		onRemove: function(map) {
-			if (this._line) {
-				map.removeLayer(this._line);
-			}
-			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
-		},
-
-		setVias: function(vias) {
-			this._vias = vias;
-			this._router.route(vias);
-		},
-
-		spliceVias: function() {
-			var removed = [].splice.apply(this._vias, arguments);
-			this._router.route(this._vias);
-			return removed;
-		},
-
-		_routeSelected: function(e) {
-			var route = e.route;
-
-			if (this._line) {
-				this._map.removeLayer(this._line);
+		_routeDone: function(response, waypoints) {
+			if (response.status !== 0) {
+				this.fire('error', {
+					status: response.status,
+					message: response.message
+				});
+				return;
 			}
 
-			this._line = L.Routing.line(route);
-			this._line.addTo(this._map);
-			this._map.fitBounds(this._line.getBounds());
+			var alts = [{
+					name: response.route_name,
+					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
+					instructions: response.route_instructions,
+					summary: response.route_summary,
+					viaPoints: response.via_points
+				}],
+			    i;
 
-			this._hookEvents(this._line);
+			for (i = 0; i < response.alternative_geometries.length; i++) {
+				alts.push({
+					name: response.alternative_names[i],
+					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+					instructions: response.alternative_instructions[i],
+					summary: response.alternative_summaries[i],
+					viaPoints: response.via_points
+				})
+			}
+
+			this._saveHintData(response, waypoints);
+			this.fire('routefound', {routes: alts});
 		},
 
-		_hookEvents: function(l) {
-			var vias = this._vias,
-			    _this = this,
-				t;
+		_buildRouteUrl: function(waypoints) {
+			var locs = [],
+			    locationKey,
+			    hint;
 
-			l.on('viadrag', function(e) {
-				vias[e.index] = e.latlng;
-				if (t) {
-					clearTimeout(t);
+			for (var i = 0; i < waypoints.length; i++) {
+				locationKey = this._locationKey(waypoints[i]);
+				locs.push('loc=' + locationKey);
+
+				hint = this._hints.locations[locationKey];
+				if (hint) {
+					locs.push('hint=' + hint);
 				}
-				t = setTimeout(function() {
-					_this._router.route(vias);
-				}, 1000);
-			});
+			}
 
-			l.on('viaadded', function(e) {
-				this.spliceVias(e.afterIndex + 1, 0, e.latlng);
-			}, this);
+			return this.options.serviceUrl + '?' +
+				'instructions=true&' +
+				locs.join('&') +
+				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
+		},
+
+		_locationKey: function(location) {
+			return location.lat + ',' + location.lng;
+		},
+
+		_saveHintData: function(route, waypoints) {
+			var hintData = route.hint_data,
+			    loc;
+			this._hints = {
+				checksum: hintData.checksum,
+				locations: {}
+			};
+			for (var i = hintData.locations.length - 1; i >= 0; i--) {
+				loc = waypoints[i];
+				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
+			}
+		},
+
+		// Adapted from
+		// https://github.com/DennisSchiefer/Project-OSRM-Web/blob/develop/WebContent/routing/OSRM.RoutingGeometry.js
+		_decode: function(encoded, precision) {
+			var len = encoded.length,
+			    index=0,
+			    lat=0,
+			    lng = 0,
+			    array = [];
+
+			precision = Math.pow(10, -precision);
+
+			while (index < len) {
+				var b,
+				    shift = 0,
+				    result = 0;
+				do {
+					b = encoded.charCodeAt(index++) - 63;
+					result |= (b & 0x1f) << shift;
+					shift += 5;
+				} while (b >= 0x20);
+				var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+				lat += dlat;
+				shift = 0;
+				result = 0;
+				do {
+					b = encoded.charCodeAt(index++) - 63;
+					result |= (b & 0x1f) << shift;
+					shift += 5;
+				} while (b >= 0x20);
+				var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+				lng += dlng;
+				//array.push( {lat: lat * precision, lng: lng * precision} );
+				array.push( [lat * precision, lng * precision] );
+			}
+			return array;
 		}
 	});
 
-	L.Control.routing = function(options) {
-		return new L.Control.Routing(options);
+	L.Routing.osrm = function(options) {
+		return new L.Routing.OSRM(options);
+	};
+})();
+(function() {
+	'use strict';
+
+	L.Routing = L.Routing || {};
+
+	L.Routing.Line = L.Class.extend({
+		includes: L.Mixin.Events,
+
+		options: {
+			styles: [
+				{color: 'black', opacity: 0.15, weight: 7},
+				{color: 'white', opacity: 0.8, weight: 4},
+				{color: 'orange', opacity: 1, weight: 2}
+			],
+			draggableVias: true,
+			addVias: true
+		},
+
+		initialize: function(route, options) {
+			L.Util.setOptions(this, options);
+			this._route = route;
+
+			this._viaIndices = this._findViaIndices();
+		},
+
+		addTo: function(map) {
+			map.addLayer(this);
+		},
+
+		onAdd: function(map) {
+			var geom = this._route.geometry,
+			    i,
+			    pl,
+			    m;
+
+			this._map = map;
+			this._layers = [];
+			for (i = 0; i < this.options.styles.length; i++) {
+				pl = L.polyline(geom, this.options.styles[i])
+					.addTo(map);
+				if (this.options.addVias) {
+					pl.on('mousedown', this._onLineTouched, this);
+				}
+				this._layers.push(pl);
+			}
+
+			for (i = 0; i < this._route.viaPoints.length; i++) {
+				m = L.marker(this._route.viaPoints[i], { draggable: true }).addTo(map);
+				if (this.options.draggableVias) {
+					this._hookViaEvents(m, i);
+				}
+				this._layers.push(m);
+			}
+		},
+
+		onRemove: function(map) {
+			var i;
+			for (i = 0; i < this._layers.length; i++) {
+				map.removeLayer(this._layers[i]);
+			}
+
+			delete this._map;
+		},
+
+		getBounds: function() {
+			return L.latLngBounds(this._route.geometry);
+		},
+
+		_createViaEvent: function(i, e) {
+			return {index: i, latlng: e.target.getLatLng()};
+		},
+
+		_findViaIndices: function() {
+			var vias = this._route.viaPoints,
+			    indices = [],
+			    i;
+			for (i = 0; i < vias.length; i++) {
+				indices.push(this._findClosestRoutePoint(L.latLng(vias[i])));
+			}
+
+			return indices;
+		},
+
+		_findClosestRoutePoint: function(latlng) {
+			var minDist = Number.MAX_VALUE,
+				minIndex,
+			    i,
+			    d;
+
+			for (i = this._route.geometry.length - 1; i >= 0 ; i--) {
+				// TODO: maybe do this in pixel space instead?
+				d = latlng.distanceTo(this._route.geometry[i]);
+				if (d < minDist) {
+					minIndex = i;
+					minDist = d;
+				}
+			}
+
+			return minIndex;
+		},
+
+		_findNearestViaBefore: function(i) {
+			var j = this._viaIndices.length - 1;
+			while (j >= 0 && this._viaIndices[j] > i) {
+				j--;
+			}
+
+			return j;
+		},
+
+		_hookViaEvents: function(m, i) {
+			m.on('dragstart', function(e) {
+				this.fire('viadragstart', this._createViaEvent(i, e));
+			}, this);
+			m.on('drag', function(e) {
+				this.fire('viadrag', this._createViaEvent(i, e));
+			}, this);
+			m.on('dragend', function(e) {
+				this.fire('viadragend', this._createViaEvent(i, e));
+			}, this);
+		},
+
+		_onLineTouched: function(e) {
+			this._newVia = {
+				afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
+				marker: L.marker(e.latlng).addTo(this._map)
+			};
+			this._layers.push(this._newVia.marker);
+			this._map.on('mousemove', this._onDragNewVia, this);
+			this._map.on('mouseup', this._onViaRelease, this);
+		},
+
+		_onDragNewVia: function(e) {
+			this._newVia.marker.setLatLng(e.latlng);
+		},
+
+		_onViaRelease: function(e) {
+			this._map.off('mouseup', this._onViaRelease, this);
+			this._map.off('mousemove', this._onViaDrag, this);
+			this.fire('viaadded', {
+				afterIndex: this._newVia.afterIndex,
+				latlng: e.latlng
+			});
+		}
+	});
+
+	L.Routing.line = function(route, options) {
+		return new L.Routing.Line(route, options);
 	};
 })();
 (function() {
@@ -288,302 +506,84 @@
 (function() {
 	'use strict';
 
-	L.Routing = L.Routing || {};
-
-	L.Routing.Line = L.Class.extend({
-		includes: L.Mixin.Events,
-
+	L.Control.Routing = L.Routing.Itinerary.extend({
 		options: {
-			styles: [
-				{color: 'black', opacity: 0.15, weight: 7},
-				{color: 'white', opacity: 0.8, weight: 4},
-				{color: 'orange', opacity: 1, weight: 2}
-			],
-			draggableVias: true,
-			addVias: true
-		},
-
-		initialize: function(route, options) {
-			L.Util.setOptions(this, options);
-			this._route = route;
-
-			this._viaIndices = this._findViaIndices();
-		},
-
-		addTo: function(map) {
-			map.addLayer(this);
-		},
-
-		onAdd: function(map) {
-			var geom = this._route.geometry,
-			    i,
-			    pl,
-			    m;
-
-			this._map = map;
-			this._layers = [];
-			for (i = 0; i < this.options.styles.length; i++) {
-				pl = L.polyline(geom, this.options.styles[i])
-					.addTo(map);
-				if (this.options.addVias) {
-					pl.on('mousedown', this._onLineTouched, this);
-				}
-				this._layers.push(pl);
-			}
-
-			for (i = 0; i < this._route.viaPoints.length; i++) {
-				m = L.marker(this._route.viaPoints[i], { draggable: true }).addTo(map);
-				if (this.options.draggableVias) {
-					this._hookViaEvents(m, i);
-				}
-				this._layers.push(m);
-			}
-		},
-
-		onRemove: function(map) {
-			var i;
-			for (i = 0; i < this._layers.length; i++) {
-				map.removeLayer(this._layers[i]);
-			}
-
-			delete this._map;
-		},
-
-		getBounds: function() {
-			return L.latLngBounds(this._route.geometry);
-		},
-
-		_createViaEvent: function(i, e) {
-			return {index: i, latlng: e.target.getLatLng()};
-		},
-
-		_findViaIndices: function() {
-			var vias = this._route.viaPoints,
-			    indices = [],
-			    i;
-			for (i = 0; i < vias.length; i++) {
-				indices.push(this._findClosestRoutePoint(L.latLng(vias[i])));
-			}
-
-			return indices;
-		},
-
-		_findClosestRoutePoint: function(latlng) {
-			var minDist = Number.MAX_VALUE,
-				minIndex,
-			    i,
-			    d;
-
-			for (i = this._route.geometry.length - 1; i >= 0 ; i--) {
-				// TODO: maybe do this in pixel space instead?
-				d = latlng.distanceTo(this._route.geometry[i]);
-				if (d < minDist) {
-					minIndex = i;
-					minDist = d;
-				}
-			}
-
-			return minIndex;
-		},
-
-		_findNearestViaBefore: function(i) {
-			var j = this._viaIndices.length - 1;
-			while (j >= 0 && this._viaIndices[j] > i) {
-				j--;
-			}
-
-			return j;
-		},
-
-		_hookViaEvents: function(m, i) {
-			m.on('dragstart', function(e) {
-				this.fire('viadragstart', this._createViaEvent(i, e));
-			}, this);
-			m.on('drag', function(e) {
-				this.fire('viadrag', this._createViaEvent(i, e));
-			}, this);
-			m.on('dragend', function(e) {
-				this.fire('viadragend', this._createViaEvent(i, e));
-			}, this);
-		},
-
-		_onLineTouched: function(e) {
-			this._newVia = {
-				afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
-				marker: L.marker(e.latlng).addTo(this._map)
-			};
-			this._layers.push(this._newVia.marker);
-			this._map.on('mousemove', this._onDragNewVia, this);
-			this._map.on('mouseup', this._onViaRelease, this);
-		},
-
-		_onDragNewVia: function(e) {
-			this._newVia.marker.setLatLng(e.latlng);
-		},
-
-		_onViaRelease: function(e) {
-			this._map.off('mouseup', this._onViaRelease, this);
-			this._map.off('mousemove', this._onViaDrag, this);
-			this.fire('viaadded', {
-				afterIndex: this._newVia.afterIndex,
-				latlng: e.latlng
-			});
-		}
-	});
-
-	L.Routing.line = function(route, options) {
-		return new L.Routing.Line(route, options);
-	};
-})();
-(function() {
-	'use strict';
-
-	L.Routing = L.Routing || {};
-
-	L.Routing._jsonpCallbackId = 0;
-	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
-		var callbackId = '_l_geocoder_' + (L.Routing._jsonpCallbackId++),
-		    script;
-		url += '&' + jsonpParam + '=' + callbackId;
-		window[callbackId] = L.Util.bind(callback, context);
-		script = document.createElement('script');
-		script.type = 'text/javascript';
-		script.src = url;
-		script.id = callbackId;
-		document.getElementsByTagName('head')[0].appendChild(script);
-	};
-
-	L.Routing.OSRM = L.Class.extend({
-		includes: L.Mixin.Events,
-		options: {
-			serviceUrl: 'http://router.project-osrm.org/viaroute',
-			geometryPrecision: 6
 		},
 
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
-			this._hints = {
-				locations: {}
-			};
+
+			this._router = this.options.router || new L.Routing.OSRM();
+			this._vias = this.options.vias || [];
+
+			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
+
+			this.on('routeselected', this._routeSelected, this);
+
+			if (this._vias) {
+				this._router.route(this._vias);
+			}
 		},
 
-		route: function(waypoints) {
-			var url = this._buildRouteUrl(waypoints);
-
-			L.Routing._jsonp(url, function(data) {
-				this._routeDone(data, waypoints);
-			}, this, 'jsonp');
+		onAdd: function(map) {
+			this._map = map;
+			return L.Routing.Itinerary.prototype.onAdd.call(this, map);
 		},
 
-		_routeDone: function(response, waypoints) {
-			if (response.status !== 0) {
-				this.fire('error', {
-					status: response.status,
-					message: response.message
-				});
-				return;
+		onRemove: function(map) {
+			if (this._line) {
+				map.removeLayer(this._line);
+			}
+			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
+		},
+
+		setVias: function(vias) {
+			this._vias = vias;
+			this._router.route(vias);
+		},
+
+		spliceVias: function() {
+			var removed = [].splice.apply(this._vias, arguments);
+			this._router.route(this._vias);
+			return removed;
+		},
+
+		_routeSelected: function(e) {
+			var route = e.route;
+
+			if (this._line) {
+				this._map.removeLayer(this._line);
 			}
 
-			var alts = [{
-					name: response.route_name,
-					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
-					instructions: response.route_instructions,
-					summary: response.route_summary,
-					viaPoints: response.via_points
-				}],
-			    i;
+			this._line = L.Routing.line(route);
+			this._line.addTo(this._map);
+			this._map.fitBounds(this._line.getBounds());
 
-			for (i = 0; i < response.alternative_geometries.length; i++) {
-				alts.push({
-					name: response.alternative_names[i],
-					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
-					instructions: response.alternative_instructions[i],
-					summary: response.alternative_summaries[i],
-					viaPoints: response.via_points
-				})
-			}
-
-			this._saveHintData(response, waypoints);
-			this.fire('routefound', {routes: alts});
+			this._hookEvents(this._line);
 		},
 
-		_buildRouteUrl: function(waypoints) {
-			var locs = [],
-			    locationKey,
-			    hint;
+		_hookEvents: function(l) {
+			var vias = this._vias,
+			    _this = this,
+				t;
 
-			for (var i = 0; i < waypoints.length; i++) {
-				locationKey = this._locationKey(waypoints[i]);
-				locs.push('loc=' + locationKey);
-
-				hint = this._hints.locations[locationKey];
-				if (hint) {
-					locs.push('hint=' + hint);
+			l.on('viadrag', function(e) {
+				vias[e.index] = e.latlng;
+				if (t) {
+					clearTimeout(t);
 				}
-			}
+				t = setTimeout(function() {
+					_this._router.route(vias);
+				}, 1000);
+			});
 
-			return this.options.serviceUrl + '?' +
-				'instructions=true&' +
-				locs.join('&') +
-				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
-		},
-
-		_locationKey: function(location) {
-			return location.lat + ',' + location.lng;
-		},
-
-		_saveHintData: function(route, waypoints) {
-			var hintData = route.hint_data,
-			    loc;
-			this._hints = {
-				checksum: hintData.checksum,
-				locations: {}
-			};
-			for (var i = hintData.locations.length - 1; i >= 0; i--) {
-				loc = waypoints[i];
-				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
-			}
-		},
-
-		// Adapted from
-		// https://github.com/DennisSchiefer/Project-OSRM-Web/blob/develop/WebContent/routing/OSRM.RoutingGeometry.js
-		_decode: function(encoded, precision) {
-			var len = encoded.length,
-			    index=0,
-			    lat=0,
-			    lng = 0,
-			    array = [];
-
-			precision = Math.pow(10, -precision);
-
-			while (index < len) {
-				var b,
-				    shift = 0,
-				    result = 0;
-				do {
-					b = encoded.charCodeAt(index++) - 63;
-					result |= (b & 0x1f) << shift;
-					shift += 5;
-				} while (b >= 0x20);
-				var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-				lat += dlat;
-				shift = 0;
-				result = 0;
-				do {
-					b = encoded.charCodeAt(index++) - 63;
-					result |= (b & 0x1f) << shift;
-					shift += 5;
-				} while (b >= 0x20);
-				var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-				lng += dlng;
-				//array.push( {lat: lat * precision, lng: lng * precision} );
-				array.push( [lat * precision, lng * precision] );
-			}
-			return array;
+			l.on('viaadded', function(e) {
+				this.spliceVias(e.afterIndex + 1, 0, e.latlng);
+			}, this);
 		}
 	});
 
-	L.Routing.osrm = function(options) {
-		return new L.Routing.OSRM(options);
+	L.Control.routing = function(options) {
+		return new L.Control.Routing(options);
 	};
 })();
