@@ -1,7 +1,7 @@
 (function() {
 	'use strict';
 
-	L.Control.Routing = L.Routing.Itinerary.extend({
+	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
 		},
 
@@ -78,7 +78,7 @@
 		}
 	});
 
-	L.Control.routing = function(options) {
-		return new L.Control.Routing(options);
+	L.Routing.control = function(options) {
+		return new L.Routing.Control(options);
 	};
 })();
