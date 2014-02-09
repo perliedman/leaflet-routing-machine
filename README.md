@@ -23,14 +23,14 @@ Quickest way to get routing on your map is to use ```L.Control.Routing```:
 
 Include script and CSS:
 
-```
+```HTML
 <link rel="stylesheet" href="leaflet-routing-machine.css" />
 <script src="leaflet-routing-machine.min.js"></script>
 ```
 
 Create a map and add the routing control:
 
-```
+```js
 var map = L.map('map');
 
 L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
