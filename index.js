@@ -6,8 +6,8 @@ L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.map-mmgw7jk5/{z}/{x}/{y}.png'
 		'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map);
 
-L.Control.routing({
-	vias: [
+L.Routing.control({
+	waypoints: [
 		L.latLng(57.74, 11.94),
 		L.latLng(57.6792, 11.949)
   	]
