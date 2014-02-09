@@ -21,6 +21,15 @@ Searching, displaying and editing a route is a complex problem with several movi
 
 Quickest way to get routing on your map is to use ```L.Control.Routing```:
 
+Include script and CSS:
+
+```
+<link rel="stylesheet" href="leaflet-routing-machine.css" />
+<script src="leaflet-routing-machine.min.js"></script>
+```
+
+Create a map and add the routing control:
+
 ```
 var map = L.map('map');
 
