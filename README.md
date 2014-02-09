@@ -9,7 +9,7 @@ Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-
 
 * Wrapper to handle OSRM's API
 * Show returned route on a map
-* Edit start, end and via points on the map
+* Edit start, end and waypoint points on the map
 
 ## Usage
 
@@ -35,8 +35,8 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-L.Control.routing({
-    vias: [
+L.Routing.control({
+    waypoints: [
         L.latLng(57.74, 11.94),
         L.latLng(57.6792, 11.949)
     ]
@@ -45,7 +45,7 @@ L.Control.routing({
 
 ### Advanced
 
-To customize interactions, you can use the underlying classes that ```L.Control.Routing``` ties together:
+To customize interactions, you can use the underlying classes that ```L.Routing.Control``` ties together:
 
 * ```L.Routing.OSRM```
 * ```L.Routing.Line```
@@ -57,7 +57,7 @@ Handles communication with the OSRM backend, building the request and parsing th
 
 ### L.Routing.Line
 
-Displays a route on the map, and allows moving start, end and via points, as well as adding new via points.
+Displays a route on the map, and allows moving waypoints, as well as adding new waypoints.
 
 ### L.Routing.Itinerary
 
