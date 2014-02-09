@@ -17,7 +17,7 @@ Searching, displaying and editing a route is a complex problem with several movi
 
 ### Basics
 
-Quickest way to get routing on your map is to use ```L.Control.Routing```:
+Quickest way to get routing on your map is to use ```L.Routing.Control```:
 
 Include script and CSS:
 
