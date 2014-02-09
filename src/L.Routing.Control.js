@@ -9,14 +9,14 @@
 			L.Util.setOptions(this, options);
 
 			this._router = this.options.router || new L.Routing.OSRM();
-			this._vias = this.options.vias || [];
+			this._waypoints = this.options.waypoints || [];
 
 			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
 
 			this.on('routeselected', this._routeSelected, this);
 
-			if (this._vias) {
-				this._router.route(this._vias);
+			if (this._waypoints) {
+				this._router.route(this._waypoints);
 			}
 		},
 
@@ -32,14 +32,14 @@
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
-		setVias: function(vias) {
-			this._vias = vias;
-			this._router.route(vias);
+		setVias: function(waypoints) {
+			this._waypoints = waypoints;
+			this._router.route(waypoints);
 		},
 
 		spliceVias: function() {
-			var removed = [].splice.apply(this._vias, arguments);
-			this._router.route(this._vias);
+			var removed = [].splice.apply(this._waypoints, arguments);
+			this._router.route(this._waypoints);
 			return removed;
 		},
 
@@ -58,21 +58,21 @@
 		},
 
 		_hookEvents: function(l) {
-			var vias = this._vias,
+			var wps = this._waypoints,
 			    _this = this,
 				t;
 
-			l.on('viadrag', function(e) {
-				vias[e.index] = e.latlng;
+			l.on('waypointdrag', function(e) {
+				wps[e.index] = e.latlng;
 				if (t) {
 					clearTimeout(t);
 				}
 				t = setTimeout(function() {
-					_this._router.route(vias);
+					_this._router.route(wps);
 				}, 1000);
 			});
 
-			l.on('viaadded', function(e) {
+			l.on('waypointadded', function(e) {
 				this.spliceVias(e.afterIndex + 1, 0, e.latlng);
 			}, this);
 		}

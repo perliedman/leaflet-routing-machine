@@ -13,15 +13,15 @@
 				{color: 'orange', opacity: 1, weight: 2}
 			],
 			dragStyle: 	{color: 'orange', opacity: 1, weight: 3},
-			draggableVias: true,
-			addVias: true
+			draggableWaypoints: true,
+			addWaypoints: true
 		},
 
 		initialize: function(route, options) {
 			L.Util.setOptions(this, options);
 			this._route = route;
 
-			this._viaIndices = this._findViaIndices();
+			this._wpIndices = this._findWaypointIndices();
 		},
 
 		addTo: function(map) {
@@ -39,16 +39,16 @@
 			for (i = 0; i < this.options.styles.length; i++) {
 				pl = L.polyline(geom, this.options.styles[i])
 					.addTo(map);
-				if (this.options.addVias) {
+				if (this.options.addWaypoints) {
 					pl.on('mousedown', this._onLineTouched, this);
 				}
 				this._layers.push(pl);
 			}
 
-			for (i = 0; i < this._route.viaPoints.length; i++) {
-				m = L.marker(this._route.viaPoints[i], { draggable: true }).addTo(map);
-				if (this.options.draggableVias) {
-					this._hookViaEvents(m, i);
+			for (i = 0; i < this._route.waypoints.length; i++) {
+				m = L.marker(this._route.waypoints[i], { draggable: true }).addTo(map);
+				if (this.options.draggableWaypoints) {
+					this._hookWaypointEvents(m, i);
 				}
 				this._layers.push(m);
 			}
@@ -67,16 +67,16 @@
 			return L.latLngBounds(this._route.geometry);
 		},
 
-		_createViaEvent: function(i, e) {
+		_createWaypointEvent: function(i, e) {
 			return {index: i, latlng: e.target.getLatLng()};
 		},
 
-		_findViaIndices: function() {
-			var vias = this._route.viaPoints,
+		_findWaypointIndices: function() {
+			var wps = this._route.waypoints,
 			    indices = [],
 			    i;
-			for (i = 0; i < vias.length; i++) {
-				indices.push(this._findClosestRoutePoint(L.latLng(vias[i])));
+			for (i = 0; i < wps.length; i++) {
+				indices.push(this._findClosestRoutePoint(L.latLng(wps[i])));
 			}
 
 			return indices;
@@ -100,55 +100,55 @@
 			return minIndex;
 		},
 
-		_findNearestViaBefore: function(i) {
-			var j = this._viaIndices.length - 1;
-			while (j >= 0 && this._viaIndices[j] > i) {
+		_findNearestWpBefore: function(i) {
+			var j = this._wpIndices.length - 1;
+			while (j >= 0 && this._wpIndices[j] > i) {
 				j--;
 			}
 
 			return j;
 		},
 
-		_hookViaEvents: function(m, i) {
+		_hookWaypointEvents: function(m, i) {
 			m.on('dragstart', function(e) {
-				this.fire('viadragstart', this._createViaEvent(i, e));
+				this.fire('waypointdragstart', this._createWaypointEvent(i, e));
 			}, this);
 			m.on('drag', function(e) {
-				this.fire('viadrag', this._createViaEvent(i, e));
+				this.fire('waypointdrag', this._createWaypointEvent(i, e));
 			}, this);
 			m.on('dragend', function(e) {
-				this.fire('viadragend', this._createViaEvent(i, e));
+				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 			}, this);
 		},
 
 		_onLineTouched: function(e) {
-			var afterIndex = this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng));
+			var afterIndex = this._findNearestWpBefore(this._findClosestRoutePoint(e.latlng));
 
-			this._newVia = {
+			this._newWp = {
 				afterIndex: afterIndex,
 				marker: L.marker(e.latlng).addTo(this._map),
 				line: L.polyline([
-					this._route.viaPoints[afterIndex],
+					this._route.waypoints[afterIndex],
 					e.latlng,
-					this._route.viaPoints[afterIndex + 1]
+					this._route.waypoints[afterIndex + 1]
 				], this.options.dragStyle).addTo(this._map)
 			};
-			this._layers.push(this._newVia.marker);
-			this._layers.push(this._newVia.line);
-			this._map.on('mousemove', this._onDragNewVia, this);
-			this._map.on('mouseup', this._onViaRelease, this);
+			this._layers.push(this._newWp.marker);
+			this._layers.push(this._newWp.line);
+			this._map.on('mousemove', this._onDragNewWp, this);
+			this._map.on('mouseup', this._onWpRelease, this);
 		},
 
-		_onDragNewVia: function(e) {
-			this._newVia.marker.setLatLng(e.latlng);
-			this._newVia.line.spliceLatLngs(1, 1, e.latlng);
+		_onDragNewWp: function(e) {
+			this._newWp.marker.setLatLng(e.latlng);
+			this._newWp.line.spliceLatLngs(1, 1, e.latlng);
 		},
 
-		_onViaRelease: function(e) {
-			this._map.off('mouseup', this._onViaRelease, this);
-			this._map.off('mousemove', this._onViaDrag, this);
-			this.fire('viaadded', {
-				afterIndex: this._newVia.afterIndex,
+		_onWpRelease: function(e) {
+			this._map.off('mouseup', this._onWpRelease, this);
+			this._map.off('mousemove', this._onDragNewWp, this);
+			this.fire('waypointadded', {
+				afterIndex: this._newWp.afterIndex,
 				latlng: e.latlng
 			});
 		}

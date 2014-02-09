@@ -52,7 +52,7 @@
 					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
 					instructions: response.route_instructions,
 					summary: response.route_summary,
-					viaPoints: response.via_points
+					waypoints: response.via_points
 				}],
 			    i;
 
@@ -62,7 +62,7 @@
 					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
 					instructions: response.alternative_instructions[i],
 					summary: response.alternative_summaries[i],
-					viaPoints: response.via_points
+					waypoints: response.via_points
 				})
 			}
 

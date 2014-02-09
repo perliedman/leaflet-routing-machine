@@ -5,7 +5,7 @@ L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.map-mmgw7jk5/{z}/{x}/{y}.png'
 }).addTo(map);
 
 L.Routing.control({
-	vias: [
+	waypoints: [
 		L.latLng(57.74, 11.94),
 		L.latLng(57.6792, 11.949)
 	]
