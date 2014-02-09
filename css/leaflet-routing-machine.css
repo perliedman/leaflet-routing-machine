@@ -13,7 +13,7 @@
     font-weight: normal;
 }
 
-.leaflet-routing-alt {
+.leaflet-routing-alt, .leaflet-routing-geocoders {
     padding: 6px;
     margin-top: 2px;
     margin-bottom: 6px;
@@ -55,4 +55,10 @@
 .leaflet-routing-alt::-webkit-scrollbar-thumb {
     border-radius: 2px;
     background-color: #888;
+}
+
+.leaflet-routing-geocoders input {
+    width: 292px;
+    padding: 4px;
+    border: 1px solid #eee;
 }
