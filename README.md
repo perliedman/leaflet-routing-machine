@@ -15,6 +15,10 @@ Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-
 
 Searching, displaying and editing a route is a complex problem with several moving parts. Leaflet Routing Machine aims to solve this problem while at offering the ability to customize how the user interacts with the routing software.
 
+### Installing
+
+To use Leaflet Routing Machine, copy the files under the ```dist``` folder to where you store you scripts and CSS.
+
 ### Basics
 
 Quickest way to get routing on your map is to use ```L.Routing.Control```:
@@ -42,6 +46,16 @@ L.Routing.control({
     ]
 }).addTo(map);
 ```
+
+### Building
+
+To build the packaged files in ```dist```, run
+
+```sh
+npm install
+```
+
+This requires [Node and npm](http://nodejs.org/), as well as Make, which should be available on UNIXy systems, and installable via for example [Cygwin](http://www.cygwin.com/) if you're on Windows.
 
 ### Advanced
 
