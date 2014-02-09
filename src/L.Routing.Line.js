@@ -12,6 +12,7 @@
 				{color: 'white', opacity: 0.8, weight: 4},
 				{color: 'orange', opacity: 1, weight: 2}
 			],
+			dragStyle: 	{color: 'orange', opacity: 1, weight: 3},
 			draggableVias: true,
 			addVias: true
 		},
@@ -121,17 +122,26 @@
 		},
 
 		_onLineTouched: function(e) {
+			var afterIndex = this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng));
+
 			this._newVia = {
-				afterIndex: this._findNearestViaBefore(this._findClosestRoutePoint(e.latlng)),
-				marker: L.marker(e.latlng).addTo(this._map)
+				afterIndex: afterIndex,
+				marker: L.marker(e.latlng).addTo(this._map),
+				line: L.polyline([
+					this._route.viaPoints[afterIndex],
+					e.latlng,
+					this._route.viaPoints[afterIndex + 1]
+				], this.options.dragStyle).addTo(this._map)
 			};
 			this._layers.push(this._newVia.marker);
+			this._layers.push(this._newVia.line);
 			this._map.on('mousemove', this._onDragNewVia, this);
 			this._map.on('mouseup', this._onViaRelease, this);
 		},
 
 		_onDragNewVia: function(e) {
 			this._newVia.marker.setLatLng(e.latlng);
+			this._newVia.line.spliceLatLngs(1, 1, e.latlng);
 		},
 
 		_onViaRelease: function(e) {
