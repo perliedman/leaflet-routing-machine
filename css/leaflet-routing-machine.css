@@ -43,16 +43,16 @@
     cursor: pointer;
 }
 
-::-webkit-scrollbar {
+.leaflet-routing-alt::-webkit-scrollbar {
     width: 8px;
 }
 
-::-webkit-scrollbar-track {
+.leaflet-routing-alt::-webkit-scrollbar-track {
     border-radius: 2px;
     background-color: #eee;
 }
 
-::-webkit-scrollbar-thumb {
+.leaflet-routing-alt::-webkit-scrollbar-thumb {
     border-radius: 2px;
     background-color: #888;
 }
