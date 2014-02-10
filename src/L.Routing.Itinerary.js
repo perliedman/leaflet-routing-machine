@@ -12,6 +12,7 @@
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
 			this._router.on('routefound', this._routeFound, this);
+
 			return this._container;
 		},
 
@@ -26,16 +27,7 @@
 
 			this._routes = e.routes;
 
-			// TODO: this is really inelegant
-			for (i = 0; i < this._container.children.length; i++) {
-				alt = this._container.children[i];
-				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-					this._container.removeChild(alt);
-					i--;
-				}
-			}
-
-			this._altElements = [];
+			this._container.innerHTML = '';
 			for (i = 0; i < e.routes.length; i++) {
 				alt = e.routes[i];
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
@@ -47,7 +39,6 @@
 				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
 				altDiv.appendChild(this._createItineraryTable(alt));
-				this._altElements.push(altDiv);
 			}
 
 			this.fire('routeselected', {route: this._routes[0]});
@@ -82,13 +73,12 @@
 				altElem = altElem.parentElement;
 			}
 
-			for (j = 0; j < this._altElements.length; j++) {
-				n = this._altElements[j];
+			for (j = 0; j < this._container.children.length; j++) {
+				n = this._container.children[j];
 				isCurrentSelection = altElem === n;
 				L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
 
 				if (isCurrentSelection) {
-					// TODO: don't fire if the currently active is clicked
 					this.fire('routeselected', {route: this._routes[j]});
 				}
 			}
