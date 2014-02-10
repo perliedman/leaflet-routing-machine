@@ -15,9 +15,7 @@
 
 			this.on('routeselected', this._routeSelected, this);
 
-			if (this._waypoints) {
-				this._router.route(this._waypoints);
-			}
+			this._route();
 		},
 
 		onAdd: function(map) {
@@ -40,12 +38,12 @@
 
 		setWaypoints: function(waypoints) {
 			this._waypoints = waypoints;
-			this._router.route(waypoints);
+			this._route();
 		},
 
 		spliceWaypoints: function() {
 			var removed = [].splice.apply(this._waypoints, arguments);
-			this._router.route(this._waypoints);
+			this._route();
 			return removed;
 		},
 
@@ -78,7 +76,7 @@
 					clearTimeout(t);
 				}
 				t = setTimeout(function() {
-					_this._router.route(wps);
+					_this._route();
 				}, 1000);
 			});
 
@@ -91,26 +89,49 @@
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders'),
 			    i,
 			    geocoder,
-			    listener;
+			    addWpBtn;
+
+			while (this._waypoints.length < 2) {
+				this._waypoints.push(null);
+			}
 
 			this._geocoderElems = [];
 
-			for (i = 0; i < Math.max(this._waypoints.length, 2); i++) {
-				geocoder = L.DomUtil.create('input', '', container);
-				if (i === 0) {
-					geocoder.placeholder = 'Start';
-				} else if (i >= this._waypoints.length - 1) {
-					geocoder.placeholder = 'End';
-				} else {
-					geocoder.placeholder = 'Via';
-				}
-
-				listener = this._createGeocodeListener(i);
-				L.DomEvent.addListener(geocoder, 'keydown', listener, this);
+			for (i = 0; i < this._waypoints.length; i++) {
+				geocoder = this._createGeocoder(i);
+				container.appendChild(geocoder);
 				this._geocoderElems.push(geocoder);
 			}
 
+			addWpBtn = L.DomUtil.create('button', '', container);
+			addWpBtn.type = 'button';
+			addWpBtn.innerHTML = '+';
+			L.DomEvent.addListener(addWpBtn, 'click', function() {
+				this.spliceWaypoints(this._waypoints.length + 1, 0, null);
+				this._container.removeChild(container);
+				this._container.insertBefore(this._createGeocoders(), this._container.firstChild);
+			}, this);
+
 			return container;
+		},
+
+		_createGeocoder: function(i) {
+			var geocoder,
+			    listener;
+
+			geocoder = L.DomUtil.create('input', '');
+			if (i === 0) {
+				geocoder.placeholder = 'Start';
+			} else if (i >= this._waypoints.length - 1) {
+				geocoder.placeholder = 'End';
+			} else {
+				geocoder.placeholder = 'Via';
+			}
+
+			listener = this._createGeocodeListener(i);
+			L.DomEvent.addListener(geocoder, 'keydown', listener, this);
+
+			return geocoder;
 		},
 
 		_createGeocodeListener: function(i) {
@@ -125,6 +146,21 @@
 
 		_setGeocoderValue: function(i, v) {
 			this._geocoderElems[i].value = this._geocoderElems[i].value || v;
+		},
+
+		_route: function() {
+			var i;
+			if (!this._waypoints || this._waypoints.length < 2) {
+				return;
+			}
+
+			for (i = 0; i < this._waypoints.length; i++) {
+				if (!this._waypoints[i]) {
+					return;
+				}
+			}
+
+			this._router.route(this._waypoints);
 		}
 	});
 

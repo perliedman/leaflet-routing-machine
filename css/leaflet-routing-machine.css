@@ -60,5 +60,14 @@
 .leaflet-routing-geocoders input {
     width: 292px;
     padding: 4px;
-    border: 1px solid #eee;
+    border: 1px solid #ccc;
+}
+
+.leaflet-routing-geocoders button {
+    font: bold 18px 'Lucida Console', Monaco, monospace;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    margin: 0 6px;
+    float: right;
 }
