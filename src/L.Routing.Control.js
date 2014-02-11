@@ -9,11 +9,15 @@
 			L.Util.setOptions(this, options);
 
 			this._router = this.options.router || new L.Routing.OSRM();
-			this._waypoints = this.options.waypoints || [];
+			this._plan = this.options.plan || L.Routing.plan();
+			if (this.options.waypoints) {
+				this._plan.setWaypoints(this.options.waypoints);
+			}
 
 			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
 
 			this.on('routeselected', this._routeSelected, this);
+			this._plan.on('waypointschanged', this._route, this);
 
 			this._route();
 		},
@@ -25,6 +29,7 @@
 			if (this.options.geocoder) {
 				container.insertBefore(this._createGeocoders(), container.firstChild);
 			}
+			this._map.addLayer(this._plan);
 
 			return container;
 		},
@@ -33,17 +38,16 @@
 			if (this._line) {
 				map.removeLayer(this._line);
 			}
+			map.removeLayer(this._plan);
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
 		setWaypoints: function(waypoints) {
-			this._waypoints = waypoints;
-			this._route();
+			this._plan.setWaypoints(waypoints);
 		},
 
 		spliceWaypoints: function() {
-			var removed = [].splice.apply(this._waypoints, arguments);
-			this._route();
+			var removed = this._plan.spliceWaypoints.apply(this._plan, arguments);
 			return removed;
 		},
 
@@ -66,38 +70,21 @@
 		},
 
 		_hookEvents: function(l) {
-			var wps = this._waypoints,
-			    _this = this,
-				t;
-
-			l.on('waypointdrag', function(e) {
-				wps[e.index] = e.latlng;
-				if (t) {
-					clearTimeout(t);
-				}
-				t = setTimeout(function() {
-					_this._route();
-				}, 1000);
-			});
-
-			l.on('waypointadded', function(e) {
-				this.spliceWaypoints(e.afterIndex + 1, 0, e.latlng);
+			l.on('linetouched', function(e) {
+				this._plan.dragNewWaypoint(e);
 			}, this);
 		},
 
 		_createGeocoders: function() {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders'),
+				waypoints = this._plan.getWaypoints(),
 			    i,
 			    geocoder,
 			    addWpBtn;
 
-			while (this._waypoints.length < 2) {
-				this._waypoints.push(null);
-			}
-
 			this._geocoderElems = [];
 
-			for (i = 0; i < this._waypoints.length; i++) {
+			for (i = 0; i < waypoints.length; i++) {
 				geocoder = this._createGeocoder(i);
 				container.appendChild(geocoder);
 				this._geocoderElems.push(geocoder);
@@ -107,7 +94,7 @@
 			addWpBtn.type = 'button';
 			addWpBtn.innerHTML = '+';
 			L.DomEvent.addListener(addWpBtn, 'click', function() {
-				this.spliceWaypoints(this._waypoints.length + 1, 0, null);
+				this.spliceWaypoints(waypoints.length + 1, 0, null);
 				this._container.removeChild(container);
 				this._container.insertBefore(this._createGeocoders(), this._container.firstChild);
 			}, this);
@@ -122,7 +109,7 @@
 			geocoder = L.DomUtil.create('input', '');
 			if (i === 0) {
 				geocoder.placeholder = 'Start';
-			} else if (i >= this._waypoints.length - 1) {
+			} else if (i >= this._plan.getWaypoints().length - 1) {
 				geocoder.placeholder = 'End';
 			} else {
 				geocoder.placeholder = 'Via';
@@ -149,18 +136,9 @@
 		},
 
 		_route: function() {
-			var i;
-			if (!this._waypoints || this._waypoints.length < 2) {
-				return;
+			if (this._plan.isReady()) {
+				this._router.route(this._plan.getWaypoints());
 			}
-
-			for (i = 0; i < this._waypoints.length; i++) {
-				if (!this._waypoints[i]) {
-					return;
-				}
-			}
-
-			this._router.route(this._waypoints);
 		}
 	});
 
