@@ -70,4 +70,10 @@
     background-color: white;
     margin: 0 6px;
     float: right;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.leaflet-routing-geocoders button:hover {
+    background-color: #eee;
 }

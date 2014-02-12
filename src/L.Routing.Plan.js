@@ -2,11 +2,47 @@
 	'use strict';
 
 	var Waypoint = L.Class.extend({
-		initialize: function(latLng, name) {
-			this.latLng = latLng;
-			this.name = name;
-		}
-	});
+			initialize: function(latLng, name) {
+				this.latLng = latLng;
+				this.name = name;
+			}
+		}),
+	    GeocoderResults = L.Class.extend({
+			initialize: function(results) {
+				this._results = results;
+			},
+
+			addTo: function(elem) {
+				var container = L.DomUtil.create('table', 'leaflet-routing-geocoder-result'),
+					sibling = elem.nextSibling,
+				    i,
+				    tr,
+				    td;
+
+				for (i = 0; i < this._results.length; i++) {
+					tr = L.DomUtil.create('tr', '', container);
+					td = L.DomUtil.create('td', '', tr);
+					td.textContent = this._results[i].name;
+					L.DomEvent.addListener(td, 'click', this._listener(this._results[i]), this);
+				}
+
+				if (sibling) {
+					elem.parentElement.insertBefore(container, sibling);
+				} else {
+					elem.parentElement.appendChild(container);
+				}
+
+				return this;
+			},
+
+			onResultSelected: function() {},
+
+			_listener: function(r) {
+				return function() {
+					this.onResultSelected(r);
+				};
+			}
+		});
 
 	L.Routing = L.Routing || {};
 
@@ -136,9 +172,20 @@
 					}
 
 					this.options.geocoder.geocode(e.target.value, function(results) {
-						this._waypoints[thisIndex].latLng = results[0].center;
-						this._updateMarkers();
-						this._fireChanged();
+						var gr,
+							_this = this;
+						if (results.length === 1) {
+							this._waypoints[thisIndex].latLng = results[0].center;
+							this._updateMarkers();
+							this._fireChanged();
+						} else {
+							gr = new GeocoderResults(results).addTo(geocoderElem);
+							gr.onResultSelected = function(r) {
+								_this._waypoints[thisIndex].latLng = r.center;
+								_this._updateMarkers();
+								_this._fireChanged();
+							};
+						}
 					}, this);
 				}
 			}, this);
