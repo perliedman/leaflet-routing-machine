@@ -1,6 +1,13 @@
 (function() {
 	'use strict';
 
+	var Waypoint = L.Class.extend({
+		initialize: function(latLng, name) {
+			this.latLng = latLng;
+			this.name = name;
+		}
+	});
+
 	L.Routing = L.Routing || {};
 
 	L.Routing.Plan = L.Class.extend({
@@ -25,7 +32,7 @@
 		isReady: function() {
 			var i;
 			for (i = 0; i < this._waypoints.length; i++) {
-				if (!this._waypoints[i]) {
+				if (!this._waypoints[i].latLng) {
 					return false;
 				}
 			}
@@ -34,7 +41,14 @@
 		},
 
 		getWaypoints: function() {
-			return this._waypoints;
+			var i,
+				wps = [];
+
+			for (i = 0; i < this._waypoints.length; i++) {
+				wps.push(this._waypoints[i].latLng);
+			}
+
+			return wps;
 		},
 
 		setWaypoints: function(waypoints) {
@@ -42,15 +56,21 @@
 		},
 
 		spliceWaypoints: function() {
-			var removed = [].splice.apply(this._waypoints, arguments);
+			var i,
+				args = [arguments[0], arguments[1]];
+
+			for (i = 0; i < arguments.length - 2; i++) {
+				args.push(new Waypoint(arguments[i + 2]));
+			}
+
+			[].splice.apply(this._waypoints, args);
 
 			while (this._waypoints.length < 2) {
-				this._waypoints.push(null);
+				this._waypoints.push(new Waypoint());
 			}
 
 			this._updateMarkers();
 			this._fireChanged.apply(this, arguments);
-			return removed;
 		},
 
 		onAdd: function(map) {
@@ -116,7 +136,9 @@
 					}
 
 					this.options.geocoder.geocode(e.target.value, function(results) {
-						this.spliceWaypoints(thisIndex, 1, results[0].center);
+						this._waypoints[thisIndex].latLng = results[0].center;
+						this._updateMarkers();
+						this._fireChanged();
 					}, this);
 				}
 			}, this);
@@ -165,8 +187,8 @@
 			this._removeMarkers();
 
 			for (i = 0; i < this._waypoints.length; i++) {
-				if (this._waypoints[i]) {
-					m = L.marker(this._waypoints[i], { draggable: true }).addTo(this._map);
+				if (this._waypoints[i].latLng) {
+					m = L.marker(this._waypoints[i].latLng, { draggable: true }).addTo(this._map);
 					if (this.options.draggableWaypoints) {
 						this._hookWaypointEvents(m, i);
 					}
@@ -179,13 +201,16 @@
 
 		_fireChanged: function() {
 			if (this.isReady()) {
-				this.fire('waypointschanged', {waypoints: this._waypoints});
+				this.fire('waypointschanged', {waypoints: this.getWaypoints()});
 			}
-			this.fire('waypointsspliced', {
-				index: Array.prototype.shift.call(arguments),
-				nRemoved: Array.prototype.shift.call(arguments),
-				added: arguments
-			});
+
+			if (arguments.length >= 2) {
+				this.fire('waypointsspliced', {
+					index: Array.prototype.shift.call(arguments),
+					nRemoved: Array.prototype.shift.call(arguments),
+					added: arguments
+				});
+			}
 		},
 
 		_hookWaypointEvents: function(m, i) {
@@ -197,7 +222,12 @@
 			}, this);
 			m.on('dragend', function(e) {
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
-				this.spliceWaypoints(i, 1, e.target.getLatLng());
+				this._waypoints[i].latLng = e.target.getLatLng();
+				this._waypoints[i].name = '';
+				if (this._geocoderElems) {
+					this._geocoderElems[i].value = '';
+				}
+				this._fireChanged();
 			}, this);
 		},
 
@@ -210,9 +240,9 @@
 				afterIndex: e.afterIndex,
 				marker: L.marker(e.latlng).addTo(this._map),
 				line: L.polyline([
-					this._waypoints[e.afterIndex],
+					this._waypoints[e.afterIndex].latLng,
 					e.latlng,
-					this._waypoints[e.afterIndex + 1]
+					this._waypoints[e.afterIndex + 1].latLng
 				], this.options.dragStyle).addTo(this._map)
 			};
 			this._markers.splice(e.afterIndex + 1, 0, this._newWp.marker);
