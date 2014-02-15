@@ -19,18 +19,29 @@
 				    tr,
 				    td;
 
+				this._elem = elem;
+
 				for (i = 0; i < this._results.length; i++) {
 					tr = L.DomUtil.create('tr', '', container);
+					tr.setAttribute('data-result-index', i);
 					td = L.DomUtil.create('td', '', tr);
 					td.textContent = this._results[i].name;
 					L.DomEvent.addListener(td, 'click', this._listener(this._results[i]), this);
 				}
+
+				L.DomEvent.addListener(elem, 'keydown', this._keyPressed, this);
+
+				container.style.left = elem.offsetLeft;
+				container.style.top = elem.offsetTop + elem.offsetHeight;
+				container.style.width = elem.offsetWidth;
 
 				if (sibling) {
 					elem.parentElement.insertBefore(container, sibling);
 				} else {
 					elem.parentElement.appendChild(container);
 				}
+
+				this._container = container;
 
 				return this;
 			},
@@ -41,6 +52,54 @@
 				return function() {
 					this.onResultSelected(r);
 				};
+			},
+
+			_keyPressed: function(e) {
+				var _this = this,
+					select = function select(dir) {
+						if (_this._selection) {
+							L.DomUtil.removeClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
+							_this._selection = _this._selection[dir > 0 ? 'nextSibling' : 'previousSibling'];
+						}
+						if (!_this._selection) {
+							_this._selection = _this._container[dir > 0 ? 'firstChild' : 'lastChild'];
+						}
+
+						if (_this._selection) {
+							L.DomUtil.addClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
+						}
+					},
+					index;
+
+				switch (e.keyCode) {
+				// Up
+				case 38:
+					select(-1);
+					L.DomEvent.preventDefault(e);
+					break;
+				// Up
+				case 40:
+					select(1);
+					L.DomEvent.preventDefault(e);
+					break;
+				// Enter
+				case 13:
+					if (this._selection) {
+						index = parseInt(this._selection.getAttribute('data-result-index'), 10);
+						this.onResultSelected(this._results[index]);
+						L.DomEvent.preventDefault(e);
+					}
+				}
+				return true;
+			},
+
+			remove: function() {
+				if (this._container) {
+					L.DomEvent.removeListener(this._elem, 'keydown', this._keyPressed);
+					this._container.parentElement.removeChild(this._container);
+					delete this._container;
+					delete this._elem;
+				}
 			}
 		});
 
@@ -177,12 +236,22 @@
 						var gr,
 							_this = this;
 						if (results.length === 1) {
+							geocoderElem.value = results[0].name;
+							this._waypoints[thisIndex].name = results[0].name;
 							this._waypoints[thisIndex].latLng = results[0].center;
 							this._updateMarkers();
 							this._fireChanged();
 						} else {
 							gr = new GeocoderResults(results).addTo(geocoderElem);
+							L.DomEvent.addListener(geocoderElem, 'blur', function() {
+								// Don't remove before onResultSelected has got a chance to fire
+								// TODO: this looks like a hack
+								setTimeout(function() {gr.remove();}, 50);
+							});
 							gr.onResultSelected = function(r) {
+								gr.remove();
+								geocoderElem.value = r.name;
+								_this._waypoints[thisIndex].name = r.name;
 								_this._waypoints[thisIndex].latLng = r.center;
 								_this._updateMarkers();
 								_this._fireChanged();

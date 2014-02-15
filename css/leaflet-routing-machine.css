@@ -77,3 +77,15 @@
 .leaflet-routing-geocoders button:hover {
     background-color: #eee;
 }
+
+.leaflet-routing-geocoder-result {
+    border: 1px solid #ccc;
+    border-radius: 0 0 4px 4px;
+    background-color: white;
+    position: absolute;
+    cursor: pointer;
+}
+
+.leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
+    background-color: #eee;
+}
