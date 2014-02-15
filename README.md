@@ -10,6 +10,7 @@ Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-
 * Wrapper to handle OSRM's API
 * Show returned route on a map
 * Edit start, end and waypoint points on the map
+* Geocoding to search start, end and waypoint locations from text
 
 ## Usage
 
@@ -46,6 +47,22 @@ L.Routing.control({
     ]
 }).addTo(map);
 ```
+
+### Geocoding support
+
+To let the user enter location addresses, a so called geocoder must be used. OSRM does not
+provide a geocoding service, so an external service has to be used. Leaflet Routing Machine
+can support any geocoding service, as long as it implements the [IGeocoder](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) interface used by [Leaflet Control Geocoder](https://github.com/perliedman/leaflet-control-geocoder); an easy alternative (used by the examples) is to simply use Leaflet Control Geocoder straight away.
+
+The geocoder is enabled through options:
+
+```js
+L.Routing.control({
+    geocoder: L.Control.Geocoder.nominatim()
+}).addTo(map);
+```
+
+(This example assumes Leaflet Control Geocoder has already been loaded.)
 
 ### Building
 
