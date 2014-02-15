@@ -13,7 +13,7 @@
     font-weight: normal;
 }
 
-.leaflet-routing-alt {
+.leaflet-routing-alt, .leaflet-routing-geocoders {
     padding: 6px;
     margin-top: 2px;
     margin-bottom: 6px;
@@ -55,4 +55,37 @@
 .leaflet-routing-alt::-webkit-scrollbar-thumb {
     border-radius: 2px;
     background-color: #888;
+}
+
+.leaflet-routing-geocoders input {
+    width: 292px;
+    padding: 4px;
+    border: 1px solid #ccc;
+}
+
+.leaflet-routing-geocoders button {
+    font: bold 18px 'Lucida Console', Monaco, monospace;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    margin: 0 6px;
+    float: right;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.leaflet-routing-geocoders button:hover {
+    background-color: #eee;
+}
+
+.leaflet-routing-geocoder-result {
+    border: 1px solid #ccc;
+    border-radius: 0 0 4px 4px;
+    background-color: white;
+    position: absolute;
+    cursor: pointer;
+}
+
+.leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
+    background-color: #eee;
 }
