@@ -147,15 +147,16 @@
 		},
 
 		setWaypoints: function(waypoints) {
-			this.spliceWaypoints(0, this._waypoints.length, waypoints);
+			var args = [0, this._waypoints.length].concat(waypoints);
+			this.spliceWaypoints.apply(this, args);
 		},
 
 		spliceWaypoints: function() {
 			var i,
 				args = [arguments[0], arguments[1]];
 
-			for (i = 0; arguments[2] && i < arguments[2].length; i++) {
-				args.push(new Waypoint(arguments[2][i]));
+			for (i = 2; i < arguments.length; i++) {
+				args.push(new Waypoint(arguments[i]));
 			}
 
 			[].splice.apply(this._waypoints, args);
