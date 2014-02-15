@@ -95,8 +95,8 @@
 			var i,
 				args = [arguments[0], arguments[1]];
 
-			for (i = 0; i < arguments.length - 2; i++) {
-				args.push(new Waypoint(arguments[i + 2]));
+			for (i = 0; arguments[2] && i < arguments[2].length; i++) {
+				args.push(new Waypoint(arguments[2][i]));
 			}
 
 			[].splice.apply(this._waypoints, args);
@@ -120,6 +120,8 @@
 			if (this._newWp) {
 				this._map.removeLayer(this._newWp.line);
 			}
+
+			delete this._map;
 		},
 
 		createGeocoders: function() {
@@ -231,6 +233,11 @@
 		_updateMarkers: function() {
 			var i,
 			    m;
+
+		    if (!this._map) {
+		    	return;
+		    }
+
 			this._removeMarkers();
 
 			for (i = 0; i < this._waypoints.length; i++) {

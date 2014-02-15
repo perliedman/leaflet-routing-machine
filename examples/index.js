@@ -1,15 +1,12 @@
 var map = L.map('map');
 
-L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.map-mmgw7jk5/{z}/{x}/{y}.png', {
-	attribution: 'Maps by <a href="https://www.mapbox.com/about/maps/">MapBox</a>'
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
 L.Routing.control({
-	/*waypoints: [
+	waypoints: [
 		L.latLng(57.74, 11.94),
 		L.latLng(57.6792, 11.949)
-	],*/
-	geocoder: new L.Control.Geocoder.Nominatim()
+	]
 }).addTo(map);
-
-map.setView([57.7, 11.94], 9);
