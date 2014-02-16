@@ -7,7 +7,9 @@ L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.h9ekn0f1/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 L.Routing.control({
+    waypoints: [
+        L.latLng(48.8588,2.3469),
+        L.latLng(52.3546,4.9039)
+    ],
     geocoder: L.Control.Geocoder.nominatim()
 }).addTo(map);
-
-map.setView([57.7, 11.9], 8);
