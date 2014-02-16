@@ -52,9 +52,9 @@ L.Routing.control({
 
 To let the user enter location addresses, a so called geocoder must be used. OSRM does not
 provide a geocoding service, so an external service has to be used. Leaflet Routing Machine
-can support any geocoding service, as long as it implements the [IGeocoder](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) interface used by [Leaflet Control Geocoder](https://github.com/perliedman/leaflet-control-geocoder); an easy alternative (used by the examples) is to simply use Leaflet Control Geocoder straight away.
+can support any geocoding service, as long as it implements the [IGeocoder](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) interface used by [Leaflet Control Geocoder](https://github.com/perliedman/leaflet-control-geocoder). An easy alternative (used by the examples) is to simply use Leaflet Control Geocoder straight away.
 
-The geocoder is enabled through options:
+Enable the geocoder with options when creating the control:
 
 ```js
 L.Routing.control({
