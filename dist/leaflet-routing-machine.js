@@ -583,10 +583,10 @@
 		includes: L.Mixin.Events,
 
 		options: {
-			styles: [
+			dragStyles: [
 				{color: 'black', opacity: 0.15, weight: 7},
 				{color: 'white', opacity: 0.8, weight: 4},
-				{color: 'orange', opacity: 1, weight: 2}
+				{color: 'orange', opacity: 1, weight: 2, dashArray: '7,12'}
 			],
 			draggableWaypoints: true,
 			addWaypoints: true
@@ -649,10 +649,13 @@
 		},
 
 		onRemove: function() {
+			var i;
 			this._removeMarkers();
 
 			if (this._newWp) {
-				this._map.removeLayer(this._newWp.line);
+				for (i = 0; i < this._newWp.lines.length; i++) {
+					this._map.removeLayer(this._newWp.lines[i]);
+				}
 			}
 
 			delete this._map;
@@ -776,17 +779,29 @@
 
 		_updateMarkers: function() {
 			var i,
+			    icon,
+			    options,
 			    m;
 
-		    if (!this._map) {
-		    	return;
-		    }
+			if (!this._map) {
+				return;
+			}
 
 			this._removeMarkers();
 
 			for (i = 0; i < this._waypoints.length; i++) {
 				if (this._waypoints[i].latLng) {
-					m = L.marker(this._waypoints[i].latLng, { draggable: true }).addTo(this._map);
+					icon = (typeof(this.options.waypointIcon) === 'function') ?
+						this.options.waypointIcon(i, this._waypoints[i].name, this._waypoints.length) :
+						this.options.waypointIcon;
+					options = {
+						draggable: true
+					};
+					if (icon) {
+						options.icon = icon;
+					}
+
+					m = L.marker(this._waypoints[i].latLng, options).addTo(this._map);
 					if (this.options.draggableWaypoints) {
 						this._hookWaypointEvents(m, i);
 					}
@@ -834,29 +849,41 @@
 		},
 
 		dragNewWaypoint: function(e) {
+			var i;
 			this._newWp = {
 				afterIndex: e.afterIndex,
 				marker: L.marker(e.latlng).addTo(this._map),
-				line: L.polyline([
+				lines: []
+			};
+
+			for (i = 0; i < this.options.dragStyles.length; i++) {
+				this._newWp.lines.push(L.polyline([
 					this._waypoints[e.afterIndex].latLng,
 					e.latlng,
 					this._waypoints[e.afterIndex + 1].latLng
-				], this.options.dragStyle).addTo(this._map)
-			};
+				], this.options.dragStyles[i]).addTo(this._map));
+			}
+
 			this._markers.splice(e.afterIndex + 1, 0, this._newWp.marker);
 			this._map.on('mousemove', this._onDragNewWp, this);
 			this._map.on('mouseup', this._onWpRelease, this);
 		},
 
 		_onDragNewWp: function(e) {
+			var i;
 			this._newWp.marker.setLatLng(e.latlng);
-			this._newWp.line.spliceLatLngs(1, 1, e.latlng);
+			for (i = 0; i < this._newWp.lines.length; i++) {
+				this._newWp.lines[i].spliceLatLngs(1, 1, e.latlng);
+			}
 		},
 
 		_onWpRelease: function(e) {
+			var i;
 			this._map.off('mouseup', this._onWpRelease, this);
 			this._map.off('mousemove', this._onDragNewWp, this);
-			this._map.removeLayer(this._newWp.line);
+			for (i = 0; i < this._newWp.lines.length; i++) {
+				this._map.removeLayer(this._newWp.lines[i]);
+			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
 			delete this._newWp;
 		}
