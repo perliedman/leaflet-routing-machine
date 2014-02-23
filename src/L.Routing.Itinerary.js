@@ -11,6 +11,7 @@
 
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
+			L.DomEvent.disableClickPropagation(this._container);
 			this._router.on('routefound', this._routeFound, this);
 			return this._container;
 		},
