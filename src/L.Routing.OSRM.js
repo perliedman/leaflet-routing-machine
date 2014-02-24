@@ -5,7 +5,7 @@
 
 	L.Routing._jsonpCallbackId = 0;
 	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
-		var callbackId = '_l_geocoder_' + (L.Routing._jsonpCallbackId++),
+		var callbackId = '_l_routing_machine_' + (L.Routing._jsonpCallbackId++),
 		    script;
 		url += '&' + jsonpParam + '=' + callbackId;
 		window[callbackId] = L.Util.bind(callback, context);
