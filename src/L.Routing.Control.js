@@ -10,6 +10,9 @@
 
 			this._router = this.options.router || new L.Routing.OSRM();
 			this._plan = this.options.plan || L.Routing.plan(undefined, { geocoder: this.options.geocoder });
+			if (this.options.geocoder) {
+				this._plan.options.geocoder = this.options.geocoder;
+			}
 			if (this.options.waypoints) {
 				this._plan.setWaypoints(this.options.waypoints);
 			}
@@ -29,7 +32,7 @@
 			this._map.addLayer(this._plan);
 
 			if (this.options.geocoder) {
-				container.insertBefore(this._plan.createGeocoders(this.options.geocoder), container.firstChild);
+				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
 			}
 
 			return container;
