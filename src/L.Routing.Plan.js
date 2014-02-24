@@ -224,6 +224,8 @@
 			geocoderElem = L.DomUtil.create('input', '');
 			geocoderElem.placeholder = placeholder;
 
+			this._updateWaypointName(i);
+
 			L.DomEvent.addListener(geocoderElem, 'keydown', function(e) {
 				var i,
 					siblings = geocoderElem.parentElement.children,
@@ -287,8 +289,18 @@
 			[].splice.apply(this._geocoderElems, newElems);
 		},
 
-		_setGeocoderValue: function(i, v) {
-			this._geocoderElems[i].value = this._geocoderElems[i].value || v;
+		_updateWaypointName: function(i, force) {
+			var wp = this._waypoints[i];
+			if (this.options.geocoder && wp.latLng && (force || !wp.name)) {
+				this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
+					if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
+						wp.name = rs[0].name;
+					} else {
+						wp.name = '';
+					}
+					this._geocoderElems[i].value = wp.name;
+				}, this);
+			}
 		},
 
 		_removeMarkers: function() {
@@ -363,9 +375,7 @@
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._waypoints[i].latLng = e.target.getLatLng();
 				this._waypoints[i].name = '';
-				if (this._geocoderElems) {
-					this._geocoderElems[i].value = '';
-				}
+				this._updateWaypointName(i, true);
 				this._fireChanged();
 			}, this);
 		},
@@ -411,6 +421,7 @@
 				this._map.removeLayer(this._newWp.lines[i]);
 			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
+			this._updateGeocoders(this._newWp.afterIndex + 1);
 			delete this._newWp;
 		}
 	});
