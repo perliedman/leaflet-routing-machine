@@ -5,7 +5,7 @@
 
 	L.Routing._jsonpCallbackId = 0;
 	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
-		var callbackId = '_l_geocoder_' + (L.Routing._jsonpCallbackId++),
+		var callbackId = '_l_routing_machine_' + (L.Routing._jsonpCallbackId++),
 		    script;
 		url += '&' + jsonpParam + '=' + callbackId;
 		window[callbackId] = L.Util.bind(callback, context);
@@ -272,6 +272,7 @@
 
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
+			L.DomEvent.disableClickPropagation(this._container);
 			this._router.on('routefound', this._routeFound, this);
 			return this._container;
 		},
@@ -698,6 +699,8 @@
 			geocoderElem = L.DomUtil.create('input', '');
 			geocoderElem.placeholder = placeholder;
 
+			this._updateWaypointName(i);
+
 			L.DomEvent.addListener(geocoderElem, 'keydown', function(e) {
 				var i,
 					siblings = geocoderElem.parentElement.children,
@@ -761,8 +764,18 @@
 			[].splice.apply(this._geocoderElems, newElems);
 		},
 
-		_setGeocoderValue: function(i, v) {
-			this._geocoderElems[i].value = this._geocoderElems[i].value || v;
+		_updateWaypointName: function(i, force) {
+			var wp = this._waypoints[i];
+			if (this.options.geocoder && wp.latLng && (force || !wp.name)) {
+				this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
+					if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
+						wp.name = rs[0].name;
+					} else {
+						wp.name = '';
+					}
+					this._geocoderElems[i].value = wp.name;
+				}, this);
+			}
 		},
 
 		_removeMarkers: function() {
@@ -837,9 +850,7 @@
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._waypoints[i].latLng = e.target.getLatLng();
 				this._waypoints[i].name = '';
-				if (this._geocoderElems) {
-					this._geocoderElems[i].value = '';
-				}
+				this._updateWaypointName(i, true);
 				this._fireChanged();
 			}, this);
 		},
@@ -885,6 +896,7 @@
 				this._map.removeLayer(this._newWp.lines[i]);
 			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
+			this._updateGeocoders(this._newWp.afterIndex + 1);
 			delete this._newWp;
 		}
 	});
@@ -905,6 +917,9 @@
 
 			this._router = this.options.router || new L.Routing.OSRM();
 			this._plan = this.options.plan || L.Routing.plan(undefined, { geocoder: this.options.geocoder });
+			if (this.options.geocoder) {
+				this._plan.options.geocoder = this.options.geocoder;
+			}
 			if (this.options.waypoints) {
 				this._plan.setWaypoints(this.options.waypoints);
 			}
@@ -924,7 +939,7 @@
 			this._map.addLayer(this._plan);
 
 			if (this.options.geocoder) {
-				container.insertBefore(this._plan.createGeocoders(this.options.geocoder), container.firstChild);
+				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
 			}
 
 			return container;
