@@ -6,23 +6,68 @@
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
     <link rel="stylesheet" href="dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="lib/leaflet.iconlabel.css" />
+    <link rel="stylesheet" href="lib/L.Control.Sidebar.css" />
+    <link rel="stylesheet" href="lib/prism.css">
     <link rel="stylesheet" href="index.css" />
 </head>
 <body>
-    <a href="https://github.com/perliedman/leaflet-routing-machine"><img style="position: absolute; top: 0; left: 0; border: 0; z-index:10;" src="https://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png" alt="Fork me on GitHub"></a>
     <div id="map" class="map"></div>
-    <div class="about">
+    <div id="sidebar">
         <h1>Leaflet Routing Machine</h1>
         <p>
             This is a control for routing in <a href="http://leafletjs.com">Leaflet</a>.
             In short, it helps finding the way from one location to another, possibly
-            visiting a couple of via points in between.
+            visiting a couple of via points in between. Behind the scenes, it uses
+            <a href="http://project-osrm.org/">OSRM</a> to search the routes.
         </p>
+        <p>
+            Drag and drop the blue waypoint markers, or grab the orange route line and
+            drag a new via waypoint. You can also enter an address in the address
+            text fields on the right side.
+        </p>
+        <p>
+            The plugin is free, open source. Downloads and documentation is available on
+            <a href="https://github.com/perliedman/leaflet-routing-machine">Leaflet Routing Machine's GitHub page</a>.
+        </p>
+
+        <h2>About this example</h2>
+        <p>
+            This is a basic example, where two waypoints have been added. Also,
+            a <a href="http://en.wikipedia.org/wiki/Geocoding">geocoder</a> has been added
+            to support entering addresses, as well as finding the address for a location
+            when a waypoint is drag-and-dropped on the map. It uses OpenStreetMap's
+            <a href="http://wiki.openstreetmap.org/wiki/Nominatim">Nominatim</a> through
+            <a href="https://github.com/perliedman/leaflet-control-geocoder">Leaflet Control Geocoder</a>,
+            which works well with Leaflet Routing Machine.
+        </p>
+
+        <p>
+            The example also uses <a href="https://github.com/jacobtoye/Leaflet.iconlabel">Leaflet.iconLabel</a>
+            to put the small letter indicators next to the waypoint markers in the map.
+        </p>
+<pre><code class="language-javascript">L.Routing.control({
+    waypoints: [
+        L.latLng(48.8588,2.3469),
+        L.latLng(52.3546,4.9039)
+    ],
+    geocoder: L.Control.Geocoder.nominatim(),
+    plan: L.Routing.plan(null, {
+        waypointIcon: function(i) {
+            var label =
+                String.fromCharCode(65 + i);
+            return new L.Icon.Label.Default({
+                labelText:
+            });
+        }
+    })
+}).addTo(map);</code></pre>
     </div>
     <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
     <script src="dist/leaflet-routing-machine.min.js"></script>
     <script src="lib/Control.Geocoder.js"></script>
     <script src="lib/leaflet.iconlabel.js"></script>
+    <script src="lib/L.Control.Sidebar.js"></script>
+    <script src="lib/prism.js"></script>
     <script src="index.js"></script>
 </body>
 </html>
