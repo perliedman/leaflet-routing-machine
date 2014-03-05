@@ -125,26 +125,29 @@ Displays a route on the map, and allows moving waypoints, as well as adding new 
 
 Handles communication with the OSRM backend, building the request and parsing the response.
 
-### API
+## API
 
-## IRouter
+### IRouter
 
-### Methods
+#### Methods
 
 * ```Route(waypoints)``` - attempt to route through the provided waypoints, where each waypoint is a
   ```L.LatLng```. Fire ```routefound``` when done, or ```error``` if an error is encountered.
 
-### Events
+#### Events
 
 * ```routefound``` - fired when a routing request completes with one or more route alternatives. The
   event object contains the ```routes``` property, which holds an array of possible routing alternatives;
   each element is an ```IRoute```.
+* ```error``` - fired when a routing request fails, for some reason. Event object contains two properties:
+    * ```status``` - error indication to be interpreted by calling code
+    * ```message``` - human readable error message
 
-## IRoute
+### IRoute
 
 Describes a route through a number of waypoints.
 
-### Properties
+#### Properties
 
 * ```name``` (string) - a descriptive name for this route
 * ```summary``` (object) - an object containing two properties:
@@ -155,3 +158,32 @@ Describes a route through a number of waypoints.
   Leaflet will simplify the line appropriately when it is displayed
 * ```waypoints``` - [```L.LatLng```] - the waypoints for this route
 * ```instructions``` - [```IInstruction```] - instructions for this route
+
+### IInstruction
+
+Describes a part of a route's itinerary, such as a turn.
+
+#### Properties
+
+* ```type``` (string) - one of the enumerated instruction types (see below)
+* ```distance``` (Number) - distance in meters for this segment
+* ```time``` (Number) - estimated time in seconds for this segment
+* ```road``` (String) - name of road for this segment, if available
+* ```direction``` (String) - aproximate compass direction: N, NE, E, SE, S, SW, W, NW
+
+#### Types
+
+* Straight
+* SlightRight
+* Right
+* SharpRight
+* TurnAround
+* SharpLeft
+* Left
+* Slight left
+* WaypointReached
+* Roundabou
+* StartAt
+* DestinationReached
+* EnterAgainstAllowedDirection
+* LeaveAgainstAllowedDirection
