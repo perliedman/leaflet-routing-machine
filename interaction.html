@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Leaflet OSRM Example</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+    <link rel="stylesheet" href="dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="lib/leaflet.iconlabel.css" />
+    <link rel="stylesheet" href="lib/L.Control.Sidebar.css" />
+    <link rel="stylesheet" href="lib/prism.css">
+    <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+    <div id="map" class="map"></div>
+    <div id="sidebar">
+        <h1>Changing interaction</h1>
+        <p>
+            Leaflet Routing Machine is really a number of components,
+            that <code>L.Routing.Control</code> puts together. To
+            change the user interface, the components can be used
+            separately, creating custom methods of interactions.
+        </p>
+
+        <p>
+            Below is a simple example, where clicking the map adds a
+            new waypoint to the route. It uses the <code>L.Routing.OSRM</code>
+            component to search the routes, and display the result
+            using <code>L.Routing.Line</code>.
+        </p>
+
+<pre><code class="language-javascript">var router = L.Routing.osrm(),
+    waypoints = [],
+    line;
+
+router.on('routefound', function(e) {
+    if (line) {
+        map.removeLayer(line);
+    }
+    line = L.Routing.line(e.routes[0]).addTo(map);
+});
+map.on('click', function(e) {
+    waypoints.push(e.latlng);
+    if (waypoints.length >= 2) {
+        router.route(waypoints);
+    }
+});</code></pre>
+
+        <h2><span id="example-fold" class="handle closed">&#9660;</span><span<em>More examples</em></span></h2>
+        <ul id="examples" class="examples hide">
+        </ul>
+    </div>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+    <script src="dist/leaflet-routing-machine.min.js"></script>
+    <script src="lib/leaflet.iconlabel.js"></script>
+    <script src="lib/L.Control.Sidebar.js"></script>
+    <script src="lib/prism.js"></script>
+    <script src="common.js"></script>
+    <script src="interaction.js"></script>
+</body>
+</html>

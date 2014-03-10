@@ -22,3 +22,30 @@ html {
     box-shadow: 0 1px 5px rgba(0,0,0,0.65);
     border-radius: 4px;
 }
+
+#sidebar {
+    opacity: 0.8;
+}
+
+.handle {
+    display: inline-block;
+    transition: -webkit-transform 0.1s linear;
+    cursor: pointer;
+}
+
+.examples {
+    overflow-y: hidden;
+    transition: height 0.25s ease-in;
+}
+
+.hide {
+    height: 0;
+}
+
+.closed {
+    -webkit-transform: rotate(-90deg);
+    -moz-transform:    rotate(-90deg);
+    -ms-transform:     rotate(-90deg);
+    -o-transform:      rotate(-90deg);
+    transform:         rotate(-90deg);
+}
