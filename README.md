@@ -173,17 +173,17 @@ Describes a part of a route's itinerary, such as a turn.
 
 #### Types
 
-* Straight
-* SlightRight
-* Right
-* SharpRight
-* TurnAround
-* SharpLeft
-* Left
-* Slight left
-* WaypointReached
-* Roundabou
-* StartAt
-* DestinationReached
-* EnterAgainstAllowedDirection
-* LeaveAgainstAllowedDirection
+* ```Straight```
+* ```SlightRight```
+* ```Right```
+* ```SharpRight```
+* ```TurnAround```
+* ```SharpLeft```
+* ```Left```
+* ```Slight left```
+* ```WaypointReached```
+* ```Roundabout```
+* ```StartAt```
+* ```DestinationReached```
+* ```EnterAgainstAllowedDirection```
+* ```LeaveAgainstAllowedDirection```
