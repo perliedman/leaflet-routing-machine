@@ -27,5 +27,8 @@
   "homepage": "https://github.com/perliedman/leaflet-routing-machine",
   "devDependencies": {
     "uglifyjs": "~2.3.6"
+  },
+  "dependencies": {
+    "leaflet": "^0.7.2"
   }
 }
