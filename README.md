@@ -20,6 +20,12 @@ Searching, displaying and editing a route is a complex problem with several movi
 
 To use Leaflet Routing Machine, copy the files under the ```dist``` folder to where you store you scripts and CSS.
 
+If you use NPM and Browserify (or similar), you can also do:
+
+```
+npm install --save leaflet-routing-machine
+```
+
 ### Basics
 
 Quickest way to get routing on your map is to use ```L.Routing.Control```:
