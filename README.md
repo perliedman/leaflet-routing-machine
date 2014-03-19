@@ -1,4 +1,4 @@
-Leaflet Routing Machine
+Leaflet Routing Machine [![NPM version](https://badge.fury.io/js/leaflet-routing-machine.png)](http://badge.fury.io/js/leaflet-routing-machine)
 =======================
 
 Find the way from A to B on a Leaflet map, using [OSRM](http://project-osrm.org/) as backend.
