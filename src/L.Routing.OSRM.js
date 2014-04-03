@@ -19,7 +19,7 @@
 	L.Routing.OSRM = L.Class.extend({
 		includes: L.Mixin.Events,
 		options: {
-			serviceUrl: 'http://router.project-osrm.org/viaroute',
+			serviceUrl: '//router.project-osrm.org/viaroute',
 			geometryPrecision: 6
 		},
 
