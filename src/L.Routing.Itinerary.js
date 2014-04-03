@@ -25,18 +25,10 @@
 			    alt,
 			    altDiv;
 
+			this._clearAlts();
+
 			this._routes = e.routes;
 
-			// TODO: this is really inelegant
-			for (i = 0; i < this._container.children.length; i++) {
-				alt = this._container.children[i];
-				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-					this._container.removeChild(alt);
-					i--;
-				}
-			}
-
-			this._altElements = [];
 			for (i = 0; i < e.routes.length; i++) {
 				alt = e.routes[i];
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
@@ -52,6 +44,21 @@
 			}
 
 			this.fire('routeselected', {route: this._routes[0]});
+		},
+
+		_clearAlts: function() {
+			var i,
+				alt;
+			// TODO: this is really inelegant
+			for (i = 0; this._container && i < this._container.children.length; i++) {
+				alt = this._container.children[i];
+				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
+					this._container.removeChild(alt);
+					i--;
+				}
+			}
+
+			this._altElements = [];
 		},
 
 		_createItineraryTable: function(r) {

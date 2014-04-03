@@ -55,12 +55,13 @@
 			return removed;
 		},
 
+		getPlan: function() {
+			return this._plan;
+		},
+
 		_routeSelected: function(e) {
 			var route = e.route;
-
-			if (this._line) {
-				this._map.removeLayer(this._line);
-			}
+			this._clearLine();
 
 			this._line = L.Routing.line(route);
 			this._line.addTo(this._map);
@@ -76,7 +77,15 @@
 
 		_route: function() {
 			if (this._plan.isReady()) {
+				this._clearLine();
+				this._clearAlts();
 				this._router.route(this._plan.getWaypoints());
+			}
+		},
+
+		_clearLine: function() {
+			if (this._line) {
+				this._map.removeLayer(this._line);
 			}
 		}
 	});
