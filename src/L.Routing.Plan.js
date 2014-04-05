@@ -152,8 +152,9 @@
 		},
 
 		spliceWaypoints: function() {
-			var i,
-				args = [arguments[0], arguments[1]];
+			var args = [arguments[0], arguments[1]],
+			    i,
+			    wp;
 
 			for (i = 2; i < arguments.length; i++) {
 				args.push(new Waypoint(arguments[i]));
@@ -162,11 +163,13 @@
 			[].splice.apply(this._waypoints, args);
 
 			while (this._waypoints.length < 2) {
-				this._waypoints.push(new Waypoint());
+				wp = new Waypoint();
+				this._waypoints.push(wp);
+				args.push(wp);
 			}
 
 			this._updateMarkers();
-			this._fireChanged.apply(this, arguments);
+			this._fireChanged.apply(this, args);
 		},
 
 		onAdd: function(map) {
@@ -271,14 +274,15 @@
 		},
 
 		_updateGeocoders: function(e) {
-			var newElems = [e.index, 0],
+			var newElems = [],
 			    i,
 			    geocoderElem;
-			for (i = 0; i < e.added.length; i++) {
+			for (i = e.added.length - 1; i >= 0 ; i--) {
 				geocoderElem = this._createGeocoder(e.index + i);
-				this._geocoderContainer.insertBefore(geocoderElem, this._geocoderElems[e.index - 1].nextSibling);
+				this._geocoderContainer.insertBefore(geocoderElem, this._geocoderElems[e.index].nextSibling);
 				newElems.push(geocoderElem);
 			}
+			newElems.reverse();
 
 			for (i = e.index; i < e.index + e.nRemoved; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i]);
@@ -286,6 +290,7 @@
 
 			this._geocoderElems.splice(e.index, e.nRemoved);
 
+			newElems.splice(0, 0, e.index, 0);
 			[].splice.apply(this._geocoderElems, newElems);
 		},
 
@@ -351,9 +356,7 @@
 		},
 
 		_fireChanged: function() {
-			if (this.isReady()) {
-				this.fire('waypointschanged', {waypoints: this.getWaypoints()});
-			}
+			this.fire('waypointschanged', {waypoints: this.getWaypoints()});
 
 			if (arguments.length >= 2) {
 				this.fire('waypointsspliced', {

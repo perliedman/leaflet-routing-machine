@@ -76,9 +76,9 @@
 		},
 
 		_route: function() {
+			this._clearLine();
+			this._clearAlts();
 			if (this._plan.isReady()) {
-				this._clearLine();
-				this._clearAlts();
 				this._router.route(this._plan.getWaypoints());
 			}
 		},
@@ -86,6 +86,7 @@
 		_clearLine: function() {
 			if (this._line) {
 				this._map.removeLayer(this._line);
+				delete this._line;
 			}
 		}
 	});
