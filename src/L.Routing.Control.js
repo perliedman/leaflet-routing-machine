@@ -17,7 +17,7 @@
 				this._plan.setWaypoints(this.options.waypoints);
 			}
 
-			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
+			L.Routing.Itinerary.prototype.initialize.call(this, this._router, options);
 
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', this._route, this);

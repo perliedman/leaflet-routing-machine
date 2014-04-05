@@ -5,7 +5,13 @@
 
 	L.Routing.Itinerary = L.Control.extend({
 		includes: L.Mixin.Events,
-		initialize: function(router) {
+
+		options: {
+			units: 'metric'
+		},
+
+		initialize: function(router, options) {
+			L.setOptions(this, options);
 			this._router = router;
 		},
 
@@ -105,12 +111,27 @@
 		},
 
 		_formatDistance: function(d /* Number (meters) */) {
+			var v;
+
+			if (this.options.units === 'imperial') {
+				d = d / 1.609344;
+				if (d >= 1000) {
+					return (this._round(d) / 1000) + ' mi';
+				} else {
+					return this._round(d / 1.760) + ' yd';
+				}
+			} else {
+				v = this._round(d);
+				return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			}
+		},
+
+		_round: function(d) {
 			var pow10 = Math.pow(10, (Math.floor(d) + '').length - 1),
 				r = Math.floor(d / pow10 * 2),
-				p = r % 2 ? pow10 / 2 : pow10,
-				v = Math.round(d / p) * p;
+				p = r % 2 ? pow10 / 2 : pow10;
 
-			return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			return Math.round(d / p) * p;
 		},
 
 		_formatTime: function(t /* Number (seconds) */) {
