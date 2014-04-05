@@ -234,7 +234,7 @@
 					siblings = geocoderElem.parentElement.children,
 					thisIndex = null;
 
-				if (e.keyCode === 13) {
+				if (e.keyCode === 13 && !this._geocoderResultsOpen) {
 					for (i = 0; i < siblings.length && thisIndex === null; i++) {
 						if (siblings[i] === geocoderElem) {
 							thisIndex = i;
@@ -252,10 +252,14 @@
 							this._fireChanged();
 						} else {
 							gr = new GeocoderResults(results).addTo(geocoderElem);
+							this._geocoderResultsOpen = true;
 							L.DomEvent.addListener(geocoderElem, 'blur', function() {
 								// Don't remove before onResultSelected has got a chance to fire
 								// TODO: this looks like a hack
-								setTimeout(function() {gr.remove();}, 50);
+								setTimeout(function() {
+									gr.remove();
+									_this._geocoderResultsOpen = false;
+								}, 50);
 							});
 							gr.onResultSelected = function(r) {
 								gr.remove();
