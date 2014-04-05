@@ -276,10 +276,12 @@
 		_updateGeocoders: function(e) {
 			var newElems = [],
 			    i,
-			    geocoderElem;
+			    geocoderElem,
+			    beforeElem;
 			for (i = e.added.length - 1; i >= 0 ; i--) {
 				geocoderElem = this._createGeocoder(e.index + i);
-				this._geocoderContainer.insertBefore(geocoderElem, this._geocoderElems[e.index].nextSibling);
+				beforeElem = this._geocoderElems[Math.min(e.index, this._geocoderElems.length - 1)].nextSibling;
+				this._geocoderContainer.insertBefore(geocoderElem, beforeElem);
 				newElems.push(geocoderElem);
 			}
 			newElems.reverse();
