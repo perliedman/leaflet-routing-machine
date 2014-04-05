@@ -37,7 +37,7 @@
 	L.Routing.OSRM = L.Class.extend({
 		includes: L.Mixin.Events,
 		options: {
-			serviceUrl: 'http://router.project-osrm.org/viaroute',
+			serviceUrl: '//router.project-osrm.org/viaroute',
 			geometryPrecision: 6
 		},
 
@@ -284,7 +284,13 @@
 
 	L.Routing.Itinerary = L.Control.extend({
 		includes: L.Mixin.Events,
-		initialize: function(router) {
+
+		options: {
+			units: 'metric'
+		},
+
+		initialize: function(router, options) {
+			L.setOptions(this, options);
 			this._router = router;
 		},
 
@@ -304,18 +310,10 @@
 			    alt,
 			    altDiv;
 
+			this._clearAlts();
+
 			this._routes = e.routes;
 
-			// TODO: this is really inelegant
-			for (i = 0; i < this._container.children.length; i++) {
-				alt = this._container.children[i];
-				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-					this._container.removeChild(alt);
-					i--;
-				}
-			}
-
-			this._altElements = [];
 			for (i = 0; i < e.routes.length; i++) {
 				alt = e.routes[i];
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
@@ -331,6 +329,21 @@
 			}
 
 			this.fire('routeselected', {route: this._routes[0]});
+		},
+
+		_clearAlts: function() {
+			var i,
+				alt;
+			// TODO: this is really inelegant
+			for (i = 0; this._container && i < this._container.children.length; i++) {
+				alt = this._container.children[i];
+				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
+					this._container.removeChild(alt);
+					i--;
+				}
+			}
+
+			this._altElements = [];
 		},
 
 		_createItineraryTable: function(r) {
@@ -377,12 +390,27 @@
 		},
 
 		_formatDistance: function(d /* Number (meters) */) {
+			var v;
+
+			if (this.options.units === 'imperial') {
+				d = d / 1.609344;
+				if (d >= 1000) {
+					return (this._round(d) / 1000) + ' mi';
+				} else {
+					return this._round(d / 1.760) + ' yd';
+				}
+			} else {
+				v = this._round(d);
+				return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			}
+		},
+
+		_round: function(d) {
 			var pow10 = Math.pow(10, (Math.floor(d) + '').length - 1),
 				r = Math.floor(d / pow10 * 2),
-				p = r % 2 ? pow10 / 2 : pow10,
-				v = Math.round(d / p) * p;
+				p = r % 2 ? pow10 / 2 : pow10;
 
-			return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			return Math.round(d / p) * p;
 		},
 
 		_formatTime: function(t /* Number (seconds) */) {
@@ -942,7 +970,7 @@
 				this._plan.setWaypoints(this.options.waypoints);
 			}
 
-			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
+			L.Routing.Itinerary.prototype.initialize.call(this, this._router, options);
 
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', this._route, this);
@@ -980,12 +1008,13 @@
 			return removed;
 		},
 
+		getPlan: function() {
+			return this._plan;
+		},
+
 		_routeSelected: function(e) {
 			var route = e.route;
-
-			if (this._line) {
-				this._map.removeLayer(this._line);
-			}
+			this._clearLine();
 
 			this._line = L.Routing.line(route);
 			this._line.addTo(this._map);
@@ -1001,7 +1030,15 @@
 
 		_route: function() {
 			if (this._plan.isReady()) {
+				this._clearLine();
+				this._clearAlts();
 				this._router.route(this._plan.getWaypoints());
+			}
+		},
+
+		_clearLine: function() {
+			if (this._line) {
+				this._map.removeLayer(this._line);
 			}
 		}
 	});
