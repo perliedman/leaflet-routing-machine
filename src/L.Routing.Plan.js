@@ -219,13 +219,10 @@
 		},
 
 		_createGeocoder: function(i) {
-			var placeholder = (i === 0) ?
-			        'Start' : (i >= this._waypoints.length - 1) ?
-			        'End' : 'Via',
-			    geocoderElem;
+			var geocoderElem;
 
 			geocoderElem = L.DomUtil.create('input', '');
-			geocoderElem.placeholder = placeholder;
+			geocoderElem.placeholder = this._geocoderPlaceholder(i);
 
 			this._updateWaypointName(i);
 
@@ -284,7 +281,12 @@
 			    beforeElem;
 			for (i = e.added.length - 1; i >= 0 ; i--) {
 				geocoderElem = this._createGeocoder(e.index + i);
-				beforeElem = this._geocoderElems[Math.min(e.index, this._geocoderElems.length - 1)].nextSibling;
+				if (e.index >= this._geocoderElems.length) {
+					// lastChild is the "add new wp" button
+					beforeElem = this._geocoderContainer.lastChild;
+				} else {
+					beforeElem = this._geocoderElems[e.index];
+				}
 				this._geocoderContainer.insertBefore(geocoderElem, beforeElem);
 				newElems.push(geocoderElem);
 			}
@@ -294,10 +296,20 @@
 				this._geocoderContainer.removeChild(this._geocoderElems[i]);
 			}
 
-			this._geocoderElems.splice(e.index, e.nRemoved);
-
-			newElems.splice(0, 0, e.index, 0);
+			newElems.splice(0, 0, e.index, e.nRemoved);
 			[].splice.apply(this._geocoderElems, newElems);
+
+			for (i = 0; i < this._geocoderElems.length; i++) {
+				this._geocoderElems[i].placeholder = this._geocoderPlaceholder(i);
+			}
+		},
+
+		_geocoderPlaceholder: function(i) {
+			return i === 0 ?
+				'Start' :
+				(i < this._geocoderElems.length - 1 ?
+								'Via ' + i :
+								'End');
 		},
 
 		_updateWaypointName: function(i, force) {
@@ -430,7 +442,6 @@
 				this._map.removeLayer(this._newWp.lines[i]);
 			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
-			this._updateGeocoders(this._newWp.afterIndex + 1);
 			delete this._newWp;
 		}
 	});
