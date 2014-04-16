@@ -46,6 +46,10 @@
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
+		getWaypoints: function() {
+			return this._plan.getWaypoints();
+		},
+
 		setWaypoints: function(waypoints) {
 			this._plan.setWaypoints(waypoints);
 		},
