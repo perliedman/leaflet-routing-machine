@@ -3,6 +3,7 @@
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
+			fitSelectedRoutes: true
 		},
 
 		initialize: function(options) {
@@ -69,8 +70,11 @@
 
 			this._line = L.Routing.line(route);
 			this._line.addTo(this._map);
-			this._map.fitBounds(this._line.getBounds());
 			this._hookEvents(this._line);
+
+			if (this.options.fitSelectedRoutes) {
+				this._map.fitBounds(this._line.getBounds());
+			}
 		},
 
 		_hookEvents: function(l) {
