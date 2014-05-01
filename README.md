@@ -131,17 +131,10 @@ Handles communication with the OSRM backend, building the request and parsing th
 
 #### Methods
 
-* ```Route(waypoints)``` - attempt to route through the provided waypoints, where each waypoint is a
-  ```L.LatLng```. Fire ```routefound``` when done, or ```error``` if an error is encountered.
-
-#### Events
-
-* ```routefound``` - fired when a routing request completes with one or more route alternatives. The
-  event object contains the ```routes``` property, which holds an array of possible routing alternatives;
-  each element is an ```IRoute```.
-* ```error``` - fired when a routing request fails, for some reason. Event object contains two properties:
-    * ```status``` - error indication to be interpreted by calling code
-    * ```message``` - human readable error message
+* ```Route(waypoints, callback, context)``` - attempt to route through the provided waypoints, where each waypoint is a
+  ```L.LatLng```. Calls ```callback(err, routes)``` in the provided ```context``` when done or if an error is encountered, where:
+    * ```err``` is an ```IError``` or ```null``` if no error
+    * ```data``` is an array of ```IRoute``` alternatives if ```err``` is ```null```
 
 ### IRoute
 
@@ -170,6 +163,7 @@ Describes a part of a route's itinerary, such as a turn.
 * ```time``` (Number) - estimated time in seconds for this segment
 * ```road``` (String) - name of road for this segment, if available
 * ```direction``` (String) - aproximate compass direction: N, NE, E, SE, S, SW, W, NW
+* ```exit``` (Integer, optional) - for roundabouts, designates the number of the exit to take
 
 #### Types
 
@@ -180,7 +174,7 @@ Describes a part of a route's itinerary, such as a turn.
 * ```TurnAround```
 * ```SharpLeft```
 * ```Left```
-* ```Slight left```
+* ```SlightLeft```
 * ```WaypointReached```
 * ```Roundabout```
 * ```StartAt```

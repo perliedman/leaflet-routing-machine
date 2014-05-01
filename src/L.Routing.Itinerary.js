@@ -10,39 +10,36 @@
 			units: 'metric'
 		},
 
-		initialize: function(router, options) {
+		initialize: function(options) {
 			L.setOptions(this, options);
-			this._router = router;
 		},
 
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
 			L.DomEvent.disableClickPropagation(this._container);
-			this._router.on('routefound', this._routeFound, this);
 			return this._container;
 		},
 
 		onRemove: function() {
-			this._router.off('routefound', this._routeFound, this);
 		},
 
-		_routeFound: function(e) {
+		setAlternatives: function(routes) {
 			var i,
 			    alt,
 			    altDiv;
 
 			this._clearAlts();
 
-			this._routes = e.routes;
+			this._routes = routes;
 
-			for (i = 0; i < e.routes.length; i++) {
-				alt = e.routes[i];
+			for (i = 0; i < this._routes.length; i++) {
+				alt = this._routes[i];
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
 					(i > 0 ? ' leaflet-routing-alt-minimized' : ''),
 					this._container);
 				altDiv.innerHTML = '<h2>' + alt.name.join(', ') + '</h2>' +
-					'<h3>' + this._formatDistance(alt.summary.total_distance) +
-					', ' + this._formatTime(alt.summary.total_time) + '</h3>';
+					'<h3>' + this._formatDistance(alt.summary.totalDistance) +
+					', ' + this._formatTime(alt.summary.totalTime) + '</h3>';
 				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
 				altDiv.appendChild(this._createItineraryTable(alt));
@@ -79,7 +76,7 @@
 				row = L.DomUtil.create('tr', '', body);
 				row.innerHTML =
 					'<td>' + this._instruction(instr, i) + '</td>' +
-					'<td>' + this._formatDistance(instr[2]) + '</td>';
+					'<td>' + this._formatDistance(instr.distance) + '</td>';
 			}
 
 			return table;
@@ -151,67 +148,47 @@
 		},
 
 		_instruction: function(instr, i) {
-			var template,
-			    driveDir = instr[0].split('-');
+			var template;
 
-			switch (parseInt(driveDir, 10)) {
-			case 0:
-				template = '';
+			switch (instr.type) {
+			case 'Straight':
+				template = (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
 				break;
-			case 1:
-				template = (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr[1] ? ' on {1}' : '');
+			case 'SlightRight':
+				template = 'Slight right' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 2:
-				template = 'Slight right' + (instr[1] ? ' onto {1}' : '');
+			case 'Right':
+				template = 'Right' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 3:
-				template = 'Right' + (instr[1] ? ' onto {1}' : '');
+			case 'SharpRight':
+				template = 'Sharp right' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 4:
-				template = 'Sharp right' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 5:
+			case 'TurnAround':
 				template = 'Turn around';
 				break;
-			case 6:
-				template = 'Sharp left' + (instr[1] ? ' onto {1}' : '');
+			case 'SharpLeft':
+				template = 'Sharp left' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 7:
-				template = 'Left' + (instr[1] ? ' onto {1}' : '');
+			case 'Left':
+				template = 'Left' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 8:
-				template = 'Slight left' + (instr[1] ? ' onto {1}' : '');
+			case 'SlightLeft':
+				template = 'Slight left' + (instr.road ? ' onto {road}' : '');
 				break;
-			case 9:
+			case 'WaypointReached':
 				template = 'Waypoint reached';
 				break;
-			case 10:
-				template =  'Head {dir}';
-				break;
-			case 11:
+			case 'Roundabout':
 				template =  'Take the {exit} exit in the roundabout';
 				break;
-			case 12:
-				template =  'Leave the roundabout by the {exit} exit';
-				break;
-			case 13:
-				template =  'Stay on roundabout';
-				break;
-			case 14:
-				template =  'Start at end of {1}';
-				break;
-			case 15:
+			case 'DestinationReached':
 				template =  'Destination reached';
-				break;
-			case 16:
-				template =  'Enter against allowed direction';
-				break;
-			case 17:
-				template =  'Leave against allowed direction';
 				break;
 			}
 
-			return L.Util.template(template, L.extend({exit: this._formatOrder(driveDir[1]), dir: this._dir[instr[6]]}, instr));
+			return L.Util.template(template,
+				L.extend({exit: this._formatOrder(instr.exit), dir: this._dir[instr.direction]},
+					instr));
 		},
 
 		_formatOrder: function(n) {

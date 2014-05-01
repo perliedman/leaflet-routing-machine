@@ -17,7 +17,6 @@
 	};
 
 	L.Routing.OSRM = L.Class.extend({
-		includes: L.Mixin.Events,
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
 			geometryPrecision: 6
@@ -30,17 +29,18 @@
 			};
 		},
 
-		route: function(waypoints) {
+		route: function(waypoints, callback, context) {
 			var url = this._buildRouteUrl(waypoints);
 
 			L.Routing._jsonp(url, function(data) {
-				this._routeDone(data, waypoints);
+				this._routeDone(data, waypoints, callback, context);
 			}, this, 'jsonp');
 		},
 
-		_routeDone: function(response, waypoints) {
+		_routeDone: function(response, waypoints, callback, context) {
+			context = context || callback;
 			if (response.status !== 0) {
-				this.fire('error', {
+				callback.call(context, {
 					status: response.status,
 					message: response.message
 				});
@@ -50,8 +50,8 @@
 			var alts = [{
 					name: response.route_name,
 					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
-					instructions: response.route_instructions,
-					summary: response.route_summary,
+					instructions: this._convertInstructions(response.route_instructions),
+					summary: this._convertSummary(response.route_summary),
 					waypoints: response.via_points
 				}],
 			    i;
@@ -60,14 +60,14 @@
 				alts.push({
 					name: response.alternative_names[i],
 					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
-					instructions: response.alternative_instructions[i],
-					summary: response.alternative_summaries[i],
+					instructions: this._convertInstructions(response.alternative_instructions[i]),
+					summary: this._convertSummary(response.alternative_summaries[i]),
 					waypoints: response.via_points
 				})
 			}
 
 			this._saveHintData(response, waypoints);
-			this.fire('routefound', {routes: alts});
+			callback.call(context, null, alts);
 		},
 
 		_buildRouteUrl: function(waypoints) {
@@ -143,6 +143,73 @@
 				array.push( [lat * precision, lng * precision] );
 			}
 			return array;
+		},
+
+		_convertSummary: function(osrmSummary) {
+			return {
+				totalDistance: osrmSummary.total_distance,
+				totalTime: osrmSummary.total_time
+			};
+		},
+
+		_convertInstructions: function(osrmInstructions) {
+			var result = [],
+			    i,
+			    instr,
+			    type,
+			    driveDir;
+
+			for (i = 0; i < osrmInstructions.length; i++) {
+				instr = osrmInstructions[i];
+				type = this._drivingDirectionType(instr[0]);
+				driveDir = instr[0].split('-');
+				if (type) {
+					result.push({
+						type: type,
+						distance: instr[2],
+						time: instr[4],
+						road: instr[1],
+						direction: instr[6],
+						exit: driveDir.length > 1 ? driveDir[1] : undefined
+					});
+				}
+			}
+
+			return result;
+		},
+
+		_drivingDirectionType: function(d) {
+			switch (parseInt(d, 10)) {
+			case 1:
+				return 'Straight';
+			case 2:
+				return 'SlightRight';
+			case 3:
+				return 'Right';
+			case 4:
+				return 'SharpRight';
+			case 5:
+				return 'TurnAround';
+			case 6:
+				return 'SharpLeft';
+			case 7:
+				return 'Left';
+			case 8:
+				return 'SlightRight';
+			case 9:
+				return 'WaypointReached';
+			case 10:
+				// TODO: "Head on"
+				// https://github.com/DennisOSRM/Project-OSRM/blob/master/DataStructures/TurnInstructions.h#L48
+				return 'Straight';
+			case 11:
+			case 12:
+				return 'Roundabout';
+			case 15:
+				return 'DestinationReached';
+			default:
+				return null;
+			}
 		}
 	});
 
