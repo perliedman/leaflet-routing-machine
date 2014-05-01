@@ -256,7 +256,7 @@
 								setTimeout(function() {
 									gr.remove();
 									_this._geocoderResultsOpen = false;
-								}, 50);
+								}, 100);
 							});
 							gr.onResultSelected = function(r) {
 								gr.remove();
