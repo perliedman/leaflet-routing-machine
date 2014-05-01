@@ -17,7 +17,7 @@
 				this._plan.setWaypoints(this.options.waypoints);
 			}
 
-			L.Routing.Itinerary.prototype.initialize.call(this, this._router, options);
+			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', this._route, this);
@@ -83,7 +83,13 @@
 			this._clearLine();
 			this._clearAlts();
 			if (this._plan.isReady()) {
-				this._router.route(this._plan.getWaypoints());
+				this._router.route(this._plan.getWaypoints(), function(err, routes) {
+					if (err) {
+						console.log(err);
+						return;
+					}
+					this.setAlternatives(routes);
+				}, this);
 			}
 		},
 
