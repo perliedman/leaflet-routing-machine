@@ -226,6 +226,10 @@
 
 			this._updateWaypointName(i);
 
+			L.DomEvent.addListener(geocoderElem, 'click', function() {
+				this.select();
+			}, geocoderElem);
+
 			L.DomEvent.addListener(geocoderElem, 'keydown', function(e) {
 				var i,
 					siblings = geocoderElem.parentElement.children,
@@ -260,6 +264,7 @@
 							});
 							gr.onResultSelected = function(r) {
 								gr.remove();
+								_this._geocoderResultsOpen = false;
 								geocoderElem.value = r.name;
 								_this._waypoints[thisIndex].name = r.name;
 								_this._waypoints[thisIndex].latLng = r.center;
