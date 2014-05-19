@@ -7,7 +7,14 @@
 		includes: L.Mixin.Events,
 
 		options: {
-			units: 'metric'
+			units: 'metric',
+			pointMarkerStyle: {
+				radius: 5,
+				color: '#03f',
+				fillColor: 'white',
+				opacity: 1,
+				fillOpacity: 0.7
+			}
 		},
 
 		initialize: function(options) {
@@ -77,9 +84,28 @@
 				row.innerHTML =
 					'<td>' + this._instruction(instr, i) + '</td>' +
 					'<td>' + this._formatDistance(instr.distance) + '</td>';
+				this._addRowListeners(row, r.coordinates[instr.index]);
 			}
 
 			return table;
+		},
+
+		_addRowListeners: function(row, coordinate) {
+			var _this = this,
+			    marker;
+			L.DomEvent.addListener(row, 'mouseover', function() {
+				marker = L.circleMarker(coordinate,
+					_this.options.pointMarkerStyle).addTo(_this._map);
+			});
+			L.DomEvent.addListener(row, 'mouseout', function() {
+				if (marker) {
+					_this._map.removeLayer(marker);
+					marker = null;
+				}
+			});
+			L.DomEvent.addListener(row, 'click', function() {
+				_this._map.panTo(coordinate);
+			})
 		},
 
 		_onAltClicked: function(e) {

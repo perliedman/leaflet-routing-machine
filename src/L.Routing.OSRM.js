@@ -170,7 +170,8 @@
 						time: instr[4],
 						road: instr[1],
 						direction: instr[6],
-						exit: driveDir.length > 1 ? driveDir[1] : undefined
+						exit: driveDir.length > 1 ? driveDir[1] : undefined,
+						index: instr[3]
 					});
 				}
 			}
