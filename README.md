@@ -131,10 +131,18 @@ Handles communication with the OSRM backend, building the request and parsing th
 
 #### Methods
 
-* ```Route(waypoints, callback, context)``` - attempt to route through the provided waypoints, where each waypoint is a
-  ```L.LatLng```. Calls ```callback(err, routes)``` in the provided ```context``` when done or if an error is encountered, where:
+* ```Route(waypoints, callback, context)``` - attempt to route through the provided waypoints, where each waypoint is an
+  ```IWaypoint```. Calls ```callback(err, routes)``` in the provided ```context``` when done or if an error is encountered, where:
     * ```err``` is an ```IError``` or ```null``` if no error
     * ```data``` is an array of ```IRoute``` alternatives if ```err``` is ```null```
+
+### IWaypoint
+
+#### Properties
+
+* ```latLng```: an ```L.LatLng``` for the geographic location of the waypoint
+* ```name```: a string representing the name of the waypoint, typically an address; 
+optional and possibly ```null``` or ```undefined```.
 
 ### IRoute
 
@@ -181,3 +189,11 @@ Describes a part of a route's itinerary, such as a turn.
 * ```DestinationReached```
 * ```EnterAgainstAllowedDirection```
 * ```LeaveAgainstAllowedDirection```
+
+### IError
+
+#### Properties
+
+* ```status```: status/error code (possibly technical); string or number
+* ```message```: human-readable error message
+

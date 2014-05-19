@@ -48,8 +48,8 @@
 			}
 
 			var alts = [{
-					name: response.route_name,
-					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
+					name: response.route_name.join(', '),
+					coordinates: this._decode(response.route_geometry, this.options.geometryPrecision),
 					instructions: this._convertInstructions(response.route_instructions),
 					summary: this._convertSummary(response.route_summary),
 					waypoints: response.via_points
@@ -58,12 +58,12 @@
 
 			for (i = 0; i < response.alternative_geometries.length; i++) {
 				alts.push({
-					name: response.alternative_names[i],
-					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+					name: response.alternative_names[i].join(', '),
+					coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
 					instructions: this._convertInstructions(response.alternative_instructions[i]),
 					summary: this._convertSummary(response.alternative_summaries[i]),
 					waypoints: response.via_points
-				})
+				});
 			}
 
 			this._saveHintData(response, waypoints);
@@ -76,7 +76,7 @@
 			    hint;
 
 			for (var i = 0; i < waypoints.length; i++) {
-				locationKey = this._locationKey(waypoints[i]);
+				locationKey = this._locationKey(waypoints[i].latLng);
 				locs.push('loc=' + locationKey);
 
 				hint = this._hints.locations[locationKey];
@@ -103,7 +103,7 @@
 				locations: {}
 			};
 			for (var i = hintData.locations.length - 1; i >= 0; i--) {
-				loc = waypoints[i];
+				loc = waypoints[i].latLng;
 				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
 			}
 		},

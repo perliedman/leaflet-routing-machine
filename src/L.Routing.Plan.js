@@ -140,7 +140,7 @@
 				wps = [];
 
 			for (i = 0; i < this._waypoints.length; i++) {
-				wps.push(this._waypoints[i].latLng);
+				wps.push(this._waypoints[i]);
 			}
 
 			return wps;
@@ -319,7 +319,7 @@
 
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
-			if (this.options.geocoder && wp.latLng && (force || !wp.name)) {
+			if (this.options.geocoder && this.options.geocoder.reverse && wp.latLng && (force || !wp.name)) {
 				this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
 					if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
 						wp.name = rs[0].name;

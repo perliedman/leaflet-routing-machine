@@ -37,7 +37,7 @@
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
 					(i > 0 ? ' leaflet-routing-alt-minimized' : ''),
 					this._container);
-				altDiv.innerHTML = '<h2>' + alt.name.join(', ') + '</h2>' +
+				altDiv.innerHTML = '<h2>' + alt.name + '</h2>' +
 					'<h3>' + this._formatDistance(alt.summary.totalDistance) +
 					', ' + this._formatTime(alt.summary.totalTime) + '</h3>';
 				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
