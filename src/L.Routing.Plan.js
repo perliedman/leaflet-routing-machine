@@ -29,8 +29,6 @@
 					L.DomEvent.addListener(td, 'click', this._listener(this._results[i]), this);
 				}
 
-				L.DomEvent.addListener(elem, 'keydown', this._keyPressed, this);
-
 				container.style.left = elem.offsetLeft;
 				container.style.top = elem.offsetTop + elem.offsetHeight;
 				container.style.width = elem.offsetWidth;
@@ -54,7 +52,7 @@
 				};
 			},
 
-			_keyPressed: function(e) {
+			keyPressed: function(e) {
 				var _this = this,
 					select = function select(dir) {
 						if (_this._selection) {
@@ -76,26 +74,26 @@
 				case 38:
 					select(-1);
 					L.DomEvent.preventDefault(e);
-					break;
+					return true;
 				// Up
 				case 40:
 					select(1);
 					L.DomEvent.preventDefault(e);
-					break;
+					return true;
 				// Enter
 				case 13:
 					if (this._selection) {
 						index = parseInt(this._selection.getAttribute('data-result-index'), 10);
 						this.onResultSelected(this._results[index]);
 						L.DomEvent.preventDefault(e);
+						return true;
 					}
 				}
-				return true;
+				return false;
 			},
 
 			remove: function() {
 				if (this._container) {
-					L.DomEvent.removeListener(this._elem, 'keydown', this._keyPressed);
 					this._container.parentElement.removeChild(this._container);
 					delete this._container;
 					delete this._elem;
@@ -235,7 +233,7 @@
 					siblings = geocoderElem.parentElement.children,
 					thisIndex = null;
 
-				if (e.keyCode === 13 && !this._geocoderResultsOpen) {
+				if (e.keyCode === 13 && !this._geocoderResults) {
 					for (i = 0; i < siblings.length && thisIndex === null; i++) {
 						if (siblings[i] === geocoderElem) {
 							thisIndex = i;
@@ -243,8 +241,7 @@
 					}
 
 					this.options.geocoder.geocode(e.target.value, function(results) {
-						var gr,
-							_this = this;
+						var _this = this;
 						if (results.length === 1) {
 							geocoderElem.value = results[0].name;
 							this._waypoints[thisIndex].name = results[0].name;
@@ -252,19 +249,20 @@
 							this._updateMarkers();
 							this._fireChanged();
 						} else {
-							gr = new GeocoderResults(results).addTo(geocoderElem);
-							this._geocoderResultsOpen = true;
+							this._geocoderResults = new GeocoderResults(results).addTo(geocoderElem);
 							L.DomEvent.addListener(geocoderElem, 'blur', function() {
 								// Don't remove before onResultSelected has got a chance to fire
 								// TODO: this looks like a hack
 								setTimeout(function() {
-									gr.remove();
-									_this._geocoderResultsOpen = false;
+									if (_this._geocoderResults) {
+										_this._geocoderResults.remove();
+										delete _this._geocoderResults;
+									}
 								}, 100);
 							});
-							gr.onResultSelected = function(r) {
-								gr.remove();
-								_this._geocoderResultsOpen = false;
+							this._geocoderResults.onResultSelected = function(r) {
+								_this._geocoderResults.remove();
+								delete _this._geocoderResults;
 								geocoderElem.value = r.name;
 								_this._waypoints[thisIndex].name = r.name;
 								_this._waypoints[thisIndex].latLng = r.center;
@@ -273,6 +271,11 @@
 							};
 						}
 					}, this);
+				} else if (this._geocoderResults) {
+					if (!this._geocoderResults.keyPressed(e)) {
+						this._geocoderResults.remove();
+						delete this._geocoderResults;
+					}
 				}
 			}, this);
 
