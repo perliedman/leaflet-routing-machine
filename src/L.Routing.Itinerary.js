@@ -103,9 +103,10 @@
 					marker = null;
 				}
 			});
-			L.DomEvent.addListener(row, 'click', function() {
+			L.DomEvent.addListener(row, 'click', function(e) {
 				_this._map.panTo(coordinate);
-			})
+				L.DomEvent.stopPropagation(e);
+			});
 		},
 
 		_onAltClicked: function(e) {
