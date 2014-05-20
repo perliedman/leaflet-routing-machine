@@ -79,11 +79,22 @@
 }
 
 .leaflet-routing-geocoder-result {
+    position: absolute;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.5s ease;
+}
+
+.leaflet-routing-geocoder-result table {
+    width: 100%;
     border: 1px solid #ccc;
     border-radius: 0 0 4px 4px;
     background-color: white;
-    position: absolute;
     cursor: pointer;
+}
+
+.leaflet-routing-geocoder-result-open {
+    max-height: 800px;
 }
 
 .leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
