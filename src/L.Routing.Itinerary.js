@@ -174,47 +174,40 @@
 		},
 
 		_instruction: function(instr, i) {
-			var template;
+			if (instr.type !== undefined) {
+				return L.Util.template(this._getInstructionTemplate(instr, i),
+					L.extend({exit: this._formatOrder(instr.exit), dir: this._dir[instr.direction]},
+						instr));
+			} else {
+				return instr.text;
+			}
+		},
 
+		_getInstructionTemplate: function(instr, i) {
 			switch (instr.type) {
 			case 'Straight':
-				template = (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
-				break;
+				return (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
 			case 'SlightRight':
-				template = 'Slight right' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Slight right' + (instr.road ? ' onto {road}' : '');
 			case 'Right':
-				template = 'Right' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Right' + (instr.road ? ' onto {road}' : '');
 			case 'SharpRight':
-				template = 'Sharp right' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Sharp right' + (instr.road ? ' onto {road}' : '');
 			case 'TurnAround':
-				template = 'Turn around';
-				break;
+				return 'Turn around';
 			case 'SharpLeft':
-				template = 'Sharp left' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Sharp left' + (instr.road ? ' onto {road}' : '');
 			case 'Left':
-				template = 'Left' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Left' + (instr.road ? ' onto {road}' : '');
 			case 'SlightLeft':
-				template = 'Slight left' + (instr.road ? ' onto {road}' : '');
-				break;
+				return 'Slight left' + (instr.road ? ' onto {road}' : '');
 			case 'WaypointReached':
-				template = 'Waypoint reached';
-				break;
+				return 'Waypoint reached';
 			case 'Roundabout':
-				template =  'Take the {exit} exit in the roundabout';
-				break;
+				return  'Take the {exit} exit in the roundabout';
 			case 'DestinationReached':
-				template =  'Destination reached';
-				break;
+				return  'Destination reached';
 			}
-
-			return L.Util.template(template,
-				L.extend({exit: this._formatOrder(instr.exit), dir: this._dir[instr.direction]},
-					instr));
 		},
 
 		_formatOrder: function(n) {

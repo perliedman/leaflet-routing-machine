@@ -162,13 +162,25 @@ Describes a route through a number of waypoints.
 
 ### IInstruction
 
-Describes a part of a route's itinerary, such as a turn.
+Describes a part of a route's itinerary, such as a turn. Can be of two types: either
+a ```text``` property containing the exact text to be shown to the user, a number of
+properties that describe the instruction in an abstract form; the latter can later be
+translated to different languages, while explicit text can't.
 
 #### Properties
 
-* ```type``` (string) - one of the enumerated instruction types (see below)
+Mandatory:
+
 * ```distance``` (Number) - distance in meters for this segment
 * ```time``` (Number) - estimated time in seconds for this segment
+
+Combined with either:
+
+* ```text``` (string) - explicit instruction text
+
+or:
+
+* ```type``` (string) - one of the enumerated instruction types (see below)
 * ```road``` (String) - name of road for this segment, if available
 * ```direction``` (String) - aproximate compass direction: N, NE, E, SE, S, SW, W, NW
 * ```exit``` (Integer, optional) - for roundabouts, designates the number of the exit to take
