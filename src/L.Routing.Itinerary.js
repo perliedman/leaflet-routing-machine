@@ -120,14 +120,16 @@
 				altElem = altElem.parentElement;
 			}
 
-			for (j = 0; j < this._altElements.length; j++) {
-				n = this._altElements[j];
-				isCurrentSelection = altElem === n;
-				L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+			if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
+				for (j = 0; j < this._altElements.length; j++) {
+					n = this._altElements[j];
+					isCurrentSelection = altElem === n;
+					L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
 
-				if (isCurrentSelection) {
-					// TODO: don't fire if the currently active is clicked
-					this.fire('routeselected', {route: this._routes[j]});
+					if (isCurrentSelection) {
+						// TODO: don't fire if the currently active is clicked
+						this.fire('routeselected', {route: this._routes[j]});
+					}
 				}
 			}
 
