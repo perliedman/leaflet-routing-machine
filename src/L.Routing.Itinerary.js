@@ -76,14 +76,16 @@
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
-			    row;
+			    row,
+			    td;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
 				row = L.DomUtil.create('tr', '', body);
-				row.innerHTML =
-					'<td>' + this._instruction(instr, i) + '</td>' +
-					'<td>' + this._formatDistance(instr.distance) + '</td>';
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._instruction(instr, i)));
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._formatDistance(instr.distance)));
 				this._addRowListeners(row, r.coordinates[instr.index]);
 			}
 

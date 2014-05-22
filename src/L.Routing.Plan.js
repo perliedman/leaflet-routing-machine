@@ -112,7 +112,7 @@
 			}
 
 			addWpBtn = L.DomUtil.create('button', '', container);
-			addWpBtn.type = 'button';
+			addWpBtn.setAttribute('type', 'button');
 			addWpBtn.innerHTML = '+';
 			L.DomEvent.addListener(addWpBtn, 'click', function() {
 				this.spliceWaypoints(waypoints.length, 0, null);
