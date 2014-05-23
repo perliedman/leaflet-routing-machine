@@ -27,7 +27,7 @@
 		},
 
 		onAdd: function(map) {
-			var geom = this._route.coordinates,
+			var geom = this._route.waypoints,
 			    i,
 			    pl;
 
@@ -53,7 +53,7 @@
 		},
 
 		getBounds: function() {
-			return L.latLngBounds(this._route.coordinates);
+			return L.latLngBounds(this._route.waypoints);
 		},
 
 		_findWaypointIndices: function() {
@@ -73,9 +73,9 @@
 			    i,
 			    d;
 
-			for (i = this._route.coordinates.length - 1; i >= 0 ; i--) {
+			for (i = this._route.waypoints.length - 1; i >= 0 ; i--) {
 				// TODO: maybe do this in pixel space instead?
-				d = latlng.distanceTo(this._route.coordinates[i]);
+				d = latlng.distanceTo(this._route.waypoints[i]);
 				if (d < minDist) {
 					minIndex = i;
 					minDist = d;
