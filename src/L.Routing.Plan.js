@@ -191,6 +191,13 @@
 
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
+
+			function updateGeocoder() {
+				if (wp && wp.name && this._geocoderElems[i]) {
+					this._geocoderElems[i].value = wp.name;
+				}
+			}
+
 			if (wp.latLng && (force || !wp.name)) {
 				if (this.options.geocoder && this.options.geocoder.reverse) {
 					this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
@@ -199,14 +206,13 @@
 						} else {
 							wp.name = '';
 						}
+						updateGeocoder.call(this);
 					}, this);
 				} else {
 					wp.name = '';
 				}
 
-				if (this._geocoderElems[i]) {
-					this._geocoderElems[i].value = wp.name;
-				}
+				updateGeocoder.call(this);
 			}
 		},
 
