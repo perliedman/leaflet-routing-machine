@@ -56,14 +56,25 @@
 				}],
 			    i;
 
-			for (i = 0; i < response.alternative_geometries.length; i++) {
+			if(response.found_alternative == false){
 				alts.push({
-					name: response.alternative_names[i].join(', '),
-					coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
-					instructions: this._convertInstructions(response.alternative_instructions[i]),
-					summary: this._convertSummary(response.alternative_summaries[i]),
+					name: response.route_name.join(', '),
+					coordinates: this._decode(response.route_geometry, this.options.geometryPrecision),
+					instructions: this._convertInstructions(response.route_instructions),
+					summary: this._convertSummary(response.route_summary),
 					waypoints: response.via_points
 				});
+			}
+			else{
+				for (i = 0; i < response.alternative_geometries.length; i++) {
+					alts.push({
+						name: response.alternative_names[i].join(', '),
+						coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+						instructions: this._convertInstructions(response.alternative_instructions[i]),
+						summary: this._convertSummary(response.alternative_summaries[i]),
+						waypoints: response.via_points
+					});
+				}
 			}
 
 			this._saveHintData(response, waypoints);
