@@ -21,6 +21,160 @@
 
 	L.Routing = L.Routing || {};
 
+	L.Routing.Autocomplete = L.Class.extend({
+		options: {
+			timeout: 500
+		},
+
+		initialize: function(elem, callback, context, options) {
+			L.setOptions(this, options);
+
+			this._elem = elem;
+			this._resultFn = options.resultFn ? L.Util.bind(options.resultFn, options.resultContext) : null;
+			this._autocomplete = options.autocompleteFn ? L.Util.bind(options.autocompleteFn, options.autocompleteContext) : null;
+			this._selectFn = L.Util.bind(callback, context);
+			this._container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result');
+			this._resultTable = L.DomUtil.create('table', '', this._container);
+
+			L.DomEvent.addListener(this._elem, 'keypress', this._keyPressed, this);
+			L.DomEvent.addListener(this._elem, 'keydown', this._keyDown, this);
+			L.DomEvent.addListener(this._elem, 'blur', function() {
+				if (this._isOpen) {
+					// TODO: setTimeout here looks like a hack, but is needed
+					// to get click events to fire before hiding the container.
+					setTimeout(L.Util.bind(function() { this.close(); }, this), 100);
+				}
+			}, this);
+		},
+
+		close: function() {
+			L.DomUtil.removeClass(this._container, 'leaflet-routing-geocoder-result-open');
+			this._isOpen = false;
+		},
+
+		_open: function() {
+			var sibling = this._elem.nextSibling;
+			if (!this._container.parentElement) {
+				if (sibling) {
+					this._elem.parentElement.insertBefore(this._container, sibling);
+				} else {
+					this._elem.parentElement.appendChild(this._container);
+				}
+				this._container.style.left = this._elem.offsetLeft + 'px';
+				this._container.style.top = (this._elem.offsetTop + this._elem.offsetHeight) + 'px';
+				this._container.style.width = this._elem.offsetWidth + 'px';
+			}
+
+			L.DomUtil.addClass(this._container, 'leaflet-routing-geocoder-result-open');
+			this._isOpen = true;
+		},
+
+		_setResults: function(results) {
+			var i,
+			    tr,
+			    td;
+
+			delete this._selection;
+			this._results = results;
+
+			while (this._resultTable.firstChild) {
+				this._resultTable.removeChild(this._resultTable.firstChild);
+			}
+
+			for (i = 0; i < results.length; i++) {
+				tr = L.DomUtil.create('tr', '', this._resultTable);
+				tr.setAttribute('data-result-index', i);
+				td = L.DomUtil.create('td', '', tr);
+				td.textContent = results[i].name;
+				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
+			}
+
+			if (results.length > 0) {
+				this._open();
+				// Select the first entry
+				this._select(1);
+			}
+		},
+
+		_resultSelected: function(r) {
+			return function() {
+				this.close();
+				this._selectFn(r);
+			};
+		},
+
+		_keyPressed: function(e) {
+			var index;
+
+			if (this._isOpen && e.keyCode === 13 && this._selection) {
+				index = parseInt(this._selection.getAttribute('data-result-index'), 10);
+				this._resultSelected(this._results[index]).call(this);
+				L.DomEvent.preventDefault(e);
+				return;
+			}
+
+			if (e.keyCode === 13) {
+				this._complete(this._resultFn, true);
+			}
+
+			if (this._autocomplete) {
+				if (this._timer) {
+					clearTimeout(this._timer);
+				}
+				this._timer = setTimeout(L.Util.bind(function() { this._complete(this._autocomplete); }, this),
+					this.options.timeout);
+			}
+		},
+
+		_select: function(dir) {
+			var sel = this._selection;
+			if (sel) {
+				L.DomUtil.removeClass(sel.firstChild, 'leaflet-routing-geocoder-selected');
+				sel = sel[dir > 0 ? 'nextSibling' : 'previousSibling'];
+			}
+			if (!sel) {
+				sel = this._resultTable[dir > 0 ? 'firstChild' : 'lastChild'];
+			}
+
+			if (sel) {
+				L.DomUtil.addClass(sel.firstChild, 'leaflet-routing-geocoder-selected');
+				this._selection = sel;
+			}
+		},
+
+		_keyDown: function(e) {
+			if (this._isOpen) {
+				switch (e.keyCode) {
+				// Up
+				case 38:
+					this._select(-1);
+					L.DomEvent.preventDefault(e);
+					return;
+				// Up
+				case 40:
+					this._select(1);
+					L.DomEvent.preventDefault(e);
+					return;
+				}
+			}
+		},
+
+		_complete: function(completeFn, trySelect) {
+			completeFn(this._elem.value, function(results) {
+				if (trySelect && results.length === 1) {
+					this._resultSelected(results[0]);
+				} else {
+					this._setResults(results);
+				}
+			}, this);
+		}
+	});
+})();
+(function() {
+	'use strict';
+
+	L.Routing = L.Routing || {};
+
 	L.Routing._jsonpCallbackId = 0;
 	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
 		var callbackId = '_l_routing_machine_' + (L.Routing._jsonpCallbackId++),
@@ -74,15 +228,17 @@
 				}],
 			    i;
 
-			for (i = 0; i < response.alternative_geometries.length; i++) {
-				alts.push({
-					name: response.alternative_names[i].join(', '),
-					coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
-					instructions: this._convertInstructions(response.alternative_instructions[i]),
-					summary: this._convertSummary(response.alternative_summaries[i]),
-					waypoints: response.via_points
-				});
-			}
+		    if (response.alternative_geometries) {
+				for (i = 0; i < response.alternative_geometries.length; i++) {
+					alts.push({
+						name: response.alternative_names[i].join(', '),
+						coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+						instructions: this._convertInstructions(response.alternative_instructions[i]),
+						summary: this._convertSummary(response.alternative_summaries[i]),
+						waypoints: response.via_points
+					});
+				}
+		    }
 
 			this._saveHintData(response, waypoints);
 			callback.call(context, null, alts);
@@ -371,6 +527,9 @@
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
 			L.DomEvent.disableClickPropagation(this._container);
+			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
+				L.DomEvent.stopPropagation(e);
+			});
 			return this._container;
 		},
 
@@ -423,14 +582,16 @@
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
-			    row;
+			    row,
+			    td;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
 				row = L.DomUtil.create('tr', '', body);
-				row.innerHTML =
-					'<td>' + this._instruction(instr, i) + '</td>' +
-					'<td>' + this._formatDistance(instr.distance) + '</td>';
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._instruction(instr, i)));
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._formatDistance(instr.distance)));
 				this._addRowListeners(row, r.coordinates[instr.index]);
 			}
 
@@ -467,14 +628,16 @@
 				altElem = altElem.parentElement;
 			}
 
-			for (j = 0; j < this._altElements.length; j++) {
-				n = this._altElements[j];
-				isCurrentSelection = altElem === n;
-				L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+			if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
+				for (j = 0; j < this._altElements.length; j++) {
+					n = this._altElements[j];
+					isCurrentSelection = altElem === n;
+					L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
 
-				if (isCurrentSelection) {
-					// TODO: don't fire if the currently active is clicked
-					this.fire('routeselected', {route: this._routes[j]});
+					if (isCurrentSelection) {
+						// TODO: don't fire if the currently active is clicked
+						this.fire('routeselected', {route: this._routes[j]});
+					}
 				}
 			}
 
@@ -592,101 +755,6 @@
 				this.latLng = latLng;
 				this.name = name;
 			}
-		}),
-	    GeocoderResults = L.Class.extend({
-			initialize: function(results) {
-				this._results = results;
-			},
-
-			addTo: function(elem) {
-				var container = L.DomUtil.create('table', 'leaflet-routing-geocoder-result'),
-					sibling = elem.nextSibling,
-				    i,
-				    tr,
-				    td;
-
-				this._elem = elem;
-
-				for (i = 0; i < this._results.length; i++) {
-					tr = L.DomUtil.create('tr', '', container);
-					tr.setAttribute('data-result-index', i);
-					td = L.DomUtil.create('td', '', tr);
-					td.textContent = this._results[i].name;
-					L.DomEvent.addListener(td, 'click', this._listener(this._results[i]), this);
-				}
-
-				L.DomEvent.addListener(elem, 'keydown', this._keyPressed, this);
-
-				container.style.left = elem.offsetLeft;
-				container.style.top = elem.offsetTop + elem.offsetHeight;
-				container.style.width = elem.offsetWidth;
-
-				if (sibling) {
-					elem.parentElement.insertBefore(container, sibling);
-				} else {
-					elem.parentElement.appendChild(container);
-				}
-
-				this._container = container;
-
-				return this;
-			},
-
-			onResultSelected: function() {},
-
-			_listener: function(r) {
-				return function() {
-					this.onResultSelected(r);
-				};
-			},
-
-			_keyPressed: function(e) {
-				var _this = this,
-					select = function select(dir) {
-						if (_this._selection) {
-							L.DomUtil.removeClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
-							_this._selection = _this._selection[dir > 0 ? 'nextSibling' : 'previousSibling'];
-						}
-						if (!_this._selection) {
-							_this._selection = _this._container[dir > 0 ? 'firstChild' : 'lastChild'];
-						}
-
-						if (_this._selection) {
-							L.DomUtil.addClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
-						}
-					},
-					index;
-
-				switch (e.keyCode) {
-				// Up
-				case 38:
-					select(-1);
-					L.DomEvent.preventDefault(e);
-					break;
-				// Up
-				case 40:
-					select(1);
-					L.DomEvent.preventDefault(e);
-					break;
-				// Enter
-				case 13:
-					if (this._selection) {
-						index = parseInt(this._selection.getAttribute('data-result-index'), 10);
-						this.onResultSelected(this._results[index]);
-						L.DomEvent.preventDefault(e);
-					}
-				}
-				return true;
-			},
-
-			remove: function() {
-				if (this._container) {
-					L.DomEvent.removeListener(this._elem, 'keydown', this._keyPressed);
-					this._container.parentElement.removeChild(this._container);
-					delete this._container;
-					delete this._elem;
-				}
-			}
 		});
 
 	L.Routing = L.Routing || {};
@@ -793,7 +861,7 @@
 			}
 
 			addWpBtn = L.DomUtil.create('button', '', container);
-			addWpBtn.type = 'button';
+			addWpBtn.setAttribute('type', 'button');
 			addWpBtn.innerHTML = '+';
 			L.DomEvent.addListener(addWpBtn, 'click', function() {
 				this.spliceWaypoints(waypoints.length, 0, null);
@@ -816,51 +884,18 @@
 				this.select();
 			}, geocoderElem);
 
-			L.DomEvent.addListener(geocoderElem, 'keydown', function(e) {
-				var i,
-					siblings = geocoderElem.parentElement.children,
-					thisIndex = null;
-
-				if (e.keyCode === 13 && !this._geocoderResultsOpen) {
-					for (i = 0; i < siblings.length && thisIndex === null; i++) {
-						if (siblings[i] === geocoderElem) {
-							thisIndex = i;
-						}
-					}
-
-					this.options.geocoder.geocode(e.target.value, function(results) {
-						var gr,
-							_this = this;
-						if (results.length === 1) {
-							geocoderElem.value = results[0].name;
-							this._waypoints[thisIndex].name = results[0].name;
-							this._waypoints[thisIndex].latLng = results[0].center;
-							this._updateMarkers();
-							this._fireChanged();
-						} else {
-							gr = new GeocoderResults(results).addTo(geocoderElem);
-							this._geocoderResultsOpen = true;
-							L.DomEvent.addListener(geocoderElem, 'blur', function() {
-								// Don't remove before onResultSelected has got a chance to fire
-								// TODO: this looks like a hack
-								setTimeout(function() {
-									gr.remove();
-									_this._geocoderResultsOpen = false;
-								}, 100);
-							});
-							gr.onResultSelected = function(r) {
-								gr.remove();
-								_this._geocoderResultsOpen = false;
-								geocoderElem.value = r.name;
-								_this._waypoints[thisIndex].name = r.name;
-								_this._waypoints[thisIndex].latLng = r.center;
-								_this._updateMarkers();
-								_this._fireChanged();
-							};
-						}
-					}, this);
-				}
-			}, this);
+			new L.Routing.Autocomplete(geocoderElem, function(r) {
+					geocoderElem.value = r.name;
+					this._waypoints[i].name = r.name;
+					this._waypoints[i].latLng = r.center;
+					this._updateMarkers();
+					this._fireChanged();
+				}, this, {
+					resultFn: this.options.geocoder.geocode,
+					resultContext: this.options.geocoder,
+					autocompleteFn: this.options.geocoder.suggest,
+					autocompleteContext: this.options.geocoder
+				});
 
 			return geocoderElem;
 		},
@@ -905,15 +940,29 @@
 
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
-			if (this.options.geocoder && this.options.geocoder.reverse && wp.latLng && (force || !wp.name)) {
-				this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
-					if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
-						wp.name = rs[0].name;
-					} else {
-						wp.name = '';
-					}
-					this._geocoderElems[i].value = wp.name;
-				}, this);
+
+			function updateGeocoder() {
+				var value = wp && wp.name ? wp.name : '';
+				if (this._geocoderElems[i]) {
+					this._geocoderElems[i].value = value;
+				}
+			}
+
+			if (wp.latLng && (force || !wp.name)) {
+				if (this.options.geocoder && this.options.geocoder.reverse) {
+					this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
+						if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
+							wp.name = rs[0].name;
+						} else {
+							wp.name = '';
+						}
+						updateGeocoder.call(this);
+					}, this);
+				} else {
+					wp.name = '';
+				}
+
+				updateGeocoder.call(this);
 			}
 		},
 
