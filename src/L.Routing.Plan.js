@@ -193,8 +193,9 @@
 			var wp = this._waypoints[i];
 
 			function updateGeocoder() {
-				if (wp && wp.name && this._geocoderElems[i]) {
-					this._geocoderElems[i].value = wp.name;
+				var value = wp && wp.name ? wp.name : '';
+				if (this._geocoderElems[i]) {
+					this._geocoderElems[i].value = value;
 				}
 			}
 
