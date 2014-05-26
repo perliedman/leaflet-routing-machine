@@ -24,6 +24,9 @@
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
 			L.DomEvent.disableClickPropagation(this._container);
+			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
+				L.DomEvent.stopPropagation(e);
+			});
 			return this._container;
 		},
 
