@@ -1,3 +1,175 @@
+// Packaging/modules magic dance. This code is inserted before all other
+// code when the dist is built.
+(function (factory) {
+    var L;
+    if (typeof define === 'function' && define.amd) {
+        // AMD
+        define(['leaflet'], factory);
+    } else if (typeof module !== 'undefined') {
+        // Node/CommonJS
+        L = require('leaflet');
+        module.exports = factory(L);
+    } else {
+        // Browser globals
+        if (typeof window.L === 'undefined')
+            throw 'Leaflet must be loaded first';
+        factory(window.L);
+    }
+}(function (L) {
+(function() {
+	'use strict';
+
+	L.Routing = L.Routing || {};
+
+	L.Routing.Autocomplete = L.Class.extend({
+		options: {
+			timeout: 500
+		},
+
+		initialize: function(elem, callback, context, options) {
+			L.setOptions(this, options);
+
+			this._elem = elem;
+			this._resultFn = options.resultFn ? L.Util.bind(options.resultFn, options.resultContext) : null;
+			this._autocomplete = options.autocompleteFn ? L.Util.bind(options.autocompleteFn, options.autocompleteContext) : null;
+			this._selectFn = L.Util.bind(callback, context);
+			this._container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result');
+			this._resultTable = L.DomUtil.create('table', '', this._container);
+
+			L.DomEvent.addListener(this._elem, 'keypress', this._keyPressed, this);
+			L.DomEvent.addListener(this._elem, 'keydown', this._keyDown, this);
+			L.DomEvent.addListener(this._elem, 'blur', function() {
+				if (this._isOpen) {
+					// TODO: setTimeout here looks like a hack, but is needed
+					// to get click events to fire before hiding the container.
+					setTimeout(L.Util.bind(function() { this.close(); }, this), 100);
+				}
+			}, this);
+		},
+
+		close: function() {
+			L.DomUtil.removeClass(this._container, 'leaflet-routing-geocoder-result-open');
+			this._isOpen = false;
+		},
+
+		_open: function() {
+			var sibling = this._elem.nextSibling;
+			if (!this._container.parentElement) {
+				if (sibling) {
+					this._elem.parentElement.insertBefore(this._container, sibling);
+				} else {
+					this._elem.parentElement.appendChild(this._container);
+				}
+				this._container.style.left = this._elem.offsetLeft + 'px';
+				this._container.style.top = (this._elem.offsetTop + this._elem.offsetHeight) + 'px';
+				this._container.style.width = this._elem.offsetWidth + 'px';
+			}
+
+			L.DomUtil.addClass(this._container, 'leaflet-routing-geocoder-result-open');
+			this._isOpen = true;
+		},
+
+		_setResults: function(results) {
+			var i,
+			    tr,
+			    td;
+
+			delete this._selection;
+			this._results = results;
+
+			while (this._resultTable.firstChild) {
+				this._resultTable.removeChild(this._resultTable.firstChild);
+			}
+
+			for (i = 0; i < results.length; i++) {
+				tr = L.DomUtil.create('tr', '', this._resultTable);
+				tr.setAttribute('data-result-index', i);
+				td = L.DomUtil.create('td', '', tr);
+				td.textContent = results[i].name;
+				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
+			}
+
+			if (results.length > 0) {
+				this._open();
+				// Select the first entry
+				this._select(1);
+			}
+		},
+
+		_resultSelected: function(r) {
+			return function() {
+				this.close();
+				this._selectFn(r);
+			};
+		},
+
+		_keyPressed: function(e) {
+			var index;
+
+			if (this._isOpen && e.keyCode === 13 && this._selection) {
+				index = parseInt(this._selection.getAttribute('data-result-index'), 10);
+				this._resultSelected(this._results[index]).call(this);
+				L.DomEvent.preventDefault(e);
+				return;
+			}
+
+			if (e.keyCode === 13) {
+				this._complete(this._resultFn, true);
+			}
+
+			if (this._autocomplete) {
+				if (this._timer) {
+					clearTimeout(this._timer);
+				}
+				this._timer = setTimeout(L.Util.bind(function() { this._complete(this._autocomplete); }, this),
+					this.options.timeout);
+			}
+		},
+
+		_select: function(dir) {
+			var sel = this._selection;
+			if (sel) {
+				L.DomUtil.removeClass(sel.firstChild, 'leaflet-routing-geocoder-selected');
+				sel = sel[dir > 0 ? 'nextSibling' : 'previousSibling'];
+			}
+			if (!sel) {
+				sel = this._resultTable[dir > 0 ? 'firstChild' : 'lastChild'];
+			}
+
+			if (sel) {
+				L.DomUtil.addClass(sel.firstChild, 'leaflet-routing-geocoder-selected');
+				this._selection = sel;
+			}
+		},
+
+		_keyDown: function(e) {
+			if (this._isOpen) {
+				switch (e.keyCode) {
+				// Up
+				case 38:
+					this._select(-1);
+					L.DomEvent.preventDefault(e);
+					return;
+				// Up
+				case 40:
+					this._select(1);
+					L.DomEvent.preventDefault(e);
+					return;
+				}
+			}
+		},
+
+		_complete: function(completeFn, trySelect) {
+			completeFn(this._elem.value, function(results) {
+				if (trySelect && results.length === 1) {
+					this._resultSelected(results[0]);
+				} else {
+					this._setResults(results);
+				}
+			}, this);
+		}
+	});
+})();
 (function() {
 	'use strict';
 
@@ -17,9 +189,8 @@
 	};
 
 	L.Routing.OSRM = L.Class.extend({
-		includes: L.Mixin.Events,
 		options: {
-			serviceUrl: 'http://router.project-osrm.org/viaroute',
+			serviceUrl: '//router.project-osrm.org/viaroute',
 			geometryPrecision: 6
 		},
 
@@ -30,17 +201,18 @@
 			};
 		},
 
-		route: function(waypoints) {
+		route: function(waypoints, callback, context) {
 			var url = this._buildRouteUrl(waypoints);
 
 			L.Routing._jsonp(url, function(data) {
-				this._routeDone(data, waypoints);
+				this._routeDone(data, waypoints, callback, context);
 			}, this, 'jsonp');
 		},
 
-		_routeDone: function(response, waypoints) {
+		_routeDone: function(response, waypoints, callback, context) {
+			context = context || callback;
 			if (response.status !== 0) {
-				this.fire('error', {
+				callback.call(context, {
 					status: response.status,
 					message: response.message
 				});
@@ -48,26 +220,28 @@
 			}
 
 			var alts = [{
-					name: response.route_name,
-					geometry: this._decode(response.route_geometry, this.options.geometryPrecision),
-					instructions: response.route_instructions,
-					summary: response.route_summary,
+					name: response.route_name.join(', '),
+					coordinates: this._decode(response.route_geometry, this.options.geometryPrecision),
+					instructions: this._convertInstructions(response.route_instructions),
+					summary: this._convertSummary(response.route_summary),
 					waypoints: response.via_points
 				}],
 			    i;
 
-			for (i = 0; i < response.alternative_geometries.length; i++) {
-				alts.push({
-					name: response.alternative_names[i],
-					geometry: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
-					instructions: response.alternative_instructions[i],
-					summary: response.alternative_summaries[i],
-					waypoints: response.via_points
-				})
-			}
+		    if (response.alternative_geometries) {
+				for (i = 0; i < response.alternative_geometries.length; i++) {
+					alts.push({
+						name: response.alternative_names[i].join(', '),
+						coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+						instructions: this._convertInstructions(response.alternative_instructions[i]),
+						summary: this._convertSummary(response.alternative_summaries[i]),
+						waypoints: response.via_points
+					});
+				}
+		    }
 
 			this._saveHintData(response, waypoints);
-			this.fire('routefound', {routes: alts});
+			callback.call(context, null, alts);
 		},
 
 		_buildRouteUrl: function(waypoints) {
@@ -76,7 +250,7 @@
 			    hint;
 
 			for (var i = 0; i < waypoints.length; i++) {
-				locationKey = this._locationKey(waypoints[i]);
+				locationKey = this._locationKey(waypoints[i].latLng);
 				locs.push('loc=' + locationKey);
 
 				hint = this._hints.locations[locationKey];
@@ -103,7 +277,7 @@
 				locations: {}
 			};
 			for (var i = hintData.locations.length - 1; i >= 0; i--) {
-				loc = waypoints[i];
+				loc = waypoints[i].latLng;
 				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
 			}
 		},
@@ -143,6 +317,74 @@
 				array.push( [lat * precision, lng * precision] );
 			}
 			return array;
+		},
+
+		_convertSummary: function(osrmSummary) {
+			return {
+				totalDistance: osrmSummary.total_distance,
+				totalTime: osrmSummary.total_time
+			};
+		},
+
+		_convertInstructions: function(osrmInstructions) {
+			var result = [],
+			    i,
+			    instr,
+			    type,
+			    driveDir;
+
+			for (i = 0; i < osrmInstructions.length; i++) {
+				instr = osrmInstructions[i];
+				type = this._drivingDirectionType(instr[0]);
+				driveDir = instr[0].split('-');
+				if (type) {
+					result.push({
+						type: type,
+						distance: instr[2],
+						time: instr[4],
+						road: instr[1],
+						direction: instr[6],
+						exit: driveDir.length > 1 ? driveDir[1] : undefined,
+						index: instr[3]
+					});
+				}
+			}
+
+			return result;
+		},
+
+		_drivingDirectionType: function(d) {
+			switch (parseInt(d, 10)) {
+			case 1:
+				return 'Straight';
+			case 2:
+				return 'SlightRight';
+			case 3:
+				return 'Right';
+			case 4:
+				return 'SharpRight';
+			case 5:
+				return 'TurnAround';
+			case 6:
+				return 'SharpLeft';
+			case 7:
+				return 'Left';
+			case 8:
+				return 'SlightRight';
+			case 9:
+				return 'WaypointReached';
+			case 10:
+				// TODO: "Head on"
+				// https://github.com/DennisOSRM/Project-OSRM/blob/master/DataStructures/TurnInstructions.h#L48
+				return 'Straight';
+			case 11:
+			case 12:
+				return 'Roundabout';
+			case 15:
+				return 'DestinationReached';
+			default:
+				return null;
+			}
 		}
 	});
 
@@ -179,7 +421,7 @@
 		},
 
 		onAdd: function(map) {
-			var geom = this._route.geometry,
+			var geom = this._route.coordinates,
 			    i,
 			    pl;
 
@@ -205,7 +447,7 @@
 		},
 
 		getBounds: function() {
-			return L.latLngBounds(this._route.geometry);
+			return L.latLngBounds(this._route.coordinates);
 		},
 
 		_findWaypointIndices: function() {
@@ -225,9 +467,9 @@
 			    i,
 			    d;
 
-			for (i = this._route.geometry.length - 1; i >= 0 ; i--) {
+			for (i = this._route.coordinates.length - 1; i >= 0 ; i--) {
 				// TODO: maybe do this in pixel space instead?
-				d = latlng.distanceTo(this._route.geometry[i]);
+				d = latlng.distanceTo(this._route.coordinates[i]);
 				if (d < minDist) {
 					minIndex = i;
 					minDist = d;
@@ -266,46 +508,51 @@
 
 	L.Routing.Itinerary = L.Control.extend({
 		includes: L.Mixin.Events,
-		initialize: function(router) {
-			this._router = router;
+
+		options: {
+			units: 'metric',
+			pointMarkerStyle: {
+				radius: 5,
+				color: '#03f',
+				fillColor: 'white',
+				opacity: 1,
+				fillOpacity: 0.7
+			}
+		},
+
+		initialize: function(options) {
+			L.setOptions(this, options);
 		},
 
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
 			L.DomEvent.disableClickPropagation(this._container);
-			this._router.on('routefound', this._routeFound, this);
+			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
+				L.DomEvent.stopPropagation(e);
+			});
 			return this._container;
 		},
 
 		onRemove: function() {
-			this._router.off('routefound', this._routeFound, this);
 		},
 
-		_routeFound: function(e) {
+		setAlternatives: function(routes) {
 			var i,
 			    alt,
 			    altDiv;
 
-			this._routes = e.routes;
+			this._clearAlts();
 
-			// TODO: this is really inelegant
-			for (i = 0; i < this._container.children.length; i++) {
-				alt = this._container.children[i];
-				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-					this._container.removeChild(alt);
-					i--;
-				}
-			}
+			this._routes = routes;
 
-			this._altElements = [];
-			for (i = 0; i < e.routes.length; i++) {
-				alt = e.routes[i];
+			for (i = 0; i < this._routes.length; i++) {
+				alt = this._routes[i];
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
 					(i > 0 ? ' leaflet-routing-alt-minimized' : ''),
 					this._container);
-				altDiv.innerHTML = '<h2>' + alt.name.join(', ') + '</h2>' +
-					'<h3>' + this._formatDistance(alt.summary.total_distance) +
-					', ' + this._formatTime(alt.summary.total_time) + '</h3>';
+				altDiv.innerHTML = '<h2>' + alt.name + '</h2>' +
+					'<h3>' + this._formatDistance(alt.summary.totalDistance) +
+					', ' + this._formatTime(alt.summary.totalTime) + '</h3>';
 				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
 				altDiv.appendChild(this._createItineraryTable(alt));
@@ -315,22 +562,59 @@
 			this.fire('routeselected', {route: this._routes[0]});
 		},
 
+		_clearAlts: function() {
+			var i,
+				alt;
+			// TODO: this is really inelegant
+			for (i = 0; this._container && i < this._container.children.length; i++) {
+				alt = this._container.children[i];
+				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
+					this._container.removeChild(alt);
+					i--;
+				}
+			}
+
+			this._altElements = [];
+		},
+
 		_createItineraryTable: function(r) {
 			var table = L.DomUtil.create('table', ''),
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
-			    row;
+			    row,
+			    td;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
 				row = L.DomUtil.create('tr', '', body);
-				row.innerHTML =
-					'<td>' + this._instruction(instr, i) + '</td>' +
-					'<td>' + this._formatDistance(instr[2]) + '</td>';
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._instruction(instr, i)));
+				td = L.DomUtil.create('td', '', row);
+				td.appendChild(document.createTextNode(this._formatDistance(instr.distance)));
+				this._addRowListeners(row, r.coordinates[instr.index]);
 			}
 
 			return table;
+		},
+
+		_addRowListeners: function(row, coordinate) {
+			var _this = this,
+			    marker;
+			L.DomEvent.addListener(row, 'mouseover', function() {
+				marker = L.circleMarker(coordinate,
+					_this.options.pointMarkerStyle).addTo(_this._map);
+			});
+			L.DomEvent.addListener(row, 'mouseout', function() {
+				if (marker) {
+					_this._map.removeLayer(marker);
+					marker = null;
+				}
+			});
+			L.DomEvent.addListener(row, 'click', function(e) {
+				_this._map.panTo(coordinate);
+				L.DomEvent.stopPropagation(e);
+			});
 		},
 
 		_onAltClicked: function(e) {
@@ -344,14 +628,16 @@
 				altElem = altElem.parentElement;
 			}
 
-			for (j = 0; j < this._altElements.length; j++) {
-				n = this._altElements[j];
-				isCurrentSelection = altElem === n;
-				L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+			if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
+				for (j = 0; j < this._altElements.length; j++) {
+					n = this._altElements[j];
+					isCurrentSelection = altElem === n;
+					L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
 
-				if (isCurrentSelection) {
-					// TODO: don't fire if the currently active is clicked
-					this.fire('routeselected', {route: this._routes[j]});
+					if (isCurrentSelection) {
+						// TODO: don't fire if the currently active is clicked
+						this.fire('routeselected', {route: this._routes[j]});
+					}
 				}
 			}
 
@@ -359,12 +645,27 @@
 		},
 
 		_formatDistance: function(d /* Number (meters) */) {
+			var v;
+
+			if (this.options.units === 'imperial') {
+				d = d / 1.609344;
+				if (d >= 1000) {
+					return (this._round(d) / 1000) + ' mi';
+				} else {
+					return this._round(d / 1.760) + ' yd';
+				}
+			} else {
+				v = this._round(d);
+				return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			}
+		},
+
+		_round: function(d) {
 			var pow10 = Math.pow(10, (Math.floor(d) + '').length - 1),
 				r = Math.floor(d / pow10 * 2),
-				p = r % 2 ? pow10 / 2 : pow10,
-				v = Math.round(d / p) * p;
+				p = r % 2 ? pow10 / 2 : pow10;
 
-			return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+			return Math.round(d / p) * p;
 		},
 
 		_formatTime: function(t /* Number (seconds) */) {
@@ -384,67 +685,40 @@
 		},
 
 		_instruction: function(instr, i) {
-			var template,
-			    driveDir = instr[0].split('-');
-
-			switch (parseInt(driveDir, 10)) {
-			case 0:
-				template = '';
-				break;
-			case 1:
-				template = (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr[1] ? ' on {1}' : '');
-				break;
-			case 2:
-				template = 'Slight right' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 3:
-				template = 'Right' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 4:
-				template = 'Sharp right' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 5:
-				template = 'Turn around';
-				break;
-			case 6:
-				template = 'Sharp left' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 7:
-				template = 'Left' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 8:
-				template = 'Slight left' + (instr[1] ? ' onto {1}' : '');
-				break;
-			case 9:
-				template = 'Waypoint reached';
-				break;
-			case 10:
-				template =  'Head {dir}';
-				break;
-			case 11:
-				template =  'Take the {exit} exit in the roundabout';
-				break;
-			case 12:
-				template =  'Leave the roundabout by the {exit} exit';
-				break;
-			case 13:
-				template =  'Stay on roundabout';
-				break;
-			case 14:
-				template =  'Start at end of {1}';
-				break;
-			case 15:
-				template =  'Destination reached';
-				break;
-			case 16:
-				template =  'Enter against allowed direction';
-				break;
-			case 17:
-				template =  'Leave against allowed direction';
-				break;
+			if (instr.type !== undefined) {
+				return L.Util.template(this._getInstructionTemplate(instr, i),
+					L.extend({exit: this._formatOrder(instr.exit), dir: this._dir[instr.direction]},
+						instr));
+			} else {
+				return instr.text;
 			}
+		},
 
-			return L.Util.template(template, L.extend({exit: this._formatOrder(driveDir[1]), dir: this._dir[instr[6]]}, instr));
+		_getInstructionTemplate: function(instr, i) {
+			switch (instr.type) {
+			case 'Straight':
+				return (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
+			case 'SlightRight':
+				return 'Slight right' + (instr.road ? ' onto {road}' : '');
+			case 'Right':
+				return 'Right' + (instr.road ? ' onto {road}' : '');
+			case 'SharpRight':
+				return 'Sharp right' + (instr.road ? ' onto {road}' : '');
+			case 'TurnAround':
+				return 'Turn around';
+			case 'SharpLeft':
+				return 'Sharp left' + (instr.road ? ' onto {road}' : '');
+			case 'Left':
+				return 'Left' + (instr.road ? ' onto {road}' : '');
+			case 'SlightLeft':
+				return 'Slight left' + (instr.road ? ' onto {road}' : '');
+			case 'WaypointReached':
+				return 'Waypoint reached';
+			case 'Roundabout':
+				return  'Take the {exit} exit in the roundabout';
+			case 'DestinationReached':
+				return  'Destination reached';
+			}
 		},
 
 		_formatOrder: function(n) {
@@ -480,101 +754,6 @@
 			initialize: function(latLng, name) {
 				this.latLng = latLng;
 				this.name = name;
-			}
-		}),
-	    GeocoderResults = L.Class.extend({
-			initialize: function(results) {
-				this._results = results;
-			},
-
-			addTo: function(elem) {
-				var container = L.DomUtil.create('table', 'leaflet-routing-geocoder-result'),
-					sibling = elem.nextSibling,
-				    i,
-				    tr,
-				    td;
-
-				this._elem = elem;
-
-				for (i = 0; i < this._results.length; i++) {
-					tr = L.DomUtil.create('tr', '', container);
-					tr.setAttribute('data-result-index', i);
-					td = L.DomUtil.create('td', '', tr);
-					td.textContent = this._results[i].name;
-					L.DomEvent.addListener(td, 'click', this._listener(this._results[i]), this);
-				}
-
-				L.DomEvent.addListener(elem, 'keydown', this._keyPressed, this);
-
-				container.style.left = elem.offsetLeft;
-				container.style.top = elem.offsetTop + elem.offsetHeight;
-				container.style.width = elem.offsetWidth;
-
-				if (sibling) {
-					elem.parentElement.insertBefore(container, sibling);
-				} else {
-					elem.parentElement.appendChild(container);
-				}
-
-				this._container = container;
-
-				return this;
-			},
-
-			onResultSelected: function() {},
-
-			_listener: function(r) {
-				return function() {
-					this.onResultSelected(r);
-				};
-			},
-
-			_keyPressed: function(e) {
-				var _this = this,
-					select = function select(dir) {
-						if (_this._selection) {
-							L.DomUtil.removeClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
-							_this._selection = _this._selection[dir > 0 ? 'nextSibling' : 'previousSibling'];
-						}
-						if (!_this._selection) {
-							_this._selection = _this._container[dir > 0 ? 'firstChild' : 'lastChild'];
-						}
-
-						if (_this._selection) {
-							L.DomUtil.addClass(_this._selection.firstChild, 'leaflet-routing-geocoder-selected');
-						}
-					},
-					index;
-
-				switch (e.keyCode) {
-				// Up
-				case 38:
-					select(-1);
-					L.DomEvent.preventDefault(e);
-					break;
-				// Up
-				case 40:
-					select(1);
-					L.DomEvent.preventDefault(e);
-					break;
-				// Enter
-				case 13:
-					if (this._selection) {
-						index = parseInt(this._selection.getAttribute('data-result-index'), 10);
-						this.onResultSelected(this._results[index]);
-						L.DomEvent.preventDefault(e);
-					}
-				}
-				return true;
-			},
-
-			remove: function() {
-				if (this._container) {
-					L.DomEvent.removeListener(this._elem, 'keydown', this._keyPressed);
-					this._container.parentElement.removeChild(this._container);
-					delete this._container;
-					delete this._elem;
-				}
 			}
 		});
 
@@ -615,7 +794,7 @@
 				wps = [];
 
 			for (i = 0; i < this._waypoints.length; i++) {
-				wps.push(this._waypoints[i].latLng);
+				wps.push(this._waypoints[i]);
 			}
 
 			return wps;
@@ -627,21 +806,24 @@
 		},
 
 		spliceWaypoints: function() {
-			var i,
-				args = [arguments[0], arguments[1]];
+			var args = [arguments[0], arguments[1]],
+			    i,
+			    wp;
 
 			for (i = 2; i < arguments.length; i++) {
-				args.push(new Waypoint(arguments[i]));
+				args.push(arguments[i] && arguments[i].latLng ? arguments[i] : new Waypoint(arguments[i]));
 			}
 
 			[].splice.apply(this._waypoints, args);
 
 			while (this._waypoints.length < 2) {
-				this._waypoints.push(new Waypoint());
+				wp = new Waypoint();
+				this._waypoints.push(wp);
+				args.push(wp);
 			}
 
 			this._updateMarkers();
-			this._fireChanged.apply(this, arguments);
+			this._fireChanged.apply(this, args);
 		},
 
 		onAdd: function(map) {
@@ -679,7 +861,7 @@
 			}
 
 			addWpBtn = L.DomUtil.create('button', '', container);
-			addWpBtn.type = 'button';
+			addWpBtn.setAttribute('type', 'button');
 			addWpBtn.innerHTML = '+';
 			L.DomEvent.addListener(addWpBtn, 'click', function() {
 				this.spliceWaypoints(waypoints.length, 0, null);
@@ -691,90 +873,96 @@
 		},
 
 		_createGeocoder: function(i) {
-			var placeholder = (i === 0) ?
-			        'Start' : (i >= this._waypoints.length - 1) ?
-			        'End' : 'Via',
-			    geocoderElem;
+			var geocoderElem;
 
 			geocoderElem = L.DomUtil.create('input', '');
-			geocoderElem.placeholder = placeholder;
+			geocoderElem.placeholder = this._geocoderPlaceholder(i);
 
 			this._updateWaypointName(i);
 
-			L.DomEvent.addListener(geocoderElem, 'keydown', function(e) {
-				var i,
-					siblings = geocoderElem.parentElement.children,
-					thisIndex = null;
+			L.DomEvent.addListener(geocoderElem, 'click', function() {
+				this.select();
+			}, geocoderElem);
 
-				if (e.keyCode === 13) {
-					for (i = 0; i < siblings.length && thisIndex === null; i++) {
-						if (siblings[i] === geocoderElem) {
-							thisIndex = i;
-						}
-					}
-
-					this.options.geocoder.geocode(e.target.value, function(results) {
-						var gr,
-							_this = this;
-						if (results.length === 1) {
-							geocoderElem.value = results[0].name;
-							this._waypoints[thisIndex].name = results[0].name;
-							this._waypoints[thisIndex].latLng = results[0].center;
-							this._updateMarkers();
-							this._fireChanged();
-						} else {
-							gr = new GeocoderResults(results).addTo(geocoderElem);
-							L.DomEvent.addListener(geocoderElem, 'blur', function() {
-								// Don't remove before onResultSelected has got a chance to fire
-								// TODO: this looks like a hack
-								setTimeout(function() {gr.remove();}, 50);
-							});
-							gr.onResultSelected = function(r) {
-								gr.remove();
-								geocoderElem.value = r.name;
-								_this._waypoints[thisIndex].name = r.name;
-								_this._waypoints[thisIndex].latLng = r.center;
-								_this._updateMarkers();
-								_this._fireChanged();
-							};
-						}
-					}, this);
-				}
-			}, this);
+			new L.Routing.Autocomplete(geocoderElem, function(r) {
+					geocoderElem.value = r.name;
+					this._waypoints[i].name = r.name;
+					this._waypoints[i].latLng = r.center;
+					this._updateMarkers();
+					this._fireChanged();
+				}, this, {
+					resultFn: this.options.geocoder.geocode,
+					resultContext: this.options.geocoder,
+					autocompleteFn: this.options.geocoder.suggest,
+					autocompleteContext: this.options.geocoder
+				});
 
 			return geocoderElem;
 		},
 
 		_updateGeocoders: function(e) {
-			var newElems = [e.index, 0],
+			var newElems = [],
 			    i,
-			    geocoderElem;
-			for (i = 0; i < e.added.length; i++) {
+			    geocoderElem,
+			    beforeElem;
+			for (i = e.added.length - 1; i >= 0 ; i--) {
 				geocoderElem = this._createGeocoder(e.index + i);
-				this._geocoderContainer.insertBefore(geocoderElem, this._geocoderElems[e.index - 1].nextSibling);
+				if (e.index >= this._geocoderElems.length) {
+					// lastChild is the "add new wp" button
+					beforeElem = this._geocoderContainer.lastChild;
+				} else {
+					beforeElem = this._geocoderElems[e.index];
+				}
+				this._geocoderContainer.insertBefore(geocoderElem, beforeElem);
 				newElems.push(geocoderElem);
 			}
+			newElems.reverse();
 
 			for (i = e.index; i < e.index + e.nRemoved; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i]);
 			}
 
-			this._geocoderElems.splice(e.index, e.nRemoved);
-
+			newElems.splice(0, 0, e.index, e.nRemoved);
 			[].splice.apply(this._geocoderElems, newElems);
+
+			for (i = 0; i < this._geocoderElems.length; i++) {
+				this._geocoderElems[i].placeholder = this._geocoderPlaceholder(i);
+			}
+		},
+
+		_geocoderPlaceholder: function(i) {
+			return i === 0 ?
+				'Start' :
+				(i < this._geocoderElems.length - 1 ?
+								'Via ' + i :
+								'End');
 		},
 
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
-			if (this.options.geocoder && wp.latLng && (force || !wp.name)) {
-				this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
-					if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
-						wp.name = rs[0].name;
-					} else {
-						wp.name = '';
-					}
-					this._geocoderElems[i].value = wp.name;
-				}, this);
+
+			function updateGeocoder() {
+				var value = wp && wp.name ? wp.name : '';
+				if (this._geocoderElems[i]) {
+					this._geocoderElems[i].value = value;
+				}
+			}
+
+			if (wp.latLng && (force || !wp.name)) {
+				if (this.options.geocoder && this.options.geocoder.reverse) {
+					this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
+						if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
+							wp.name = rs[0].name;
+						} else {
+							wp.name = '';
+						}
+						updateGeocoder.call(this);
+					}, this);
+				} else {
+					wp.name = '';
+				}
+
+				updateGeocoder.call(this);
 			}
 		},
 
@@ -826,9 +1014,7 @@
 		},
 
 		_fireChanged: function() {
-			if (this.isReady()) {
-				this.fire('waypointschanged', {waypoints: this.getWaypoints()});
-			}
+			this.fire('waypointschanged', {waypoints: this.getWaypoints()});
 
 			if (arguments.length >= 2) {
 				this.fire('waypointsspliced', {
@@ -896,7 +1082,6 @@
 				this._map.removeLayer(this._newWp.lines[i]);
 			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
-			this._updateGeocoders(this._newWp.afterIndex + 1);
 			delete this._newWp;
 		}
 	});
@@ -910,6 +1095,7 @@
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
+			fitSelectedRoutes: true
 		},
 
 		initialize: function(options) {
@@ -924,7 +1110,7 @@
 				this._plan.setWaypoints(this.options.waypoints);
 			}
 
-			L.Routing.Itinerary.prototype.initialize.call(this, this._router);
+			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', this._route, this);
@@ -953,6 +1139,10 @@
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
+		getWaypoints: function() {
+			return this._plan.getWaypoints();
+		},
+
 		setWaypoints: function(waypoints) {
 			this._plan.setWaypoints(waypoints);
 		},
@@ -962,17 +1152,21 @@
 			return removed;
 		},
 
+		getPlan: function() {
+			return this._plan;
+		},
+
 		_routeSelected: function(e) {
 			var route = e.route;
+			this._clearLine();
 
-			if (this._line) {
-				this._map.removeLayer(this._line);
-			}
-
-			this._line = L.Routing.line(route);
+			this._line = L.Routing.line(route, this.options.lineOptions);
 			this._line.addTo(this._map);
-			this._map.fitBounds(this._line.getBounds());
 			this._hookEvents(this._line);
+
+			if (this.options.fitSelectedRoutes) {
+				this._map.fitBounds(this._line.getBounds());
+			}
 		},
 
 		_hookEvents: function(l) {
@@ -982,8 +1176,23 @@
 		},
 
 		_route: function() {
+			this._clearLine();
+			this._clearAlts();
 			if (this._plan.isReady()) {
-				this._router.route(this._plan.getWaypoints());
+				this._router.route(this._plan.getWaypoints(), function(err, routes) {
+					if (err) {
+						console.log(err);
+						return;
+					}
+					this.setAlternatives(routes);
+				}, this);
+			}
+		},
+
+		_clearLine: function() {
+			if (this._line) {
+				this._map.removeLayer(this._line);
+				delete this._line;
 			}
 		}
 	});
@@ -992,3 +1201,7 @@
 		return new L.Routing.Control(options);
 	};
 })();
+    return L.Routing;
+}));
+// Packaging/modules magic dance end. This code is inserted after all other
+// code when the dist is built.
