@@ -28,29 +28,35 @@
             using <code>L.Routing.Line</code>.
         </p>
 
+        <h2><span id="example-fold" class="handle closed">&#9660;</span><span<em>More examples</em></span></h2>
+        <ul id="examples" class="examples hide">
+        </ul>
+
 <pre><code class="language-javascript">var router = L.Routing.osrm(),
     waypoints = [],
     line;
 
-router.on('routefound', function(e) {
-    if (line) {
-        map.removeLayer(line);
-    }
-    line = L.Routing.line(e.routes[0]).addTo(map);
-});
 map.on('click', function(e) {
-    waypoints.push(e.latlng);
+    waypoints.push({latLng: e.latlng});
     if (waypoints.length >= 2) {
-        router.route(waypoints);
-    }
-});</code></pre>
+        router.route(waypoints, function(err, routes) {
+            if (line) {
+                map.removeLayer(line);
+            }
 
-        <h2><span id="example-fold" class="handle closed">&#9660;</span><span<em>More examples</em></span></h2>
-        <ul id="examples" class="examples hide">
-        </ul>
+            if (err) {
+                alert(err);
+            } else {
+                line = L.Routing.line(routes[0]).addTo(map);
+            }
+        });
+    }
+});
+</code></pre>
+
     </div>
     <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
-    <script src="dist/leaflet-routing-machine.min.js"></script>
+    <script src="dist/leaflet-routing-machine.js"></script>
     <script src="lib/leaflet.iconlabel.js"></script>
     <script src="lib/L.Control.Sidebar.js"></script>
     <script src="lib/prism.js"></script>

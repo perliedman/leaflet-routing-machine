@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Leaflet OSRM Example</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+    <link rel="stylesheet" href="dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="lib/leaflet.iconlabel.css" />
+    <link rel="stylesheet" href="lib/L.Control.Sidebar.css" />
+    <link rel="stylesheet" href="lib/prism.css">
+    <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+    <div id="map" class="map"></div>
+    <div id="sidebar">
+        <h1>Styling</h1>
+        <p>
+            The styling for the polyline that displays found routes can easily be
+            styled. To support more advanced styles, a number of styles can
+            be added, making it possible to draw outlines, shadows, and similar.
+        </p>
+        <p>
+            The styles are specified in <code>lineOptions</code>, which contains an
+            array of styles, which will be drawn in the order they're specified,
+            which means that the first will be drawn at the bottom, and the last
+            at the top.
+        </p>
+
+        <h2><span id="example-fold" class="handle closed">&#9660;</span><span<em>More examples</em></span></h2>
+        <ul id="examples" class="examples hide">
+        </ul>
+
+<pre><code class="language-javascript">L.Routing.control({
+  waypoints: [
+    L.latLng(48.8588,2.3469),
+    L.latLng(52.3546,4.9039)
+  ],
+  lineOptions: {
+    styles: [
+      // Shadow
+      {color: 'black', opacity: 0.8, weight: 11},
+      // Outline
+      {color: 'green', opacity: 0.8, weight: 8},
+      // Center
+      {color: 'orange', opacity: 1, weight: 4}
+    ],
+  }
+}).addTo(map);
+</code></pre>
+    </div>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+    <script src="dist/leaflet-routing-machine.min.js"></script>
+    <script src="lib/leaflet.iconlabel.js"></script>
+    <script src="lib/L.Control.Sidebar.js"></script>
+    <script src="lib/prism.js"></script>
+    <script src="common.js"></script>
+    <script src="styling.js"></script>
+</body>
+</html>

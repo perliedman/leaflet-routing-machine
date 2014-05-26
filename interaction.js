@@ -15,15 +15,19 @@ setTimeout(function () {
 var router = L.Routing.osrm(),
 	waypoints = [],
 	line;
-router.on('routefound', function(e) {
-	if (line) {
-		map.removeLayer(line);
-	}
-	line = L.Routing.line(e.routes[0]).addTo(map);
-});
 map.on('click', function(e) {
-	waypoints.push(e.latlng);
+	waypoints.push({latLng: e.latlng});
 	if (waypoints.length >= 2) {
-		router.route(waypoints);
+		router.route(waypoints, function(err, routes) {
+			if (line) {
+				map.removeLayer(line);
+			}
+
+			if (err) {
+				alert(err);
+			} else {
+				line = L.Routing.line(routes[0]).addTo(map);
+			}
+		});
 	}
 });

@@ -26,5 +26,6 @@
 		});
 	}
 
-	exampleLinks(window.location.pathname.replace(/.*?([a-z]+.html).*/g, '$1'));
+	var m = window.location.pathname.match(/([a-z]+.html)/g);
+	exampleLinks(m ? m[0] : 'index.html');
 })();
