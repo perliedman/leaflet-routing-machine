@@ -18,6 +18,10 @@
 			this._container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result');
 			this._resultTable = L.DomUtil.create('table', '', this._container);
 
+			// TODO: looks a bit like a kludge to register same for input and keypress -
+			// browsers supporting both will get duplicate events; just registering
+			// input will not catch enter, though.
+			L.DomEvent.addListener(this._elem, 'input', this._keyPressed, this);
 			L.DomEvent.addListener(this._elem, 'keypress', this._keyPressed, this);
 			L.DomEvent.addListener(this._elem, 'keydown', this._keyDown, this);
 			L.DomEvent.addListener(this._elem, 'blur', function() {
