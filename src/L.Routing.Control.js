@@ -21,7 +21,10 @@
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
 			this.on('routeselected', this._routeSelected, this);
-			this._plan.on('waypointschanged', this._route, this);
+			this._plan.on('waypointschanged', function(e) {
+				this._route();
+				this.fire('waypointschanged', {waypoints: e.waypoints});
+			}, this);
 
 			this._route();
 		},
