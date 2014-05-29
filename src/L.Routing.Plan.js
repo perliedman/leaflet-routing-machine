@@ -130,6 +130,7 @@
 			geocoderElem.placeholder = this._geocoderPlaceholder(i);
 
 			this._updateWaypointName(i);
+			geocoderElem.value = this._waypoints[i].name;
 
 			L.DomEvent.addListener(geocoderElem, 'click', function() {
 				this.select();
@@ -192,6 +193,8 @@
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
 
+			wp.name = wp.name || '';
+
 			function updateGeocoder() {
 				var value = wp && wp.name ? wp.name : '';
 				if (this._geocoderElems[i]) {
@@ -215,6 +218,7 @@
 
 				updateGeocoder.call(this);
 			}
+
 		},
 
 		_removeMarkers: function() {
