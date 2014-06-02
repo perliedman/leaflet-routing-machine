@@ -193,17 +193,18 @@
 								'End');
 		},
 
+		_updateGeocoder: function(i) {
+			var wp = this._waypoints[i],
+			    value = wp && wp.name ? wp.name : '';
+			if (this._geocoderElems[i]) {
+				this._geocoderElems[i].value = value;
+			}
+		},
+
 		_updateWaypointName: function(i, force) {
 			var wp = this._waypoints[i];
 
 			wp.name = wp.name || '';
-
-			function updateGeocoder() {
-				var value = wp && wp.name ? wp.name : '';
-				if (this._geocoderElems[i]) {
-					this._geocoderElems[i].value = value;
-				}
-			}
 
 			if (wp.latLng && (force || !wp.name)) {
 				if (this.options.geocoder && this.options.geocoder.reverse) {
@@ -213,13 +214,13 @@
 						} else {
 							wp.name = '';
 						}
-						updateGeocoder.call(this);
+						this._updateGeocoder(i);
 					}, this);
 				} else {
 					wp.name = '';
 				}
 
-				updateGeocoder.call(this);
+				this._updateGeocoder(i);
 			}
 
 		},
