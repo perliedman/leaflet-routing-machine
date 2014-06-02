@@ -112,12 +112,14 @@
 				this._geocoderElems.push(geocoderElem);
 			}
 
-			addWpBtn = L.DomUtil.create('button', '', container);
-			addWpBtn.setAttribute('type', 'button');
-			addWpBtn.innerHTML = '+';
-			L.DomEvent.addListener(addWpBtn, 'click', function() {
-				this.spliceWaypoints(waypoints.length, 0, null);
-			}, this);
+			if (this.options.addWaypoints) {
+				addWpBtn = L.DomUtil.create('button', '', container);
+				addWpBtn.setAttribute('type', 'button');
+				addWpBtn.innerHTML = '+';
+				L.DomEvent.addListener(addWpBtn, 'click', function() {
+					this.spliceWaypoints(waypoints.length, 0, null);
+				}, this);
+			}
 
 			this.on('waypointsspliced', this._updateGeocoders);
 
