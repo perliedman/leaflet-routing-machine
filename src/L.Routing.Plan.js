@@ -20,7 +20,8 @@
 				{color: 'orange', opacity: 1, weight: 2, dashArray: '7,12'}
 			],
 			draggableWaypoints: true,
-			addWaypoints: true
+			addWaypoints: true,
+			autocompleteOptions: {}
 		},
 
 		initialize: function(waypoints, options) {
@@ -142,12 +143,12 @@
 					this._waypoints[i].latLng = r.center;
 					this._updateMarkers();
 					this._fireChanged();
-				}, this, {
+				}, this, L.extend({
 					resultFn: this.options.geocoder.geocode,
 					resultContext: this.options.geocoder,
 					autocompleteFn: this.options.geocoder.suggest,
 					autocompleteContext: this.options.geocoder
-				});
+				}, this.options.autocompleteOptions));
 
 			return geocoderElem;
 		},
