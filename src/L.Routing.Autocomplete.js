@@ -85,6 +85,8 @@
 		_resultSelected: function(r) {
 			return function() {
 				this.close();
+				this._elem.value = r.name;
+				this._lastCompletedText = r.name;
 				this._selectFn(r);
 			};
 		},
@@ -146,13 +148,21 @@
 		},
 
 		_complete: function(completeFn, trySelect) {
-			completeFn(this._elem.value, function(results) {
+			var v = this._elem.value;
+			function completeResults(results) {
+				this._lastCompletedText = v;
 				if (trySelect && results.length === 1) {
-					this._resultSelected(results[0]);
+					this._resultSelected(results[0])();
 				} else {
 					this._setResults(results);
 				}
-			}, this);
+			}
+
+			if (v !== this._lastCompletedText) {
+				completeFn(v, completeResults, this);
+			} else if (trySelect) {
+				completeResults.call(this, this._results);
+			}
 		}
 	});
 })();
