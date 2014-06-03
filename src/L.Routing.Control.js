@@ -87,14 +87,20 @@
 		},
 
 		_route: function() {
+			var wps;
+
 			this._clearLine();
 			this._clearAlts();
+
 			if (this._plan.isReady()) {
-				this._router.route(this._plan.getWaypoints(), function(err, routes) {
+				wps = this._plan.getWaypoints();
+				this.fire('routingstart', {waypoints: wps});
+				this._router.route(wps, function(err, routes) {
 					if (err) {
-						console.log(err);
+						this.fire('routingerror', {error: err});
 						return;
 					}
+					this.fire('routesfound', {waypoints: wps, routes: routes});
 					this.setAlternatives(routes);
 				}, this);
 			}
