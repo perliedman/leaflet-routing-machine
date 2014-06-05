@@ -138,7 +138,7 @@
 					this._select(-1);
 					L.DomEvent.preventDefault(e);
 					return;
-				// Up
+				// Down
 				case 40:
 					this._select(1);
 					L.DomEvent.preventDefault(e);
