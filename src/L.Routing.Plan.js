@@ -21,7 +21,17 @@
 			],
 			draggableWaypoints: true,
 			addWaypoints: true,
-			autocompleteOptions: {}
+			autocompleteOptions: {},
+			geocoderPlaceholder: function(i, numberWaypoints) {
+				return i === 0 ?
+					'Start' :
+					(i < numberWaypoints - 1 ?
+									'Via ' + i :
+									'End');
+			},
+			geocoderClass: function() {
+				return '';
+			}
 		},
 
 		initialize: function(waypoints, options) {
@@ -130,7 +140,8 @@
 			var geocoderElem;
 
 			geocoderElem = L.DomUtil.create('input', '');
-			geocoderElem.placeholder = this._geocoderPlaceholder(i);
+			geocoderElem.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
+			geocoderElem.className = this.options.geocoderClass(i, this._waypoints.length);
 
 			this._updateWaypointName(i);
 			geocoderElem.value = this._waypoints[i].name;
@@ -181,16 +192,9 @@
 			[].splice.apply(this._geocoderElems, newElems);
 
 			for (i = 0; i < this._geocoderElems.length; i++) {
-				this._geocoderElems[i].placeholder = this._geocoderPlaceholder(i);
+				this._geocoderElems[i].placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
+				this._geocoderElems[i].className = this.options.geocoderClass(i, this._waypoints.length);
 			}
-		},
-
-		_geocoderPlaceholder: function(i) {
-			return i === 0 ?
-				'Start' :
-				(i < this._geocoderElems.length - 1 ?
-								'Via ' + i :
-								'End');
 		},
 
 		_updateGeocoder: function(i) {

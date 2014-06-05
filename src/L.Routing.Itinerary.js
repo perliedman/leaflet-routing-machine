@@ -14,6 +14,18 @@
 				fillColor: 'white',
 				opacity: 1,
 				fillOpacity: 0.7
+			},
+			summaryTemplate: '<h2>{name}</h2><h3>{distance}, {time}</h3>',
+			distanceTemplate: '{value} {unit}',
+			timeTemplate: '{time}',
+			unitNames: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'mín',
+				seconds: 's'
 			}
 		},
 
@@ -47,9 +59,11 @@
 				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
 					(i > 0 ? ' leaflet-routing-alt-minimized' : ''),
 					this._container);
-				altDiv.innerHTML = '<h2>' + alt.name + '</h2>' +
-					'<h3>' + this._formatDistance(alt.summary.totalDistance) +
-					', ' + this._formatTime(alt.summary.totalTime) + '</h3>';
+				altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
+					name: alt.name,
+					distance: this._formatDistance(alt.summary.totalDistance),
+					time: this._formatTime(alt.summary.totalTime)
+				});
 				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
 				altDiv.appendChild(this._createItineraryTable(alt));
@@ -142,19 +156,32 @@
 		},
 
 		_formatDistance: function(d /* Number (meters) */) {
-			var v;
+			var un = this.options.unitNames,
+			    v,
+				data;
 
 			if (this.options.units === 'imperial') {
 				d = d / 1.609344;
 				if (d >= 1000) {
-					return (this._round(d) / 1000) + ' mi';
+					data = {
+						value: (this._round(d) / 1000),
+						unit: un.miles
+					};
 				} else {
-					return this._round(d / 1.760) + ' yd';
+					data = {
+						value: this._round(d / 1.760),
+						unit: un.yards
+					};
 				}
 			} else {
 				v = this._round(d);
-				return v >= 1000 ? ((v / 1000) + ' km') : (v + ' m');
+				data = {
+					value: v >= 1000 ? (v / 1000) : v,
+					unit: v >= 1000 ? un.kilometers : un.meters
+				};
 			}
+
+			return L.Util.template(this.options.distanceTemplate, data);
 		},
 
 		_round: function(d) {
