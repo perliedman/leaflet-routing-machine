@@ -22,6 +22,7 @@
 			draggableWaypoints: true,
 			addWaypoints: true,
 			autocompleteOptions: {},
+			geocodersClassName: '',
 			geocoderPlaceholder: function(i, numberWaypoints) {
 				return i === 0 ?
 					'Start' :
@@ -107,7 +108,7 @@
 		},
 
 		createGeocoders: function() {
-			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders'),
+			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
 				waypoints = this._waypoints,
 			    i,
 			    geocoderElem,

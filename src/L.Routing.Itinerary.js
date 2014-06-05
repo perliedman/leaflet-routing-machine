@@ -26,7 +26,11 @@
 				hours: 'h',
 				minutes: 'mín',
 				seconds: 's'
-			}
+			},
+			containerClassName: '',
+			alternativeClassName: '',
+			minimizedClassName: '',
+			itineraryClassName: ''
 		},
 
 		initialize: function(options) {
@@ -34,7 +38,8 @@
 		},
 
 		onAdd: function() {
-			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar');
+			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
+				this.options.containerClassName);
 			L.DomEvent.disableClickPropagation(this._container);
 			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
 				L.DomEvent.stopPropagation(e);
@@ -56,8 +61,9 @@
 
 			for (i = 0; i < this._routes.length; i++) {
 				alt = this._routes[i];
-				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt' +
-					(i > 0 ? ' leaflet-routing-alt-minimized' : ''),
+				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
+					this.options.alternativeClassName +
+					(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : ''),
 					this._container);
 				altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
 					name: alt.name,
@@ -89,7 +95,7 @@
 		},
 
 		_createItineraryTable: function(r) {
-			var table = L.DomUtil.create('table', ''),
+			var table = L.DomUtil.create('table', this.options.itineraryClassName),
 			    body = L.DomUtil.create('tbody', '', table),
 			    i,
 			    instr,
@@ -132,7 +138,8 @@
 			var altElem,
 			    j,
 			    n,
-			    isCurrentSelection;
+			    isCurrentSelection,
+			    classFn;
 
 			altElem = e.target;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
@@ -143,7 +150,11 @@
 				for (j = 0; j < this._altElements.length; j++) {
 					n = this._altElements[j];
 					isCurrentSelection = altElem === n;
-					L.DomUtil[isCurrentSelection ? 'removeClass' : 'addClass'](n, 'leaflet-routing-alt-minimized');
+					classFn = isCurrentSelection ? 'removeClass' : 'addClass';
+					L.DomUtil[classFn](n, 'leaflet-routing-alt-minimized');
+					if (this.options.minimizedClassName) {
+						L.DomUtil[classFn](n, this.options.minimizedClassName);
+					}
 
 					if (isCurrentSelection) {
 						// TODO: don't fire if the currently active is clicked
