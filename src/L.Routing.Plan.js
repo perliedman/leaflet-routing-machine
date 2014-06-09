@@ -259,14 +259,7 @@
 					icon = (typeof(this.options.waypointIcon) === 'function') ?
 						this.options.waypointIcon(i, this._waypoints[i].name, this._waypoints.length) :
 						this.options.waypointIcon;
-					options = {
-						draggable: true
-					};
-					if (icon) {
-						options.icon = icon;
-					}
-
-					m = L.marker(this._waypoints[i].latLng, options).addTo(this._map);
+					m = this._createMarker(icon, i);
 					if (this.options.draggableWaypoints) {
 						this._hookWaypointEvents(m, i);
 					}
@@ -275,6 +268,17 @@
 				}
 				this._markers.push(m);
 			}
+		},
+
+		_createMarker: function(icon, i) {
+			var options = {
+				draggable: true
+			};
+			if (icon) {
+				options.icon = icon;
+			}
+
+			return L.marker(this._waypoints[i].latLng, options).addTo(this._map);
 		},
 
 		_fireChanged: function() {
