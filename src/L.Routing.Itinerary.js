@@ -61,22 +61,27 @@
 
 			for (i = 0; i < this._routes.length; i++) {
 				alt = this._routes[i];
-				altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
-					this.options.alternativeClassName +
-					(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : ''),
-					this._container);
-				altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
-					name: alt.name,
-					distance: this._formatDistance(alt.summary.totalDistance),
-					time: this._formatTime(alt.summary.totalTime)
-				});
-				L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
-
-				altDiv.appendChild(this._createItineraryTable(alt));
+				altDiv = this._createAlternative(alt, i);
+				this._container.appendChild(altDiv);
 				this._altElements.push(altDiv);
 			}
 
 			this.fire('routeselected', {route: this._routes[0]});
+		},
+
+		_createAlternative: function(alt, i) {
+			var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
+				this.options.alternativeClassName +
+				(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : ''));
+			altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
+				name: alt.name,
+				distance: this._formatDistance(alt.summary.totalDistance),
+				time: this._formatTime(alt.summary.totalTime)
+			});
+			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
+
+			altDiv.appendChild(this._createItineraryTable(alt));
+			return altDiv;
 		},
 
 		_clearAlts: function() {
