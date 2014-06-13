@@ -83,12 +83,12 @@
 		},
 
 		_resultSelected: function(r) {
-			return function() {
+			return L.bind(function() {
 				this.close();
 				this._elem.value = r.name;
 				this._lastCompletedText = r.name;
 				this._selectFn(r);
-			};
+			}, this);
 		},
 
 		_keyPressed: function(e) {
@@ -96,7 +96,7 @@
 
 			if (this._isOpen && e.keyCode === 13 && this._selection) {
 				index = parseInt(this._selection.getAttribute('data-result-index'), 10);
-				this._resultSelected(this._results[index]).call(this);
+				this._resultSelected(this._results[index])();
 				L.DomEvent.preventDefault(e);
 				return;
 			}
