@@ -5,7 +5,8 @@
 
 	L.Routing.Autocomplete = L.Class.extend({
 		options: {
-			timeout: 500
+			timeout: 500,
+			noResultsMessage: 'No results found.'
 		},
 
 		initialize: function(elem, callback, context, options) {
@@ -58,7 +59,8 @@
 		_setResults: function(results) {
 			var i,
 			    tr,
-			    td;
+			    td,
+			    text;
 
 			delete this._selection;
 			this._results = results;
@@ -71,12 +73,20 @@
 				tr = L.DomUtil.create('tr', '', this._resultTable);
 				tr.setAttribute('data-result-index', i);
 				td = L.DomUtil.create('td', '', tr);
-				td.textContent = results[i].name;
+				text = document.createTextNode(results[i].name);
+				td.appendChild(text);
 				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
 			}
 
+			if (!i) {
+				tr = L.DomUtil.create('tr', '', this._resultTable);
+				td = L.DomUtil.create('td', 'leaflet-routing-geocoder-no-results', tr);
+				td.innerHTML = this.options.noResultsMessage;
+			}
+
+			this._open();
+
 			if (results.length > 0) {
-				this._open();
 				// Select the first entry
 				this._select(1);
 			}
@@ -103,6 +113,7 @@
 
 			if (e.keyCode === 13) {
 				this._complete(this._resultFn, true);
+				return;
 			}
 
 			if (this._autocomplete) {
@@ -111,7 +122,10 @@
 				}
 				this._timer = setTimeout(L.Util.bind(function() { this._complete(this._autocomplete); }, this),
 					this.options.timeout);
+				return;
 			}
+
+			this._unselect();
 		},
 
 		_select: function(dir) {
@@ -128,6 +142,13 @@
 				L.DomUtil.addClass(sel.firstChild, 'leaflet-routing-geocoder-selected');
 				this._selection = sel;
 			}
+		},
+
+		_unselect: function() {
+			if (this._selection) {
+				L.DomUtil.removeClass(this._selection.firstChild, 'leaflet-routing-geocoder-selected');
+			}
+			delete this._selection;
 		},
 
 		_keyDown: function(e) {

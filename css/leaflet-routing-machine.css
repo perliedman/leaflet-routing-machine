@@ -100,3 +100,8 @@
 .leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
     background-color: #eee;
 }
+
+.leaflet-routing-geocoder-no-results {
+    font-style: italic;
+    color: #888;
+}
