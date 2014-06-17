@@ -123,13 +123,15 @@
 				this._geocoderElems.push(geocoderElem);
 			}
 
+			addWpBtn = L.DomUtil.create('button', '', container);
+			addWpBtn.setAttribute('type', 'button');
+			addWpBtn.innerHTML = '+';
 			if (this.options.addWaypoints) {
-				addWpBtn = L.DomUtil.create('button', '', container);
-				addWpBtn.setAttribute('type', 'button');
-				addWpBtn.innerHTML = '+';
 				L.DomEvent.addListener(addWpBtn, 'click', function() {
 					this.spliceWaypoints(waypoints.length, 0, null);
 				}, this);
+			} else {
+				addWpBtn.style.display = 'none';
 			}
 
 			this.on('waypointsspliced', this._updateGeocoders);
@@ -138,14 +140,16 @@
 		},
 
 		_createGeocoder: function(i) {
-			var geocoderElem;
-
-			geocoderElem = L.DomUtil.create('input', '');
+			var geocoderElem = L.DomUtil.create('input', ''),
+				wp = this._waypoints[i];
 			geocoderElem.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
 			geocoderElem.className = this.options.geocoderClass(i, this._waypoints.length);
 
-			this._updateWaypointName(i);
-			geocoderElem.value = this._waypoints[i].name;
+			this._updateWaypointName(i, geocoderElem);
+			// This has to be here, or geocoder's value will not be properly
+			// initialized.
+			// TODO: look into why and make _updateWaypointName fix this.
+			geocoderElem.value = wp.name;
 
 			L.DomEvent.addListener(geocoderElem, 'click', function() {
 				this.select();
@@ -153,8 +157,8 @@
 
 			new L.Routing.Autocomplete(geocoderElem, function(r) {
 					geocoderElem.value = r.name;
-					this._waypoints[i].name = r.name;
-					this._waypoints[i].latLng = r.center;
+					wp.name = r.name;
+					wp.latLng = r.center;
 					this._updateMarkers();
 					this._fireChanged();
 				}, this, L.extend({
@@ -172,18 +176,22 @@
 			    i,
 			    geocoderElem,
 			    beforeElem;
-			for (i = e.added.length - 1; i >= 0 ; i--) {
+
+			// Determine where to insert geocoders for new waypoints
+			if (e.index >= this._geocoderElems.length) {
+				// lastChild is the "add new wp" button
+				beforeElem = this._geocoderContainer.lastChild;
+			} else {
+				beforeElem = this._geocoderElems[e.index];
+			}
+
+			// Insert new geocoders for new waypoints
+			for (i = 0; i < e.added.length; i++) {
 				geocoderElem = this._createGeocoder(e.index + i);
-				if (e.index >= this._geocoderElems.length) {
-					// lastChild is the "add new wp" button
-					beforeElem = this._geocoderContainer.lastChild;
-				} else {
-					beforeElem = this._geocoderElems[e.index];
-				}
 				this._geocoderContainer.insertBefore(geocoderElem, beforeElem);
 				newElems.push(geocoderElem);
 			}
-			newElems.reverse();
+			//newElems.reverse();
 
 			for (i = e.index; i < e.index + e.nRemoved; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i]);
@@ -198,15 +206,13 @@
 			}
 		},
 
-		_updateGeocoder: function(i) {
+		_updateGeocoder: function(i, geocoderElem) {
 			var wp = this._waypoints[i],
 			    value = wp && wp.name ? wp.name : '';
-			if (this._geocoderElems[i]) {
-				this._geocoderElems[i].value = value;
-			}
+			geocoderElem.value = value;
 		},
 
-		_updateWaypointName: function(i, force) {
+		_updateWaypointName: function(i, geocoderElem, force) {
 			var wp = this._waypoints[i];
 
 			wp.name = wp.name || '';
@@ -219,13 +225,13 @@
 						} else {
 							wp.name = '';
 						}
-						this._updateGeocoder(i);
+						this._updateGeocoder(i, geocoderElem);
 					}, this);
 				} else {
 					wp.name = '';
 				}
 
-				this._updateGeocoder(i);
+				this._updateGeocoder(i, geocoderElem);
 			}
 
 		},
@@ -245,7 +251,6 @@
 		_updateMarkers: function() {
 			var i,
 			    icon,
-			    options,
 			    m;
 
 			if (!this._map) {
@@ -304,7 +309,7 @@
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._waypoints[i].latLng = e.target.getLatLng();
 				this._waypoints[i].name = '';
-				this._updateWaypointName(i, true);
+				this._updateWaypointName(i, this._geocoderElems[i], true);
 				this._fireChanged();
 			}, this);
 		},
