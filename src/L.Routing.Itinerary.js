@@ -146,7 +146,7 @@
 			    isCurrentSelection,
 			    classFn;
 
-			altElem = e.target;
+			altElem = e.target || window.event.srcElement;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
 				altElem = altElem.parentElement;
 			}
