@@ -179,6 +179,10 @@
 				}
 			}
 
+			if (!v) {
+				return;
+			}
+
 			if (v !== this._lastCompletedText) {
 				completeFn(v, completeResults, this);
 			} else if (trySelect) {
