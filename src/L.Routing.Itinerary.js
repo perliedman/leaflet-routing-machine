@@ -30,7 +30,8 @@
 			containerClassName: '',
 			alternativeClassName: '',
 			minimizedClassName: '',
-			itineraryClassName: ''
+			itineraryClassName: '',
+			roundingSensitivity: 1
 		},
 
 		initialize: function(options) {
@@ -201,9 +202,9 @@
 		},
 
 		_round: function(d) {
-			var pow10 = Math.pow(10, (Math.floor(d) + '').length - 1),
-				r = Math.floor(d / pow10 * 2),
-				p = r % 2 ? pow10 / 2 : pow10;
+			var pow10 = Math.pow(10, (Math.floor(d / this.options.roundingSensitivity) + '').length - 1),
+				r = Math.floor(d / pow10),
+				p = (r > 5) ? pow10 : pow10 / 2;
 
 			return Math.round(d / p) * p;
 		},
