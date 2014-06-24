@@ -21,6 +21,7 @@
 			],
 			draggableWaypoints: true,
 			addWaypoints: true,
+			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
 			geocodersClassName: '',
 			geocoderPlaceholder: function(i, numberWaypoints) {
@@ -220,7 +221,7 @@
 			if (wp.latLng && (force || !wp.name)) {
 				if (this.options.geocoder && this.options.geocoder.reverse) {
 					this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
-						if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < 200) {
+						if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < this.options.maxGeocoderTolerance) {
 							wp.name = rs[0].name;
 						} else {
 							wp.name = '';
