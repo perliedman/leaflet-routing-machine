@@ -6,6 +6,7 @@
 	L.Routing.Autocomplete = L.Class.extend({
 		options: {
 			timeout: 500,
+			blurTimeout: 100,
 			noResultsMessage: 'No results found.'
 		},
 
@@ -27,9 +28,7 @@
 			L.DomEvent.addListener(this._elem, 'keydown', this._keyDown, this);
 			L.DomEvent.addListener(this._elem, 'blur', function() {
 				if (this._isOpen) {
-					// TODO: setTimeout here looks like a hack, but is needed
-					// to get click events to fire before hiding the container.
-					setTimeout(L.Util.bind(function() { this.close(); }, this), 100);
+					this.close();
 				}
 			}, this);
 		},
@@ -75,6 +74,9 @@
 				td = L.DomUtil.create('td', '', tr);
 				text = document.createTextNode(results[i].name);
 				td.appendChild(text);
+				// mousedown + click because: 
+				// http://stackoverflow.com/questions/10652852/jquery-fire-click-before-blur-event
+				L.DomEvent.addListener(td, 'mousedown', L.DomEvent.preventDefault);
 				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
 			}
 
