@@ -143,7 +143,7 @@
 		_createGeocoder: function(i) {
 			var geocoderElem = L.DomUtil.create('input', ''),
 				wp = this._waypoints[i];
-			geocoderElem.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
+			geocoderElem.setAttribute('placeholder', this.options.geocoderPlaceholder(i, this._waypoints.length));
 			geocoderElem.className = this.options.geocoderClass(i, this._waypoints.length);
 
 			this._updateWaypointName(i, geocoderElem);
