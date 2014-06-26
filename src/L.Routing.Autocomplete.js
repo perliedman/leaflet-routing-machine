@@ -116,7 +116,7 @@
 				return;
 			}
 
-			if (this._autocomplete) {
+			if (this._autocomplete && document.activeElement === this._elem) {
 				if (this._timer) {
 					clearTimeout(this._timer);
 				}
