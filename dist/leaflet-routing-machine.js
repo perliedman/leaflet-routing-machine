@@ -190,7 +190,7 @@
 
 	L.Routing.OSRM = L.Class.extend({
 		options: {
-			serviceUrl: '//router.project-osrm.org/viaroute',
+			serviceUrl: 'http://router.project-osrm.org/viaroute',
 			geometryPrecision: 6
 		},
 
