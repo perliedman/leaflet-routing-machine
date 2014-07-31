@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width; initial-scale=1.0, maximum-scale=1">
+
+    <title>
+      {% if page.title %}{{ page.title }} &middot; {% endif %}
+      Leaflet Routing Machine
+    </title>
+
+    <script src="/public/lib/highlight.pack.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/public/css/blueprint.screen.css">
+    <link rel="stylesheet" href="/public/css/screen.css">
+    <link rel="stylesheet" href="/public/css/github.css">
+
+  </head>
+  <body>
+
+    <header class="masthead">
+    </header>
+
+    <div class="content container">
+      {{ content }}
+    </div>
+
+    <script>
+      hljs.tabReplace = '    ';
+      hljs.initHighlighting();
+    </script>
+  </body>
+</html>
