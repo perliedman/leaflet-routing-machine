@@ -113,6 +113,7 @@ Option                 | Type     | Default             | Description
 `minimizedClassName`   | `String` | `''`                | Class name to add to minimized routing alternatives' elements
 `itineraryClassName`   | `String` | `''`                | Class name to add to route itinerary container
 `roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more rounded, lower more accurate
+`show`                 | `Boolean`| `true`              | Display the itinerary initially; can later be changed with `hide()`and `show()` methods
 
 ### Events
 
@@ -125,6 +126,8 @@ Event         | Data           | Description
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
 `setAlternatives(<`[`IRoute`](#iroute)`[]> alternatives)`    | `this` | Sets the routing alternatives to display itineraries for
+`hide()`               | `this`         | Hides the itinerary control
+`show()`               | `this`         | Shows the itinerary control
 
 
 ## <a name="l-routing-plan"></a> L.Routing.Plan
