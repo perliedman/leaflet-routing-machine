@@ -34,7 +34,7 @@ title: API
 
 ## <a name="l-routing-control"></a>L.Routing.Control
 
-Combining the other classes into a full routing user interface. The main class of the plugin. Extends [L.Routing.Itinerary](#l-routing-itinerary).
+Combining the other classes into a full routing user interface. The main class of the plugin. Extends [L.Routing.Itinerary](#l-routing-itinerary) and implements [IControl](http://leafletjs.com/reference.html#icontrol).
 
 ### Usage example
 
@@ -91,7 +91,7 @@ Method                 | Returns        | Description
 
 ## <a name="l-routing-itinerary"></a> L.Routing.Itinerary
 
-A widget to display itineraries as text in a control. Also serves as the base class for [`L.Routing.Control`](#l-routing-control).
+A widget to display itineraries as text in a control. Also serves as the base class for [`L.Routing.Control`](#l-routing-control). Implements [IControl](http://leafletjs.com/reference.html#icontrol).
 
 ### Creation
 
@@ -124,12 +124,12 @@ Event         | Data           | Description
 
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
-`setAlternatives(<`[`IRoute`](#iroute)`[]> alternatives)`    | - | Sets the routing alternatives to display itineraries for
+`setAlternatives(<`[`IRoute`](#iroute)`[]> alternatives)`    | `this` | Sets the routing alternatives to display itineraries for
 
 
 ## <a name="l-routing-plan"></a> L.Routing.Plan
 
-User interface to edit the plan for a route (an ordered list of waypoints).
+User interface to edit the plan for a route (an ordered list of waypoints). Implements [ILayer](http://leafletjs.com/reference.html#ilayer).
 
 ### Creation
 
@@ -172,7 +172,7 @@ Method                 | Returns        | Description
 
 ## <a name="l-routing-line"></a> L.Routing.Line
 
-Displays a route on the map, and allows adding new waypoints by dragging the line.
+Displays a route on the map, and allows adding new waypoints by dragging the line. Implements [ILayer](http://leafletjs.com/reference.html#ilayer).
 
 ### Creation
 
