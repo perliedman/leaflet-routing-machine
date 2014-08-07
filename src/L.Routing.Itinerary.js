@@ -31,7 +31,8 @@
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			roundingSensitivity: 1
+			roundingSensitivity: 1,
+			show: true
 		},
 
 		initialize: function(options) {
@@ -40,6 +41,7 @@
 
 		onAdd: function() {
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
+				(!this.options.show ? 'leaflet-routing-container-hide' : '') +
 				this.options.containerClassName);
 			L.DomEvent.disableClickPropagation(this._container);
 			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
@@ -70,6 +72,14 @@
 			this.fire('routeselected', {route: this._routes[0]});
 
 			return this;
+		},
+
+		show: function() {
+			L.DomUtil.removeClass(this._container, 'leaflet-routing-container-hide');
+		},
+
+		hide: function() {
+			L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
 		},
 
 		_createAlternative: function(alt, i) {
