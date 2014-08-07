@@ -68,6 +68,8 @@
 			}
 
 			this.fire('routeselected', {route: this._routes[0]});
+
+			return this;
 		},
 
 		_createAlternative: function(alt, i) {

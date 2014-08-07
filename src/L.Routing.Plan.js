@@ -67,6 +67,7 @@
 		setWaypoints: function(waypoints) {
 			var args = [0, this._waypoints.length].concat(waypoints);
 			this.spliceWaypoints.apply(this, args);
+			return this;
 		},
 
 		spliceWaypoints: function() {

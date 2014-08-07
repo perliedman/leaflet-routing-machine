@@ -1,6 +1,10 @@
 (function() {
 	'use strict';
 
+	// Ignore camelcase naming for this file, since OSRM's API uses
+	// underscores.
+	/* jshint camelcase: false */
+
 	L.Routing = L.Routing || {};
 
 	L.Routing._jsonpCallbackId = 0;
@@ -35,6 +39,8 @@
 			L.Routing._jsonp(url, function(data) {
 				this._routeDone(data, waypoints, callback, context);
 			}, this, 'jsonp');
+
+			return this;
 		},
 
 		_routeDone: function(response, waypoints, callback, context) {
@@ -56,7 +62,7 @@
 				}],
 			    i;
 
-		    if (response.alternative_geometries) {
+			if (response.alternative_geometries) {
 				for (i = 0; i < response.alternative_geometries.length; i++) {
 					alts.push({
 						name: response.alternative_names[i].join(', '),
@@ -66,7 +72,7 @@
 						waypoints: response.via_points
 					});
 				}
-		    }
+			}
 
 			this._saveHintData(response, waypoints);
 			callback.call(context, null, alts);

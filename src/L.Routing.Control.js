@@ -56,6 +56,7 @@
 
 		setWaypoints: function(waypoints) {
 			this._plan.setWaypoints(waypoints);
+			return this;
 		},
 
 		spliceWaypoints: function() {

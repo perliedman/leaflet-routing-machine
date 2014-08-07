@@ -24,6 +24,7 @@
 
 		addTo: function(map) {
 			map.addLayer(this);
+			return this;
 		},
 
 		onAdd: function(map) {
