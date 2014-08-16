@@ -57,7 +57,7 @@ L.Routing.control({
 
 Factory                | Description
 -----------------------|-------------------------------------------------------
-`L.Routing.control(<`[`RoutingControlOptions`](#routingcontroloptions)`> options?)` | Instantiates a new routing control with the provided options
+`L.Routing.control(<`[`RoutingControlOptions`](#routingcontroloptions)`> options?)` | Instantiates a new routing control with the provided options; unless specific `router` and/or `plan` instances are provided, `options` are also passed to their constructors
 
 ### <a name="routingcontroloptions"></a> Options
 
@@ -66,8 +66,8 @@ Provides these options, in addition to the options of [`L.Routing.Itinerary`](#i
 Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
 `waypoints`            | [`IWaypoint`](#iwaypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
-`router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM()` | The router to use to calculate routes between waypoints
-`plan`                 | [`L.Routing.Plan`](#plan) | `new L.Routing.Plan()` | The plan to use to store and edit the route's waypoints
+`router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM(options)` | The router to use to calculate routes between waypoints
+`plan`                 | [`L.Routing.Plan`](#plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
 `fitSelectedRoutes`    | `Boolean`             | `true`          | Automatically fit the map view to a route when it is selected
 
 ### Events
