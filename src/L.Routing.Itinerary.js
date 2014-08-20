@@ -43,6 +43,8 @@
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
 				(!this.options.show ? 'leaflet-routing-container-hide' : '') +
 				this.options.containerClassName);
+			this._altContainer = this.createAlternativesContainer();
+			this._container.appendChild(this._altContainer);
 			L.DomEvent.disableClickPropagation(this._container);
 			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
 				L.DomEvent.stopPropagation(e);
@@ -51,6 +53,10 @@
 		},
 
 		onRemove: function() {
+		},
+
+		createAlternativesContainer: function() {
+			return L.DomUtil.create('div', 'leaflet-routing-alternatives-container');
 		},
 
 		setAlternatives: function(routes) {
@@ -65,7 +71,7 @@
 			for (i = 0; i < this._routes.length; i++) {
 				alt = this._routes[i];
 				altDiv = this._createAlternative(alt, i);
-				this._container.appendChild(altDiv);
+				this._altContainer.appendChild(altDiv);
 				this._altElements.push(altDiv);
 			}
 
@@ -98,15 +104,9 @@
 		},
 
 		_clearAlts: function() {
-			var i,
-				alt;
-			// TODO: this is really inelegant
-			for (i = 0; this._container && i < this._container.children.length; i++) {
-				alt = this._container.children[i];
-				if (L.DomUtil.hasClass(alt, 'leaflet-routing-alt')) {
-					this._container.removeChild(alt);
-					i--;
-				}
+			var el = this._altContainer;
+			while (el && el.firstChild) {
+				el.removeChild(el.firstChild);
 			}
 
 			this._altElements = [];
