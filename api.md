@@ -68,6 +68,7 @@ Option                 | Type                | Default       | Description
 `waypoints`            | [`IWaypoint`](#iwaypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
 `router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM(options)` | The router to use to calculate routes between waypoints
 `plan`                 | [`L.Routing.Plan`](#plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
+`geocoder`                 | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | - | Optional geocoder to use, unless the `plan` option is used
 `fitSelectedRoutes`    | `Boolean`             | `true`          | Automatically fit the map view to a route when it is selected
 
 ### Events
@@ -144,7 +145,7 @@ Factory                | Description
 
 Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
-`geocoder`             | [`IGeocoder`](#igeocoder) | `-` | The geocoder to use (both address lookup and reverse geocoding when dragging waypoints)
+`geocoder`             | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | `-` | The geocoder to use (both address lookup and reverse geocoding when dragging waypoints)
 `waypointIcon`         | `L.Icon \| Function` | `L.Icon.Default` | Icon to use for waypoints, or a function that returns an icon, on the form: `icon(<Number> waypointIndex, <Number> numberWaypoints)`
 `addWaypoints`         | `Boolean`           | `true`        | Can new waypoints be added by the user
 `draggableWaypoints`   | `Boolean`           | `true`        | Can waypoints be dragged in the map
