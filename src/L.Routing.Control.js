@@ -9,14 +9,8 @@
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
 
-			this._router = this.options.router || new L.Routing.OSRM();
-			this._plan = this.options.plan || L.Routing.plan(undefined, { geocoder: this.options.geocoder });
-			if (this.options.geocoder) {
-				this._plan.options.geocoder = this.options.geocoder;
-			}
-			if (this.options.waypoints) {
-				this._plan.setWaypoints(this.options.waypoints);
-			}
+			this._router = this.options.router || new L.Routing.OSRM(options);
+			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
 
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
@@ -56,6 +50,7 @@
 
 		setWaypoints: function(waypoints) {
 			this._plan.setWaypoints(waypoints);
+			return this;
 		},
 
 		spliceWaypoints: function() {

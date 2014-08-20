@@ -16,6 +16,8 @@ Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-
 
 Searching, displaying and editing a route is a complex problem with several moving parts. Leaflet Routing Machine aims to solve this problem while at offering the ability to customize how the user interacts with the routing software.
 
+For detailed documentation, please refer to the [Leaflet Routing Machine API docs](http://www.liedman.net/leaflet-routing-machine/api/).
+
 ### Installing
 
 To use Leaflet Routing Machine, copy the files under the ```dist``` folder to where you store you scripts and CSS.
@@ -28,7 +30,7 @@ npm install --save leaflet-routing-machine
 
 ### Basics
 
-Quickest way to get routing on your map is to use ```L.Routing.Control```:
+Quickest way to get routing on your map is to use [`L.Routing.Control`](http://www.liedman.net/leaflet-routing-machine/api/#l-routing-control):
 
 Include script and CSS:
 
@@ -103,109 +105,3 @@ npm install
 ```
 
 This requires [Node and npm](http://nodejs.org/), as well as Make, which should be available on UNIXy systems, and installable via for example [Cygwin](http://www.cygwin.com/) if you're on Windows.
-
-### Advanced
-
-To customize interactions, you can use the underlying classes that ```L.Routing.Control``` ties together:
-
-* ```L.Routing.Plan```
-* ```L.Routing.Itinerary```
-* ```L.Routing.Line```
-* ```L.Routing.OSRM```
-
-### L.Routing.Itinerary
-
-Displays itineraries as text in a control.
-
-### L.Routing.Line
-
-Displays a route on the map, and allows moving waypoints, as well as adding new waypoints.
-
-### L.Routing.OSRM
-
-Handles communication with the OSRM backend, building the request and parsing the response.
-
-## API
-
-### IRouter
-
-#### Methods
-
-* ```Route(waypoints, callback, context)``` - attempt to route through the provided waypoints, where each waypoint is an
-  ```IWaypoint```. Calls ```callback(err, routes)``` in the provided ```context``` when done or if an error is encountered, where:
-    * ```err``` is an ```IError``` or ```null``` if no error
-    * ```data``` is an array of ```IRoute``` alternatives if ```err``` is ```null```
-
-### IWaypoint
-
-#### Properties
-
-* ```latLng```: an ```L.LatLng``` for the geographic location of the waypoint
-* ```name```: a string representing the name of the waypoint, typically an address; 
-optional and possibly ```null``` or ```undefined```.
-
-### IRoute
-
-Describes a route through a number of waypoints.
-
-#### Properties
-
-* ```name``` (string) - a descriptive name for this route
-* ```summary``` (object) - an object containing two properties:
-    * ```totalTime``` (Number) - estimated time for the route, in seconds
-    * ```totalDistance``` (Number) - distance for the route, in meters
-* ```coordinates``` ([```L.LatLng```]) - an array of ```L.LatLng```s that can be used
-  to visualize the route; the level of detail should be high, since
-  Leaflet will simplify the line appropriately when it is displayed
-* ```waypoints``` - [```L.LatLng```] - the waypoints for this route
-* ```instructions``` - [```IInstruction```] - instructions for this route
-
-### IInstruction
-
-Describes a part of a route's itinerary, such as a turn. Can be of two types: either
-a ```text``` property containing the exact text to be shown to the user, a number of
-properties that describe the instruction in an abstract form; the latter can later be
-translated to different languages, while explicit text can't.
-
-#### Properties
-
-Mandatory:
-
-* ```distance``` (Number) - distance in meters for this segment
-* ```time``` (Number) - estimated time in seconds for this segment
-
-Combined with either:
-
-* ```text``` (string) - explicit instruction text
-
-or:
-
-* ```type``` (string) - one of the enumerated instruction types (see below)
-* ```road``` (String) - name of road for this segment, if available
-* ```direction``` (String) - aproximate compass direction: N, NE, E, SE, S, SW, W, NW
-* ```exit``` (Integer, optional) - for roundabouts, designates the number of the exit to take
-
-#### Types
-
-* ```Straight```
-* ```SlightRight```
-* ```Right```
-* ```SharpRight```
-* ```TurnAround```
-* ```SharpLeft```
-* ```Left```
-* ```SlightLeft```
-* ```WaypointReached```
-* ```Roundabout```
-* ```StartAt```
-* ```DestinationReached```
-* ```EnterAgainstAllowedDirection```
-* ```LeaveAgainstAllowedDirection```
-
-### IError
-
-#### Properties
-
-* ```status```: status/error code (possibly technical); string or number
-* ```message```: human-readable error message
-

@@ -1,6 +1,6 @@
 {
   "name": "leaflet-routing-machine",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Routing for Leaflet",
   "main": "dist/leaflet-routing-machine.js",
   "directories": {

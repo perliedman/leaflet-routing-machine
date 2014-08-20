@@ -6,6 +6,7 @@
 	L.Routing.Autocomplete = L.Class.extend({
 		options: {
 			timeout: 500,
+			blurTimeout: 100,
 			noResultsMessage: 'No results found.'
 		},
 
