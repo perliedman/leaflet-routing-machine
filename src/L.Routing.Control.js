@@ -29,7 +29,7 @@
 			this._map = map;
 			this._map.addLayer(this._plan);
 
-			if (this.options.geocoder) {
+			if (this._plan.options.geocoder) {
 				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
 			}
 
