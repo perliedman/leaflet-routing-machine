@@ -15,7 +15,8 @@
 				minutes: 'mín',
 				seconds: 's'
 			},
-			roundingSensitivity: 1
+			roundingSensitivity: 1,
+			distanceTemplate: '{value} {unit}'
 		},
 
 		statics: {

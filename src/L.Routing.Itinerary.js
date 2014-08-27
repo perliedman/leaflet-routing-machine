@@ -15,7 +15,6 @@
 				fillOpacity: 0.7
 			},
 			summaryTemplate: '<h2>{name}</h2><h3>{distance}, {time}</h3>',
-			distanceTemplate: '{value} {unit}',
 			timeTemplate: '{time}',
 			containerClassName: '',
 			alternativeClassName: '',
