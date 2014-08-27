@@ -7,7 +7,6 @@
 		includes: L.Mixin.Events,
 
 		options: {
-			units: 'metric',
 			pointMarkerStyle: {
 				radius: 5,
 				color: '#03f',
@@ -18,25 +17,16 @@
 			summaryTemplate: '<h2>{name}</h2><h3>{distance}, {time}</h3>',
 			distanceTemplate: '{value} {unit}',
 			timeTemplate: '{time}',
-			unitNames: {
-				meters: 'm',
-				kilometers: 'km',
-				yards: 'yd',
-				miles: 'mi',
-				hours: 'h',
-				minutes: 'mín',
-				seconds: 's'
-			},
 			containerClassName: '',
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			roundingSensitivity: 1,
 			show: true
 		},
 
 		initialize: function(options) {
 			L.setOptions(this, options);
+			this._formatter = this.options.formatter || new L.Routing.Formatter(this.options);
 		},
 
 		onAdd: function() {
@@ -94,8 +84,8 @@
 				(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : ''));
 			altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
 				name: alt.name,
-				distance: this._formatDistance(alt.summary.totalDistance),
-				time: this._formatTime(alt.summary.totalTime)
+				distance: this._formatter.formatDistance(alt.summary.totalDistance),
+				time: this._formatter.formatTime(alt.summary.totalTime)
 			});
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
@@ -124,9 +114,9 @@
 				instr = r.instructions[i];
 				row = L.DomUtil.create('tr', '', body);
 				td = L.DomUtil.create('td', '', row);
-				td.appendChild(document.createTextNode(this._instruction(instr, i)));
+				td.appendChild(document.createTextNode(this._formatter.formatInstruction(instr, i)));
 				td = L.DomUtil.create('td', '', row);
-				td.appendChild(document.createTextNode(this._formatDistance(instr.distance)));
+				td.appendChild(document.createTextNode(this._formatter.formatDistance(instr.distance)));
 				this._addRowListeners(row, r.coordinates[instr.index]);
 			}
 
@@ -183,118 +173,7 @@
 
 			L.DomEvent.stop(e);
 		},
-
-		_formatDistance: function(d /* Number (meters) */) {
-			var un = this.options.unitNames,
-			    v,
-				data;
-
-			if (this.options.units === 'imperial') {
-				d = d / 1.609344;
-				if (d >= 1000) {
-					data = {
-						value: (this._round(d) / 1000),
-						unit: un.miles
-					};
-				} else {
-					data = {
-						value: this._round(d / 1.760),
-						unit: un.yards
-					};
-				}
-			} else {
-				v = this._round(d);
-				data = {
-					value: v >= 1000 ? (v / 1000) : v,
-					unit: v >= 1000 ? un.kilometers : un.meters
-				};
-			}
-
-			return L.Util.template(this.options.distanceTemplate, data);
-		},
-
-		_round: function(d) {
-			var pow10 = Math.pow(10, (Math.floor(d / this.options.roundingSensitivity) + '').length - 1),
-				r = Math.floor(d / pow10),
-				p = (r > 5) ? pow10 : pow10 / 2;
-
-			return Math.round(d / p) * p;
-		},
-
-		_formatTime: function(t /* Number (seconds) */) {
-			if (t > 86400) {
-				return Math.round(t / 3600) + ' h';
-			} else if (t > 3600) {
-				return Math.floor(t / 3600) + ' h ' +
-					Math.round((t % 3600) / 60) + ' min';
-			} else if (t > 300) {
-				return Math.round(t / 60) + ' min';
-			} else if (t > 60) {
-				return Math.floor(t / 60) + ' min ' +
-					(t % 60) + ' s';
-			} else {
-				return t + ' s';
-			}
-		},
-
-		_instruction: function(instr, i) {
-			if (instr.type !== undefined) {
-				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({exit: this._formatOrder(instr.exit), dir: this._dir[instr.direction]},
-						instr));
-			} else {
-				return instr.text;
-			}
-		},
-
-		_getInstructionTemplate: function(instr, i) {
-			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
-			case 'SlightRight':
-				return 'Slight right' + (instr.road ? ' onto {road}' : '');
-			case 'Right':
-				return 'Right' + (instr.road ? ' onto {road}' : '');
-			case 'SharpRight':
-				return 'Sharp right' + (instr.road ? ' onto {road}' : '');
-			case 'TurnAround':
-				return 'Turn around';
-			case 'SharpLeft':
-				return 'Sharp left' + (instr.road ? ' onto {road}' : '');
-			case 'Left':
-				return 'Left' + (instr.road ? ' onto {road}' : '');
-			case 'SlightLeft':
-				return 'Slight left' + (instr.road ? ' onto {road}' : '');
-			case 'WaypointReached':
-				return 'Waypoint reached';
-			case 'Roundabout':
-				return  'Take the {exit} exit in the roundabout';
-			case 'DestinationReached':
-				return  'Destination reached';
-			}
-		},
-
-		_formatOrder: function(n) {
-			var i = n % 10 - 1,
-				suffix = ['st', 'nd', 'rd'];
-
-			return suffix[i] ? n + suffix[i] : n + 'th';
-		},
-
-		_dir: {
-			N: 'north',
-			NE: 'northeast',
-			E: 'east',
-			SE: 'southeast',
-			S: 'south',
-			SW: 'southwest',
-			W: 'west',
-			NW: 'northwest'
-		}
 	});
-
-	L.Routing.Itinerary._instructions = {
-	};
 
 	L.Routing.itinerary = function(router) {
 		return new L.Routing.Itinerary(router);
