@@ -84,10 +84,12 @@
 }
 
 .leaflet-routing-geocoder-result {
+    font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
     position: absolute;
     max-height: 0;
     overflow: hidden;
     transition: all 0.5s ease;
+    z-index: 15; /* Arbitrary, but try to be above "most" things. */
 }
 
 .leaflet-routing-geocoder-result table {

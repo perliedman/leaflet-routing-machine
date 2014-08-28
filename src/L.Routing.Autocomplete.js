@@ -39,16 +39,12 @@
 		},
 
 		_open: function() {
-			var sibling = this._elem.nextSibling;
+			var rect = this._elem.getBoundingClientRect();
 			if (!this._container.parentElement) {
-				if (sibling) {
-					this._elem.parentElement.insertBefore(this._container, sibling);
-				} else {
-					this._elem.parentElement.appendChild(this._container);
-				}
-				this._container.style.left = this._elem.offsetLeft + 'px';
-				this._container.style.top = (this._elem.offsetTop + this._elem.offsetHeight) + 'px';
-				this._container.style.width = this._elem.offsetWidth + 'px';
+				this._container.style.left = rect.left + 'px';
+				this._container.style.top = rect.bottom + 'px';
+				this._container.style.width = (rect.right - rect.left) + 'px';
+				document.body.appendChild(this._container);
 			}
 
 			L.DomUtil.addClass(this._container, 'leaflet-routing-geocoder-result-open');
@@ -74,7 +70,7 @@
 				td = L.DomUtil.create('td', '', tr);
 				text = document.createTextNode(results[i].name);
 				td.appendChild(text);
-				// mousedown + click because: 
+				// mousedown + click because:
 				// http://stackoverflow.com/questions/10652852/jquery-fire-click-before-blur-event
 				L.DomEvent.addListener(td, 'mousedown', L.DomEvent.preventDefault);
 				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
