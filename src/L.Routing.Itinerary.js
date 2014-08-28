@@ -166,6 +166,8 @@
 					if (isCurrentSelection) {
 						// TODO: don't fire if the currently active is clicked
 						this.fire('routeselected', {route: this._routes[j]});
+					} else {
+						n.scrollTop = 0;
 					}
 				}
 			}
