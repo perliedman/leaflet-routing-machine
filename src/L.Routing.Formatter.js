@@ -82,8 +82,8 @@
 			} else if (t > 300) {
 				return Math.round(t / 60) + ' min';
 			} else if (t > 60) {
-				return Math.floor(t / 60) + ' min ' +
-					(t % 60) + ' s';
+				return Math.floor(t / 60) + ' min' +
+					(t % 60 !== 0 ? ' ' + (t % 60) + ' s' : '');
 			} else {
 				return t + ' s';
 			}

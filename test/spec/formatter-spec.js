@@ -52,4 +52,11 @@ describe('L.Routing.Formatter', function() {
 			expect(parseInt(p.formatDistance(86000), 10)).toBe(90);
 		})
 	});
+
+	describe('.formatTime', function() {
+		it('rounds whole minutes without seconds', function() {
+			var p = new L.Routing.Formatter();
+			expect(p.formatTime(240)).toBe('4 min');
+		})
+	});
 });
