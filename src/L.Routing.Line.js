@@ -3,7 +3,7 @@
 
 	L.Routing = L.Routing || {};
 
-	L.Routing.Line = L.Class.extend({
+	L.Routing.Line = L.LayerGroup.extend({
 		includes: L.Mixin.Events,
 
 		options: {
@@ -16,43 +16,28 @@
 		},
 
 		initialize: function(route, options) {
-			L.Util.setOptions(this, options);
+			var geom = route.coordinates,
+			    i,
+			    pl;
+
+			L.LayerGroup.prototype.initialize.call(this, options);
 			this._route = route;
 
 			this._wpIndices = this._findWaypointIndices();
+
+			for (i = 0; i < this.options.styles.length; i++) {
+				pl = L.polyline(geom, this.options.styles[i]);
+				this.addLayer(pl);
+				if (this.options.addWaypoints) {
+					pl.on('mousedown', this._onLineTouched, this);
+				}
+			}
 		},
 
 		addTo: function(map) {
 			map.addLayer(this);
 			return this;
 		},
-
-		onAdd: function(map) {
-			var geom = this._route.coordinates,
-			    i,
-			    pl;
-
-			this._map = map;
-			this._layers = [];
-			for (i = 0; i < this.options.styles.length; i++) {
-				pl = L.polyline(geom, this.options.styles[i])
-					.addTo(map);
-				if (this.options.addWaypoints) {
-					pl.on('mousedown', this._onLineTouched, this);
-				}
-				this._layers.push(pl);
-			}
-		},
-
-		onRemove: function(map) {
-			var i;
-			for (i = 0; i < this._layers.length; i++) {
-				map.removeLayer(this._layers[i]);
-			}
-
-			delete this._map;
-		},
-
 		getBounds: function() {
 			return L.latLngBounds(this._route.coordinates);
 		},
