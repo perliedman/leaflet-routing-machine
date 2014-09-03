@@ -20,6 +20,7 @@
 			    i,
 			    pl;
 
+			L.setOptions(this, options);
 			L.LayerGroup.prototype.initialize.call(this, options);
 			this._route = route;
 
