@@ -159,7 +159,7 @@ Option                 | Type                | Default       | Description
 
 Event         | Data           | Description
 --------------|----------------|---------------------------------------------------------------
-`waypointschanged`  | [`RouteEvent`](#routeevent) | Fired when one or more waypoints change (added, deleted, moved)
+`waypointschanged`  | [`RoutingEvent`](#routingevent) | Fired when one or more waypoints change (added, deleted, moved)
 `waypointsspliced`  | [`WaypointsSplicedEvent`](#waypointssplicedevent) | Also fired when waypoints changed, but includes more finegrained details on actual changes, like a call to `Array.splice`
 
 
@@ -203,7 +203,7 @@ Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
 `getBounds()`          | `L.LatLngBounds`| Returns the bounds of the line
 
-## L.Routing.OSRM
+## <a name="l-routing-osrm"></a> L.Routing.OSRM
 
 Handles communication with the OSRM backend, building the request and parsing the response. Implements [IRouter](#irouter).
 
