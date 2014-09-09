@@ -67,7 +67,7 @@ Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
 `waypoints`            | [`IWaypoint`](#iwaypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
 `router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM(options)` | The router to use to calculate routes between waypoints
-`plan`                 | [`L.Routing.Plan`](#plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
+`plan`                 | [`L.Routing.Plan`](#l-routing-plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
 `geocoder`                 | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | - | Optional geocoder to use, unless the `plan` option is used
 `fitSelectedRoutes`    | `Boolean`             | `true`          | Automatically fit the map view to a route when it is selected
 
@@ -226,7 +226,7 @@ Option                 | Type     | Default             | Description
 
 Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
-`route(<`[`IWaypoint`](#waypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
+`route(<`[`IWaypoint`](#iwaypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
 
 
 ## <a name="eventobjects"></a> Event Objects
@@ -282,7 +282,7 @@ property      | type        | description
 
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
-`route(<`[`IWaypoint`](#waypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
+`route(<`[`IWaypoint`](#iwaypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
 
 ## <a name="iwaypoint"></a> IWaypoint
 
