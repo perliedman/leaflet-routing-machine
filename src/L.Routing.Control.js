@@ -4,7 +4,8 @@
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
 			fitSelectedRoutes: true,
-			routeLine: function(route, options) { return L.Routing.line(route, options); }
+			routeLine: function(route, options) { return L.Routing.line(route, options); },
+			autoRoute: true
 		},
 
 		initialize: function(options) {
@@ -17,11 +18,15 @@
 
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', function(e) {
-				this._route();
+				if (this.options.autoRoute) {
+					this.route();
+				}
 				this.fire('waypointschanged', {waypoints: e.waypoints});
 			}, this);
 
-			this._route();
+			if (this.options.autoRoute) {
+				this.route();
+			}
 		},
 
 		onAdd: function(map) {
@@ -82,7 +87,7 @@
 			}, this);
 		},
 
-		_route: function() {
+		route: function() {
 			var wps;
 
 			this._clearLine();
