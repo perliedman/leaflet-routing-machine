@@ -88,7 +88,10 @@
 		},
 
 		route: function() {
-			var wps;
+			var ts = new Date().getTime(),
+				wps;
+
+			this._lastRequestTimestamp = ts;
 
 			this._clearLine();
 			this._clearAlts();
@@ -97,12 +100,18 @@
 				wps = this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
 				this._router.route(wps, function(err, routes) {
-					if (err) {
-						this.fire('routingerror', {error: err});
-						return;
+					// Prevent race among multiple requests,
+					// by checking the current request's timestamp
+					// against the last request's; ignore result if
+					// this isn't the latest request.
+					if (ts === this._lastRequestTimestamp) {
+						if (err) {
+							this.fire('routingerror', {error: err});
+							return;
+						}
+						this.fire('routesfound', {waypoints: wps, routes: routes});
+						this.setAlternatives(routes);
 					}
-					this.fire('routesfound', {waypoints: wps, routes: routes});
-					this.setAlternatives(routes);
 				}, this);
 			}
 		},
