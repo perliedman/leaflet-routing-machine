@@ -33,8 +33,8 @@
 			};
 		},
 
-		route: function(waypoints, callback, context) {
-			var url = this._buildRouteUrl(waypoints),
+		route: function(waypoints, callback, context, options) {
+			var url = this._buildRouteUrl(waypoints, options),
 				timedOut = false,
 				timer = setTimeout(function() {
 					timedOut = true;
@@ -67,8 +67,8 @@
 			var alts = [{
 					name: response.route_name.join(', '),
 					coordinates: this._decode(response.route_geometry, 6),
-					instructions: this._convertInstructions(response.route_instructions),
-					summary: this._convertSummary(response.route_summary),
+					instructions: response.route_instructions ? this._convertInstructions(response.route_instructions) : [],
+					summary: response.route_summary ? this._convertSummary(response.route_summary) : [],
 					waypoints: response.via_points
 				}],
 			    i;
@@ -78,8 +78,8 @@
 					alts.push({
 						name: response.alternative_names[i].join(', '),
 						coordinates: this._decode(response.alternative_geometries[i], 6),
-						instructions: this._convertInstructions(response.alternative_instructions[i]),
-						summary: this._convertSummary(response.alternative_summaries[i]),
+						instructions: response.alternative_instructions[i] ? this._convertInstructions(response.alternative_instructions[i]) : [],
+						summary: response.alternative_summaries[i] ? this._convertSummary(response.alternative_summaries[i]) : [],
 						waypoints: response.via_points
 					});
 				}
@@ -89,8 +89,10 @@
 			callback.call(context, null, alts);
 		},
 
-		_buildRouteUrl: function(waypoints) {
+		_buildRouteUrl: function(waypoints, options) {
 			var locs = [],
+			    computeInstructions,
+			    computeAlternative,
 			    locationKey,
 			    hint;
 
@@ -104,8 +106,12 @@
 				}
 			}
 
+			computeAlternative = computeInstructions =
+				!(options && options.geometryOnly);
+
 			return this.options.serviceUrl + '?' +
-				'instructions=true&' +
+				'instructions=' + computeInstructions + '&' +
+				'alt=' + computeAlternative + '&' +
 				locs.join('&') +
 				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
 		},

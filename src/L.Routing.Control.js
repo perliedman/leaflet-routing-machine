@@ -5,7 +5,9 @@
 		options: {
 			fitSelectedRoutes: true,
 			routeLine: function(route, options) { return L.Routing.line(route, options); },
-			autoRoute: true
+			autoRoute: true,
+			routeWhileDragging: false,
+			routeDragInterval: 500
 		},
 
 		initialize: function(options) {
@@ -19,10 +21,32 @@
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', function(e) {
 				if (this.options.autoRoute) {
-					this.route();
+					this.route({});
 				}
 				this.fire('waypointschanged', {waypoints: e.waypoints});
 			}, this);
+			if (options.routeWhileDragging) {
+				(function() {
+					var lastCalled = 0,
+						restore;
+
+					this._plan.on('waypointdragstart', function() {
+						restore = this.options.fitSelectedRoutes;
+						this.options.fitSelectedRoutes = false;
+					}, this);
+					this._plan.on('waypointdrag', L.bind(function(e) {
+						var now = new Date().getTime();
+						if (now - lastCalled >= this.options.routeDragInterval) {
+							this.route({waypoints: e.waypoints, geometryOnly: true});
+							lastCalled = now;
+						}
+					}, this));
+					this._plan.on('waypointdragend', function() {
+						this.options.fitSelectedRoutes = restore;
+						this.route();
+					}, this);
+				}).call(this);
+			}
 
 			if (this.options.autoRoute) {
 				this.route();
@@ -87,17 +111,15 @@
 			}, this);
 		},
 
-		route: function() {
+		route: function(options) {
 			var ts = new Date().getTime(),
 				wps;
 
+			options = options || {};
 			this._lastRequestTimestamp = ts;
 
-			this._clearLine();
-			this._clearAlts();
-
 			if (this._plan.isReady()) {
-				wps = this._plan.getWaypoints();
+				wps = options && options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
 				this._router.route(wps, function(err, routes) {
 					// Prevent race among multiple requests,
@@ -105,14 +127,21 @@
 					// against the last request's; ignore result if
 					// this isn't the latest request.
 					if (ts === this._lastRequestTimestamp) {
+						this._clearLine();
+						this._clearAlts();
 						if (err) {
 							this.fire('routingerror', {error: err});
 							return;
 						}
-						this.fire('routesfound', {waypoints: wps, routes: routes});
-						this.setAlternatives(routes);
+
+						if (!options.geometryOnly) {
+							this.fire('routesfound', {waypoints: wps, routes: routes});
+							this.setAlternatives(routes);
+						} else {
+							this._routeSelected({route: routes[0]});
+						}
 					}
-				}, this);
+				}, this, options);
 			}
 		},
 
