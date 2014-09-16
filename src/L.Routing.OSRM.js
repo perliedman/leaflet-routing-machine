@@ -23,7 +23,7 @@
 	L.Routing.OSRM = L.Class.extend({
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
-			geometryPrecision: 6
+			timeout: 30 * 1000
 		},
 
 		initialize: function(options) {
@@ -34,10 +34,21 @@
 		},
 
 		route: function(waypoints, callback, context) {
-			var url = this._buildRouteUrl(waypoints);
+			var url = this._buildRouteUrl(waypoints),
+				timedOut = false,
+				timer = setTimeout(function() {
+					timedOut = true;
+					callback.call(context || callback, {
+						status: -1,
+						message: 'OSRM request timed out.'
+					});
+				}, this.options.timeout);
 
 			L.Routing._jsonp(url, function(data) {
-				this._routeDone(data, waypoints, callback, context);
+				clearTimeout(timer);
+				if (!timedOut) {
+					this._routeDone(data, waypoints, callback, context);
+				}
 			}, this, 'jsonp');
 
 			return this;
@@ -55,7 +66,7 @@
 
 			var alts = [{
 					name: response.route_name.join(', '),
-					coordinates: this._decode(response.route_geometry, this.options.geometryPrecision),
+					coordinates: this._decode(response.route_geometry, 6),
 					instructions: this._convertInstructions(response.route_instructions),
 					summary: this._convertSummary(response.route_summary),
 					waypoints: response.via_points
@@ -66,7 +77,7 @@
 				for (i = 0; i < response.alternative_geometries.length; i++) {
 					alts.push({
 						name: response.alternative_names[i].join(', '),
-						coordinates: this._decode(response.alternative_geometries[i], this.options.geometryPrecision),
+						coordinates: this._decode(response.alternative_geometries[i], 6),
 						instructions: this._convertInstructions(response.alternative_instructions[i]),
 						summary: this._convertSummary(response.alternative_summaries[i]),
 						waypoints: response.via_points
