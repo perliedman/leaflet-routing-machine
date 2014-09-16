@@ -305,6 +305,7 @@
 				this.fire('waypointdragstart', this._createWaypointEvent(i, e));
 			}, this);
 			m.on('drag', function(e) {
+				this._waypoints[i].latLng = e.target.getLatLng();
 				this.fire('waypointdrag', this._createWaypointEvent(i, e));
 			}, this);
 			m.on('dragend', function(e) {

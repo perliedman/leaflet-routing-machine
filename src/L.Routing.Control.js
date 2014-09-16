@@ -5,7 +5,8 @@
 		options: {
 			fitSelectedRoutes: true,
 			routeLine: function(route, options) { return L.Routing.line(route, options); },
-			autoRoute: true
+			autoRoute: true,
+			routeWhileDragging: false
 		},
 
 		initialize: function(options) {
@@ -19,13 +20,19 @@
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', function(e) {
 				if (this.options.autoRoute) {
-					this.route();
+					this.route({});
 				}
 				this.fire('waypointschanged', {waypoints: e.waypoints});
 			}, this);
+			if (options.routeWhileDragging)
+			{
+				this._plan.on('waypointdrag', function(e) {
+						this.route({waypoints: e.waypoints, geometryOnly: true});
+				}, this);
+			}
 
 			if (this.options.autoRoute) {
-				this.route();
+				this.route({});
 			}
 		},
 
@@ -87,24 +94,23 @@
 			}, this);
 		},
 
-		route: function() {
+		route: function(options) {
 			var ts = new Date().getTime(),
 				wps;
 
 			this._lastRequestTimestamp = ts;
 
-			this._clearLine();
-			this._clearAlts();
-
 			if (this._plan.isReady()) {
-				wps = this._plan.getWaypoints();
+				wps = options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
-				this._router.route(wps, function(err, routes) {
+				this._router.route(wps, options, function(err, routes) {
 					// Prevent race among multiple requests,
 					// by checking the current request's timestamp
 					// against the last request's; ignore result if
 					// this isn't the latest request.
 					if (ts === this._lastRequestTimestamp) {
+						this._clearLine();
+						this._clearAlts();
 						if (err) {
 							this.fire('routingerror', {error: err});
 							return;
