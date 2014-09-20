@@ -26,6 +26,25 @@
 		initialize: function(options) {
 			L.setOptions(this, options);
 			this._formatter = this.options.formatter || new L.Routing.Formatter(this.options);
+			this._itineraryFormatter = this.options.itineraryFormatter || {
+				createContainer: function(className) {
+					return L.DomUtil.create('table', className);
+				},
+
+				createStepsContainer: function(container) {
+					return L.DomUtil.create('tbody', '', container);
+				},
+
+				createStep: function(text, distance, steps) {
+					var row = L.DomUtil.create('tr', '', steps),
+							td;
+					td = L.DomUtil.create('td', '', row);
+					td.appendChild(document.createTextNode(text));
+					td = L.DomUtil.create('td', '', row);
+					td.appendChild(document.createTextNode(distance));
+					return row;
+				},
+			};
 		},
 
 		onAdd: function() {
@@ -88,7 +107,7 @@
 			});
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
-			altDiv.appendChild(this._createItineraryTable(alt));
+			altDiv.appendChild(this._createItineraryContainer(alt));
 			return altDiv;
 		},
 
@@ -101,25 +120,26 @@
 			this._altElements = [];
 		},
 
-		_createItineraryTable: function(r) {
-			var table = L.DomUtil.create('table', this.options.itineraryClassName),
-			    body = L.DomUtil.create('tbody', '', table),
+
+		_createItineraryContainer: function(r) {
+			var container = this._itineraryFormatter.createContainer(this.options.itineraryClassName),
+			    steps = this._itineraryFormatter.createStepsContainer(container),
 			    i,
 			    instr,
-			    row,
-			    td;
+			    step,
+			    distance,
+					text;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
-				row = L.DomUtil.create('tr', '', body);
-				td = L.DomUtil.create('td', '', row);
-				td.appendChild(document.createTextNode(this._formatter.formatInstruction(instr, i)));
-				td = L.DomUtil.create('td', '', row);
-				td.appendChild(document.createTextNode(this._formatter.formatDistance(instr.distance)));
-				this._addRowListeners(row, r.coordinates[instr.index]);
+				text = this._formatter.formatInstruction(instr, i);
+				distance = this._formatter.formatDistance(instr.distance);
+				step = this._itineraryFormatter.createStep(text, distance, steps);
+
+				this._addRowListeners(step, r.coordinates[instr.index]);
 			}
 
-			return table;
+			return container;
 		},
 
 		_addRowListeners: function(row, coordinate) {
