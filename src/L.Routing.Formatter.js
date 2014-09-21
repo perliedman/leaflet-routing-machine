@@ -99,6 +99,33 @@
 			}
 		},
 
+		getIconName: function(instr, i) {
+			switch (instr.type) {
+			case 'Straight':
+				return (i === 0 ? 'depart' : 'continue');
+			case 'SlightRight':
+				return 'bear-right';
+			case 'Right':
+				return 'turn-right';
+			case 'SharpRight':
+				return 'sharp-right';
+			case 'TurnAround':
+				return 'u-turn';
+			case 'SharpLeft':
+				return 'sharp-left';
+			case 'Left':
+				return 'turn-left';
+			case 'SlightLeft':
+				return 'slight-left';
+			case 'WaypointReached':
+				return 'arrive';
+			case 'Roundabout':
+				return 'enter-roundabout';
+			case 'DestinationReached':
+				return 'arrive';
+			}
+		},
+
 		_getInstructionTemplate: function(instr, i) {
 			switch (instr.type) {
 			case 'Straight':

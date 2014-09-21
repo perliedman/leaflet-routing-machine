@@ -62,6 +62,32 @@
     background-color: #888;
 }
 
+.leaflet-routing-icon {
+    background-image: url('leaflet.routing.icons.png');
+    -webkit-background-size: 240px 20px;
+    background-size: 240px 20px;
+    background-repeat: no-repeat;
+    margin: 0;
+    content: '';
+    display: inline-block;
+    vertical-align: top;
+    width: 20px;
+    height: 20px;
+}
+
+.leaflet-routing-icon-continue         { background-position: 0 0; }
+.leaflet-routing-icon-sharp-right      { background-position: -20px 0; }
+.leaflet-routing-icon-turn-right       { background-position: -40px 0; }
+.leaflet-routing-icon-bear-right       { background-position: -60px 0; }
+.leaflet-routing-icon-u-turn           { background-position: -80px 0; }
+.leaflet-routing-icon-sharp-left       { background-position: -100px 0; }
+.leaflet-routing-icon-turn-left        { background-position: -120px 0; }
+.leaflet-routing-icon-bear-left        { background-position: -140px 0; }
+.leaflet-routing-icon-depart           { background-position: -160px 0; }
+.leaflet-routing-icon-enter-roundabout { background-position: -180px 0; }
+.leaflet-routing-icon-arrive           { background-position: -200px 0; }
+.leaflet-routing-icon-via              { background-position: -200px 0; }
+
 .leaflet-routing-geocoders input {
     width: 292px;
     padding: 4px;
