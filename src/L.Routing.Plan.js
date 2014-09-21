@@ -33,6 +33,9 @@
 			},
 			geocoderClass: function() {
 				return '';
+			},
+			geocoderSetup: function(geocoder, i, num, input) {
+				geocoder.appendChild(input);
 			}
 		},
 
@@ -142,23 +145,26 @@
 		},
 
 		_createGeocoder: function(i) {
-			var geocoderElem = L.DomUtil.create('input', ''),
+			var geocoderElem = L.DomUtil.create('div', ''),
+				geocoderInput = L.DomUtil.create('input', ''),
 				wp = this._waypoints[i];
-			geocoderElem.setAttribute('placeholder', this.options.geocoderPlaceholder(i, this._waypoints.length));
+			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, this._waypoints.length));
 			geocoderElem.className = this.options.geocoderClass(i, this._waypoints.length);
+			geocoderElem.input = geocoderInput;
+			this.options.geocoderSetup(geocoderElem, i, this._waypoints.length, geocoderInput);
 
-			this._updateWaypointName(i, geocoderElem);
+			this._updateWaypointName(i, geocoderInput);
 			// This has to be here, or geocoder's value will not be properly
 			// initialized.
 			// TODO: look into why and make _updateWaypointName fix this.
-			geocoderElem.value = wp.name;
+			geocoderInput.value = wp.name;
 
-			L.DomEvent.addListener(geocoderElem, 'click', function() {
+			L.DomEvent.addListener(geocoderInput, 'click', function() {
 				this.select();
-			}, geocoderElem);
+			}, geocoderInput);
 
-			new L.Routing.Autocomplete(geocoderElem, function(r) {
-					geocoderElem.value = r.name;
+			new L.Routing.Autocomplete(geocoderInput, function(r) {
+					geocoderInput.value = r.name;
 					wp.name = r.name;
 					wp.latLng = r.center;
 					this._updateMarkers();
@@ -203,7 +209,7 @@
 			[].splice.apply(this._geocoderElems, newElems);
 
 			for (i = 0; i < this._geocoderElems.length; i++) {
-				this._geocoderElems[i].placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
+				this._geocoderElems[i].input.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
 				this._geocoderElems[i].className = this.options.geocoderClass(i, this._waypoints.length);
 			}
 		},
