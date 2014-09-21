@@ -35,9 +35,13 @@
 					return L.DomUtil.create('tbody', '', container);
 				},
 
-				createStep: function(text, distance, steps) {
+				createStep: function(text, distance, icon, steps) {
 					var row = L.DomUtil.create('tr', '', steps),
+							span,
 							td;
+					td = L.DomUtil.create('td', '', row);
+					span = L.DomUtil.create('span', 'leaflet-routing-icon leaflet-routing-icon-'+icon, td);
+					td.appendChild(span);
 					td = L.DomUtil.create('td', '', row);
 					td.appendChild(document.createTextNode(text));
 					td = L.DomUtil.create('td', '', row);
@@ -128,13 +132,15 @@
 			    instr,
 			    step,
 			    distance,
-					text;
+			    text,
+			    icon;
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
 				text = this._formatter.formatInstruction(instr, i);
 				distance = this._formatter.formatDistance(instr.distance);
-				step = this._itineraryFormatter.createStep(text, distance, steps);
+				icon = this._formatter.getIconName(instr, i);
+				step = this._itineraryFormatter.createStep(text, distance, icon, steps);
 
 				this._addRowListeners(step, r.coordinates[instr.index]);
 			}

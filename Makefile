@@ -2,6 +2,7 @@ export PATH := node_modules/.bin:$(PATH)
 
 build: dist/leaflet-routing-machine.min.js
 	cp css/*.css dist
+	cp css/*.png dist
 
 dist/leaflet-routing-machine.js:	src/*.js
 	mkdir -p $(dir $@)
