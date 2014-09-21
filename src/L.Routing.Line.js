@@ -12,27 +12,31 @@
 				{color: 'white', opacity: 0.8, weight: 4},
 				{color: 'orange', opacity: 1, weight: 2}
 			],
-			addWaypoints: true
+			missingRouteStyles: [
+				{color: 'black', opacity: 0.15, weight: 7},
+				{color: 'white', opacity: 0.6, weight: 4},
+				{color: 'gray', opacity: 0.8, weight: 2, dashArray: '7,12'}
+			],
+			addWaypoints: true,
+			extendToWaypoints: true,
+			missingRouteTolerance: 10
 		},
 
 		initialize: function(route, options) {
-			var geom = route.coordinates,
-			    i,
-			    pl;
-
 			L.setOptions(this, options);
 			L.LayerGroup.prototype.initialize.call(this, options);
 			this._route = route;
 
-			this._wpIndices = this._findWaypointIndices();
+			this._wpIndices = route.waypointIndices || this._findWaypointIndices();
 
-			for (i = 0; i < this.options.styles.length; i++) {
-				pl = L.polyline(geom, this.options.styles[i]);
-				this.addLayer(pl);
-				if (this.options.addWaypoints) {
-					pl.on('mousedown', this._onLineTouched, this);
-				}
+			if (this.options.extendToWaypoints) {
+				this._extendToWaypoints();
 			}
+
+			this._addSegment(
+				route.coordinates,
+				this.options.styles,
+				this.options.addWaypoints);
 		},
 
 		addTo: function(map) {
@@ -44,11 +48,11 @@
 		},
 
 		_findWaypointIndices: function() {
-			var wps = this._route.waypoints,
+			var wps = this._route.inputWaypoints,
 			    indices = [],
 			    i;
 			for (i = 0; i < wps.length; i++) {
-				indices.push(this._findClosestRoutePoint(L.latLng(wps[i])));
+				indices.push(this._findClosestRoutePoint(wps[i].latLng));
 			}
 
 			return indices;
@@ -70,6 +74,36 @@
 			}
 
 			return minIndex;
+		},
+
+		_extendToWaypoints: function() {
+			var wps = this._route.inputWaypoints,
+			    i,
+			    wpLatLng,
+			    routeCoord;
+
+			for (i = 0; i < wps.length; i++) {
+				wpLatLng = wps[i].latLng;
+				routeCoord = L.latLng(this._route.coordinates[this._wpIndices[i]]);
+				if (wpLatLng.distanceTo(routeCoord) >
+					this.options.missingRouteTolerance) {
+					this._addSegment([wpLatLng, routeCoord],
+						this.options.missingRouteStyles);
+				}
+			}
+		},
+
+		_addSegment: function(coords, styles, mouselistener) {
+			var i,
+				pl;
+
+			for (i = 0; i < styles.length; i++) {
+				pl = L.polyline(coords, styles[i]);
+				this.addLayer(pl);
+				if (mouselistener) {
+					pl.on('mousedown', this._onLineTouched, this);
+				}
+			}
 		},
 
 		_findNearestWpBefore: function(i) {

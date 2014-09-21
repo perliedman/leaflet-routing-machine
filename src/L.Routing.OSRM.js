@@ -54,7 +54,12 @@
 			return this;
 		},
 
-		_routeDone: function(response, waypoints, callback, context) {
+		_routeDone: function(response, inputWaypoints, callback, context) {
+			var coordinates,
+			    alts,
+			    actualWaypoints,
+			    i;
+
 			context = context || callback;
 			if (response.status !== 0) {
 				callback.call(context, {
@@ -64,29 +69,52 @@
 				return;
 			}
 
-			var alts = [{
-					name: response.route_name.join(', '),
-					coordinates: this._decode(response.route_geometry, 6),
-					instructions: response.route_instructions ? this._convertInstructions(response.route_instructions) : [],
-					summary: response.route_summary ? this._convertSummary(response.route_summary) : [],
-					waypoints: response.via_points
-				}],
-			    i;
+			coordinates = this._decode(response.route_geometry, 6);
+			actualWaypoints = this._toWaypoints(response.via_points);
+			alts = [{
+				name: response.route_name.join(', '),
+				coordinates: coordinates,
+				instructions: response.route_instructions ? this._convertInstructions(response.route_instructions) : [],
+				summary: response.route_summary ? this._convertSummary(response.route_summary) : [],
+				inputWaypoints: inputWaypoints,
+				waypoints: actualWaypoints,
+				waypointIndices: this._clampIndices(response.via_indices, coordinates)
+			}];
 
 			if (response.alternative_geometries) {
 				for (i = 0; i < response.alternative_geometries.length; i++) {
+					coordinates = this._decode(response.alternative_geometries[i], 6);
 					alts.push({
 						name: response.alternative_names[i].join(', '),
-						coordinates: this._decode(response.alternative_geometries[i], 6),
+						coordinates: coordinates,
 						instructions: response.alternative_instructions[i] ? this._convertInstructions(response.alternative_instructions[i]) : [],
 						summary: response.alternative_summaries[i] ? this._convertSummary(response.alternative_summaries[i]) : [],
-						waypoints: response.via_points
+						inputWaypoints: inputWaypoints,
+						waypoints: actualWaypoints,
+						waypointIndices: this._clampIndices(response.alternative_geometries.length === 1 ?
+							// Unsure if this is a bug in OSRM or not, but alternative_indices
+							// does not appear to be an array of arrays, at least not when there is
+							// a single alternative route.
+							response.alternative_indices : response.alternative_indices[i],
+							coordinates)
 					});
 				}
 			}
 
-			this._saveHintData(response, waypoints);
+			this._saveHintData(response, inputWaypoints);
 			callback.call(context, null, alts);
+		},
+
+		_toWaypoints: function(vias) {
+			var wps = [],
+			    i;
+			for (i = 0; i < vias.length; i++) {
+				wps.push({
+					latLng: L.latLng(vias[i])
+				});
+			}
+
+			return wps;
 		},
 
 		_buildRouteUrl: function(waypoints, options) {
@@ -235,6 +263,14 @@
 				return 'DestinationReached';
 			default:
 				return null;
+			}
+		},
+
+		_clampIndices: function(indices, coords) {
+			var maxCoordIndex = coords.length - 1,
+				i;
+			for (i = 0; i < indices.length; i++) {
+				indices[i] = Math.min(maxCoordIndex, Math.max(indices[i], 0));
 			}
 		}
 	});

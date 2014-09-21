@@ -7,7 +7,8 @@
 			routeLine: function(route, options) { return L.Routing.line(route, options); },
 			autoRoute: true,
 			routeWhileDragging: false,
-			routeDragInterval: 500
+			routeDragInterval: 500,
+			waypointMode: 'connect'
 		},
 
 		initialize: function(options) {
@@ -19,33 +20,9 @@
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
 			this.on('routeselected', this._routeSelected, this);
-			this._plan.on('waypointschanged', function(e) {
-				if (this.options.autoRoute) {
-					this.route({});
-				}
-				this.fire('waypointschanged', {waypoints: e.waypoints});
-			}, this);
+			this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 			if (options.routeWhileDragging) {
-				(function() {
-					var lastCalled = 0,
-						restore;
-
-					this._plan.on('waypointdragstart', function() {
-						restore = this.options.fitSelectedRoutes;
-						this.options.fitSelectedRoutes = false;
-					}, this);
-					this._plan.on('waypointdrag', L.bind(function(e) {
-						var now = new Date().getTime();
-						if (now - lastCalled >= this.options.routeDragInterval) {
-							this.route({waypoints: e.waypoints, geometryOnly: true});
-							lastCalled = now;
-						}
-					}, this));
-					this._plan.on('waypointdragend', function() {
-						this.options.fitSelectedRoutes = restore;
-						this.route();
-					}, this);
-				}).call(this);
+				this._setupRouteDragging();
 			}
 
 			if (this.options.autoRoute) {
@@ -94,20 +71,61 @@
 
 		_routeSelected: function(e) {
 			var route = e.route;
+
 			this._clearLine();
 
-			this._line = this.options.routeLine(route, this.options.lineOptions);
+			this._line = this.options.routeLine(route,
+				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
+					this.options.lineOptions));
 			this._line.addTo(this._map);
 			this._hookEvents(this._line);
 
 			if (this.options.fitSelectedRoutes) {
 				this._map.fitBounds(this._line.getBounds());
 			}
+
+			if (this.options.waypointMode === 'snap') {
+				this._plan.off('waypointschanged', this._onWaypointsChanged, this);
+				this.setWaypoints(route.waypoints);
+				this._plan.on('waypointschanged', this._onWaypointsChanged, this);
+			}
 		},
 
 		_hookEvents: function(l) {
 			l.on('linetouched', function(e) {
 				this._plan.dragNewWaypoint(e);
+			}, this);
+		},
+
+		_onWaypointsChanged: function(e) {
+			if (this.options.autoRoute) {
+				this.route({});
+			}
+			this.fire('waypointschanged', {waypoints: e.waypoints});
+		},
+
+		_setupRouteDragging: function() {
+			var lastCalled = 0,
+			    restoreFitSelected,
+			    restoreWpMode;
+
+			this._plan.on('waypointdragstart', function() {
+				restoreFitSelected = this.options.fitSelectedRoutes;
+				restoreWpMode = this.options.waypointMode;
+				this.options.fitSelectedRoutes = false;
+				this.options.waypointMode = 'connect';
+			}, this);
+			this._plan.on('waypointdrag', L.bind(function(e) {
+				var now = new Date().getTime();
+				if (now - lastCalled >= this.options.routeDragInterval) {
+					this.route({waypoints: e.waypoints, geometryOnly: true});
+					lastCalled = now;
+				}
+			}, this));
+			this._plan.on('waypointdragend', function() {
+				this.options.fitSelectedRoutes = restoreFitSelected;
+				this.options.waypointMode = restoreWpMode;
+				this.route();
 			}, this);
 		},
 
