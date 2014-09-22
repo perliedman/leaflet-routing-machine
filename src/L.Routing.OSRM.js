@@ -140,6 +140,7 @@
 			return this.options.serviceUrl + '?' +
 				'instructions=' + computeInstructions + '&' +
 				'alt=' + computeAlternative + '&' +
+				(options.z ? 'z=' + options.z + '&' : '') +
 				locs.join('&') +
 				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
 		},
