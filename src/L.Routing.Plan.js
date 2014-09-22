@@ -41,6 +41,13 @@
 					container: e,
 					input: e
 				};
+			},
+			waypointNameFallback: function(latLng) {
+				var ns = latLng.lat < 0 ? 'S' : 'N',
+				    ew = latLng.lng < 0 ? 'W' : 'E',
+				    lat = (Math.round(Math.abs(latLng.lat) * 10000) / 10000).toString(),
+				    lng = (Math.round(Math.abs(latLng.lng) * 10000) / 10000).toString();
+				return ns + lat + ', ' + ew + lng;
 			}
 		},
 
@@ -227,22 +234,24 @@
 		},
 
 		_updateWaypointName: function(i, geocoderElem, force) {
-			var wp = this._waypoints[i];
+			var wp = this._waypoints[i],
+					wpCoords;
 
 			wp.name = wp.name || '';
 
 			if (wp.latLng && (force || !wp.name)) {
+				wpCoords = this.options.waypointNameFallback(wp.latLng);
 				if (this.options.geocoder && this.options.geocoder.reverse) {
 					this.options.geocoder.reverse(wp.latLng, 67108864 /* zoom 18 */, function(rs) {
 						if (rs.length > 0 && rs[0].center.distanceTo(wp.latLng) < this.options.maxGeocoderTolerance) {
 							wp.name = rs[0].name;
 						} else {
-							wp.name = '';
+							wp.name = wpCoords;
 						}
 						this._updateGeocoder(i, geocoderElem);
 					}, this);
 				} else {
-					wp.name = '';
+					wp.name = wpCoords;
 				}
 
 				this._updateGeocoder(i, geocoderElem);
