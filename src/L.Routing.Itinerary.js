@@ -26,29 +26,9 @@
 		initialize: function(options) {
 			L.setOptions(this, options);
 			this._formatter = this.options.formatter || new L.Routing.Formatter(this.options);
-			this._itineraryFormatter = this.options.itineraryFormatter || {
-				createContainer: function(className) {
-					return L.DomUtil.create('table', className);
-				},
-
-				createStepsContainer: function(container) {
-					return L.DomUtil.create('tbody', '', container);
-				},
-
-				createStep: function(text, distance, icon, steps) {
-					var row = L.DomUtil.create('tr', '', steps),
-							span,
-							td;
-					td = L.DomUtil.create('td', '', row);
-					span = L.DomUtil.create('span', 'leaflet-routing-icon leaflet-routing-icon-'+icon, td);
-					td.appendChild(span);
-					td = L.DomUtil.create('td', '', row);
-					td.appendChild(document.createTextNode(text));
-					td = L.DomUtil.create('td', '', row);
-					td.appendChild(document.createTextNode(distance));
-					return row;
-				},
-			};
+			this._itineraryBuilder = this.options.itineraryBuilder || new L.Routing.ItineraryBuilder({
+				containerClassName: this.options.itineraryClassName
+			});
 		},
 
 		onAdd: function() {
@@ -126,8 +106,8 @@
 
 
 		_createItineraryContainer: function(r) {
-			var container = this._itineraryFormatter.createContainer(this.options.itineraryClassName),
-			    steps = this._itineraryFormatter.createStepsContainer(container),
+			var container = this._itineraryBuilder.createContainer(),
+			    steps = this._itineraryBuilder.createStepsContainer(),
 			    i,
 			    instr,
 			    step,
@@ -135,12 +115,14 @@
 			    text,
 			    icon;
 
+			container.appendChild(steps);
+
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
 				text = this._formatter.formatInstruction(instr, i);
 				distance = this._formatter.formatDistance(instr.distance);
 				icon = this._formatter.getIconName(instr, i);
-				step = this._itineraryFormatter.createStep(text, distance, icon, steps);
+				step = this._itineraryBuilder.createStep(text, distance, icon, steps);
 
 				this._addRowListeners(step, r.coordinates[instr.index]);
 			}
