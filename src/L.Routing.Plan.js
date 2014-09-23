@@ -221,7 +221,9 @@
 		_updateGeocoder: function(i, geocoderElem) {
 			var wp = this._waypoints[i],
 			    value = wp && wp.name ? wp.name : '';
-			geocoderElem.value = value;
+			if (geocoderElem) {
+				geocoderElem.value = value;
+			}
 		},
 
 		_updateWaypointName: function(i, geocoderElem, force) {
@@ -322,7 +324,7 @@
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._waypoints[i].latLng = e.target.getLatLng();
 				this._waypoints[i].name = '';
-				this._updateWaypointName(i, this._geocoderElems[i].input, true);
+				this._updateWaypointName(i, this._geocoderElems && this._geocoderElems[i].input, true);
 				this._fireChanged();
 			}, this);
 		},
