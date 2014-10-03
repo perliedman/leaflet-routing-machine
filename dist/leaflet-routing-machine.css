@@ -2,6 +2,11 @@
     width: 320px;
     background-color: white;
     padding-top: 4px;
+    transition: margin-right 0.2s ease;
+}
+
+.leaflet-control-container .leaflet-routing-container-hide {
+    margin-right: -340px;
 }
 
 .leaflet-routing-container h2 {
@@ -99,4 +104,9 @@
 
 .leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
     background-color: #eee;
+}
+
+.leaflet-routing-geocoder-no-results {
+    font-style: italic;
+    color: #888;
 }
