@@ -48,4 +48,5 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-gh-pages');
 	grunt.registerTask('default', ['browserify', 'uglify', 'copy']);
+	grunt.registerTask('do-release', ['default', 'release', 'gh-pages']);
 };
