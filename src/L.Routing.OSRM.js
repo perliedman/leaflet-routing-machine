@@ -66,7 +66,7 @@
 			if (response.status !== 0) {
 				callback.call(context, {
 					status: response.status,
-					message: response.message
+					message: response.status_message
 				});
 				return;
 			}
