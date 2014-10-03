@@ -2,13 +2,15 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
 		browserify: {
-			options: {
+			control: {
 				src: ['src/L.Routing.Control.js'],
 				dest: 'dist/leaflet-routing-machine.js',
-				browserifyOptions: {
-					standalone: 'L.Routing'
+				options: {
+					browserifyOptions: {
+						standalone: 'L.Routing'
+					}
 				}
-			},
+			}
 		},
 		uglify: {
 			options: {
@@ -19,10 +21,24 @@ module.exports = function(grunt) {
 				src: 'dist/leaflet-routing-machine.js',
 				dest: 'dist/leaflet-routing-machine.min.js'
 			}
+		},
+		release: {
+			email: 'per@liedman.net',
+			name: 'Per Liedman'
+		},
+		copy: {
+			vendor: {
+				cwd: 'css',
+				src: ['**'],
+				dest: 'dist/',
+				expand: true
+			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-browserify');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
-	grunt.registerTask('default', ['browserify', 'uglify']);
+	grunt.loadNpmTasks('grunt-semantic-release');
+	grunt.loadNpmTasks('grunt-contrib-copy');
+	grunt.registerTask('default', ['browserify', 'uglify', 'copy']);
 };
