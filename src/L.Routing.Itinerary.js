@@ -1,7 +1,11 @@
 (function() {
 	'use strict';
 
+	var L = require('leaflet');
+
 	L.Routing = L.Routing || {};
+	L.extend(L.Routing, require('./L.Routing.Formatter'));
+	L.extend(L.Routing, require('./L.Routing.ItineraryBuilder'));
 
 	L.Routing.Itinerary = L.Control.extend({
 		includes: L.Mixin.Events,
@@ -187,4 +191,6 @@
 	L.Routing.itinerary = function(router) {
 		return new L.Routing.Itinerary(router);
 	};
+
+	module.exports = L.Routing;
 })();

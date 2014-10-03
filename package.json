@@ -2,7 +2,7 @@
   "name": "leaflet-routing-machine",
   "version": "1.0.0",
   "description": "Routing for Leaflet",
-  "main": "dist/leaflet-routing-machine.js",
+  "main": "./dist/leaflet-routing-machine.js",
   "directories": {
     "example": "examples",
     "dist": "dist"
@@ -11,7 +11,6 @@
     "prepublish": "make",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "main": "./dist/leaflet-routing-machine.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/perliedman/leaflet-routing-machine.git"
@@ -30,8 +29,18 @@
     "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
   },
   "homepage": "https://github.com/perliedman/leaflet-routing-machine",
+  "browserify": {
+    "transform": "browserify-shim"
+  },
+  "browserify-shim": {
+    "leaflet": "global:L"
+  },
   "devDependencies": {
-    "uglifyjs": "~2.3.6"
+    "browserify": "^5.12.1",
+    "browserify-shim": "^3.7.0",
+    "grunt": "^0.4.5",
+    "grunt-browserify": "^3.0.1",
+    "grunt-contrib-uglify": "^0.6.0"
   },
   "dependencies": {
     "leaflet": "^0.7.2"

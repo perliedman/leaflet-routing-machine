@@ -1,6 +1,8 @@
 (function() {
 	'use strict';
 
+	var L = require('leaflet');
+
 	L.Routing = L.Routing || {};
 
 	L.Routing.Line = L.LayerGroup.extend({
@@ -127,4 +129,6 @@
 	L.Routing.line = function(route, options) {
 		return new L.Routing.Line(route, options);
 	};
+
+	module.exports = L.Routing;
 })();

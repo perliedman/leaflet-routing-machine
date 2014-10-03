@@ -1,7 +1,8 @@
 (function() {
 	'use strict';
 
-	var Waypoint = L.Class.extend({
+	var L = require('leaflet'),
+		Waypoint = L.Class.extend({
 			initialize: function(latLng, name) {
 				this.latLng = latLng;
 				this.name = name;
@@ -9,6 +10,7 @@
 		});
 
 	L.Routing = L.Routing || {};
+	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
 
 	L.Routing.Plan = L.Class.extend({
 		includes: L.Mixin.Events,
@@ -386,4 +388,6 @@
 	L.Routing.plan = function(waypoints, options) {
 		return new L.Routing.Plan(waypoints, options);
 	};
+
+	module.exports = L.Routing;
 })();

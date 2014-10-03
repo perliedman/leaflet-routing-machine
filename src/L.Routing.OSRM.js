@@ -1,6 +1,8 @@
 (function() {
 	'use strict';
 
+	var L = require('leaflet');
+
 	// Ignore camelcase naming for this file, since OSRM's API uses
 	// underscores.
 	/* jshint camelcase: false */
@@ -278,4 +280,6 @@
 	L.Routing.osrm = function(options) {
 		return new L.Routing.OSRM(options);
 	};
+
+	module.exports = L.Routing;
 })();

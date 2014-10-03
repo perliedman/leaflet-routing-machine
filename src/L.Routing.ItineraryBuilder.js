@@ -1,6 +1,7 @@
 (function() {
 	'use strict';
 
+	var L = require('leaflet');
 	L.Routing = L.Routing || {};
 
 	L.Routing.ItineraryBuilder = L.Class.extend({
@@ -34,4 +35,6 @@
 			return row;
 		}
 	});
+
+	module.exports = L.Routing;
 })();

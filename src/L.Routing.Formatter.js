@@ -1,6 +1,8 @@
 (function() {
 	'use strict';
 
+	var L = require('leaflet');
+
 	L.Routing = L.Routing || {};
 
 	L.Routing.Formatter = L.Class.extend({
@@ -160,5 +162,7 @@
 			return suffix[i] ? n + suffix[i] : n + 'th';
 		}
 	});
+
+	module.exports = L.Routing;
 })();
 
