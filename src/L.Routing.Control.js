@@ -19,6 +19,10 @@
 			waypointMode: 'connect'
 		},
 
+		// used to temporary overide options, e.g. fitSelectedRoutes while dragging
+		_optionsOverride : {
+		},
+
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
 
@@ -43,6 +47,10 @@
 
 			this._map = map;
 			this._map.addLayer(this._plan);
+			this._map.on('zoomend', function() {
+				this._optionsOverride.fitSelectedRoutes = false;
+				this.route();
+			}, this);
 
 			if (this._plan.options.geocoder) {
 				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
@@ -77,26 +85,41 @@
 			return this._plan;
 		},
 
+		_override: function(defaultValue, overrideValue) {
+			if (typeof(overrideValue) !== 'undefined')
+			{
+				return overrideValue;
+			}
+			return defaultValue;
+		},
+
 		_routeSelected: function(e) {
-			var route = e.route;
+			var route = e.route,
+			    fitSelectedRoutes = this._override(this.options.fitSelectedRoutes,
+			                                       this._optionsOverride.fitSelectedRoutes),
+			    waypointMode = this._override(this.options.waypointMode,
+			                                  this._optionsOverride.waypointMode);
 
 			this._clearLine();
 
 			this._line = this.options.routeLine(route,
-				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
+				L.extend({extendToWaypoints: waypointMode === 'connect'},
 					this.options.lineOptions));
 			this._line.addTo(this._map);
 			this._hookEvents(this._line);
 
-			if (this.options.fitSelectedRoutes) {
+			if (fitSelectedRoutes) {
 				this._map.fitBounds(this._line.getBounds());
 			}
 
-			if (this.options.waypointMode === 'snap') {
+			if (waypointMode === 'snap') {
 				this._plan.off('waypointschanged', this._onWaypointsChanged, this);
 				this.setWaypoints(route.waypoints);
 				this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 			}
+
+			this._optionsOverride.fitSelectedRoutes = undefined;
+			this._optionsOverride.waypointMode = undefined;
 		},
 
 		_hookEvents: function(l) {
@@ -113,26 +136,20 @@
 		},
 
 		_setupRouteDragging: function() {
-			var lastCalled = 0,
-			    restoreFitSelected,
-			    restoreWpMode;
+			var lastCalled = 0;
 
-			this._plan.on('waypointdragstart', function() {
-				restoreFitSelected = this.options.fitSelectedRoutes;
-				restoreWpMode = this.options.waypointMode;
-				this.options.fitSelectedRoutes = false;
-				this.options.waypointMode = 'connect';
-			}, this);
 			this._plan.on('waypointdrag', L.bind(function(e) {
 				var now = new Date().getTime();
 				if (now - lastCalled >= this.options.routeDragInterval) {
+					this._optionsOverride.fitSelectedRoutes = false;
+					this._optionsOverride.waypointMode = 'connect';
 					this.route({waypoints: e.waypoints, geometryOnly: true});
 					lastCalled = now;
 				}
 			}, this));
 			this._plan.on('waypointdragend', function() {
-				this.options.fitSelectedRoutes = restoreFitSelected;
-				this.options.waypointMode = restoreWpMode;
+				this._optionsOverride.fitSelectedRoutes = undefined;
+				this._optionsOverride.waypointMode = undefined;
 				this.route();
 			}, this);
 		},
@@ -145,6 +162,7 @@
 			this._lastRequestTimestamp = ts;
 
 			if (this._plan.isReady()) {
+				options.z = this._map.getZoom();
 				wps = options && options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
 				this._router.route(wps, function(err, routes) {
