@@ -50,24 +50,19 @@
             to put the small letter indicators next to the waypoint markers in the map.
         </p>
 <pre><code class="language-javascript">L.Routing.control({
-    waypoints: [
-        L.latLng(48.8588,2.3469),
-        L.latLng(52.3546,4.9039)
-    ],
-    geocoder: L.Control.Geocoder.nominatim(),
-    plan: L.Routing.plan(null, {
-        waypointIcon: function(i) {
-            var label =
-                String.fromCharCode(65 + i);
-            return new L.Icon.Label.Default({
-                labelText:
-            });
-        }
-    })
-}).addTo(map);</code></pre>
+    plan: L.Routing.plan([
+            L.latLng(48.8588,2.3469),
+            L.latLng(52.3546,4.9039)
+        ], {
+            waypointIcon: function(i) {
+                return new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) });
+            },
+            geocoder: L.Control.Geocoder.nominatim()
+        })
+    }).addTo(map);</code></pre>
     </div>
     <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
-    <script src="dist/leaflet-routing-machine.min.js"></script>
+    <script src="dist/leaflet-routing-machine.js"></script>
     <script src="lib/Control.Geocoder.js"></script>
     <script src="lib/leaflet.iconlabel.js"></script>
     <script src="lib/L.Control.Sidebar.js"></script>
