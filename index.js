@@ -14,12 +14,14 @@ setTimeout(function () {
 
 L.Routing.control({
 	plan: L.Routing.plan([
-			L.latLng(48.8588,2.3469),
-			L.latLng(52.3546,4.9039)
-		], {
-			waypointIcon: function(i) {
-				return new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) });
-			},
-			geocoder: L.Control.Geocoder.nominatim()
-		})
-	}).addTo(map);
+		L.latLng(48.8588,2.3469),
+		L.latLng(52.3546,4.9039)
+	], {
+		waypointIcon: function(i) {
+			return new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) });
+		},
+		geocoder: L.Control.Geocoder.nominatim()
+	}),
+	routeWhileDragging: true,
+	routeDragTimeout: 250
+}).addTo(map);
