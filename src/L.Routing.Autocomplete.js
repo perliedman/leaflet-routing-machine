@@ -73,7 +73,7 @@
 				// mousedown + click because:
 				// http://stackoverflow.com/questions/10652852/jquery-fire-click-before-blur-event
 				L.DomEvent.addListener(td, 'mousedown', L.DomEvent.preventDefault);
-				L.DomEvent.addListener(td, 'click', this._resultSelected(results[i]), this);
+				L.DomEvent.addListener(td, 'click', this._createClickListener(results[i]));
 			}
 
 			if (!i) {
@@ -88,6 +88,14 @@
 				// Select the first entry
 				this._select(1);
 			}
+		},
+
+		_createClickListener: function(r) {
+			var resultSelected = this._resultSelected(r);
+			return L.bind(function() {
+				resultSelected();
+				this._elem.blur();
+			}, this);
 		},
 
 		_resultSelected: function(r) {
