@@ -11,7 +11,7 @@
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
-			fitSelectedRoutes: true,
+			fitSelectedRoutes: 'smart',
 			routeLine: function(route, options) { return L.Routing.line(route, options); },
 			autoRoute: true,
 			routeWhileDragging: false,
@@ -87,11 +87,15 @@
 		},
 
 		_routeSelected: function(e) {
-			var route = e.route;
+			var route = e.route,
+				fitMode = this.options.fitSelectedRoutes,
+				fitBounds =
+					(fitMode === 'smart' && !this._waypointsVisible()) ||
+					(fitMode !== 'smart' && fitMode);
 
 			this._updateLine(route);
 
-			if (this.options.fitSelectedRoutes) {
+			if (fitBounds) {
 				this._map.fitBounds(this._line.getBounds());
 			}
 
@@ -100,6 +104,56 @@
 				this.setWaypoints(route.waypoints);
 				this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 			}
+		},
+
+		_waypointsVisible: function() {
+			var wps = this.getWaypoints(),
+				mapSize,
+				bounds,
+				boundsSize,
+				i,
+				p;
+
+			try {
+				mapSize = this._map.getSize();
+
+				for (i = 0; i < wps.length; i++) {
+					p = this._map.latLngToLayerPoint(wps[i].latLng);
+
+					if (bounds) {
+						bounds.extend(p);
+					} else {
+						bounds = L.bounds([p]);
+					}
+				}
+
+				boundsSize = bounds.getSize();
+				return (boundsSize.x > mapSize.x / 5 ||
+					boundsSize.y > mapSize.y / 5) && this._waypointsInViewport();
+					
+			} catch (e) {
+				return false;
+			}
+		},
+
+		_waypointsInViewport: function() {
+			var wps = this.getWaypoints(),
+				mapBounds,
+				i;
+
+			try {
+				mapBounds = this._map.getBounds();
+			} catch (e) {
+				return false;
+			}
+
+			for (i = 0; i < wps.length; i++) {
+				if (mapBounds.contains(wps[i].latLng)) {
+					return true;
+				}
+			}
+
+			return false;
 		},
 
 		_updateLine: function(route) {
