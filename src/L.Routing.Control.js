@@ -16,7 +16,8 @@
 			autoRoute: true,
 			routeWhileDragging: false,
 			routeDragInterval: 500,
-			waypointMode: 'connect'
+			waypointMode: 'connect',
+			useZoomParameter: false
 		},
 
 		initialize: function(options) {
@@ -43,6 +44,14 @@
 
 			this._map = map;
 			this._map.addLayer(this._plan);
+
+			if (this.options.useZoomParameter) {
+				this._map.on('zoomend', function() {
+					this.route({
+						callback: L.bind(this._updateLineCallback, this)
+					});
+				}, this);
+			}
 
 			if (this._plan.options.geocoder) {
 				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
@@ -80,13 +89,7 @@
 		_routeSelected: function(e) {
 			var route = e.route;
 
-			this._clearLine();
-
-			this._line = this.options.routeLine(route,
-				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
-					this.options.lineOptions));
-			this._line.addTo(this._map);
-			this._hookEvents(this._line);
+			this._updateLine(route);
 
 			if (this.options.fitSelectedRoutes) {
 				this._map.fitBounds(this._line.getBounds());
@@ -97,6 +100,16 @@
 				this.setWaypoints(route.waypoints);
 				this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 			}
+		},
+
+		_updateLine: function(route) {
+			this._clearLine();
+
+			this._line = this.options.routeLine(route,
+				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
+					this.options.lineOptions));
+			this._line.addTo(this._map);
+			this._hookEvents(this._line);
 		},
 
 		_hookEvents: function(l) {
@@ -113,28 +126,28 @@
 		},
 
 		_setupRouteDragging: function() {
-			var lastCalled = 0,
-			    restoreFitSelected,
-			    restoreWpMode;
+			var lastCalled = 0;
 
-			this._plan.on('waypointdragstart', function() {
-				restoreFitSelected = this.options.fitSelectedRoutes;
-				restoreWpMode = this.options.waypointMode;
-				this.options.fitSelectedRoutes = false;
-				this.options.waypointMode = 'connect';
-			}, this);
 			this._plan.on('waypointdrag', L.bind(function(e) {
 				var now = new Date().getTime();
 				if (now - lastCalled >= this.options.routeDragInterval) {
-					this.route({waypoints: e.waypoints, geometryOnly: true});
+					this.route({
+						waypoints: e.waypoints,
+						geometryOnly: true,
+						callback: L.bind(this._updateLineCallback, this)
+					});
 					lastCalled = now;
 				}
 			}, this));
 			this._plan.on('waypointdragend', function() {
-				this.options.fitSelectedRoutes = restoreFitSelected;
-				this.options.waypointMode = restoreWpMode;
 				this.route();
 			}, this);
+		},
+
+		_updateLineCallback: function(err, routes) {
+			if (!err) {
+				this._updateLine(routes[0]);
+			}
 		},
 
 		route: function(options) {
@@ -145,9 +158,13 @@
 			this._lastRequestTimestamp = ts;
 
 			if (this._plan.isReady()) {
+				if (this.options.useZoomParameter) {
+					options.z = this._map && this._map.getZoom();
+				}
+
 				wps = options && options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
-				this._router.route(wps, function(err, routes) {
+				this._router.route(wps, options.callback || function(err, routes) {
 					// Prevent race among multiple requests,
 					// by checking the current request's timestamp
 					// against the last request's; ignore result if

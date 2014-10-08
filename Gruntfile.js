@@ -24,7 +24,8 @@ module.exports = function(grunt) {
 		},
 		release: {
 			email: 'per@liedman.net',
-			name: 'Per Liedman'
+			name: 'Per Liedman',
+			tasks: ['default', 'changelog']
 		},
 		copy: {
 			vendor: {
@@ -48,5 +49,4 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-copy');
 	grunt.loadNpmTasks('grunt-gh-pages');
 	grunt.registerTask('default', ['browserify', 'uglify', 'copy']);
-	grunt.registerTask('do-release', ['default', 'release', 'gh-pages']);
 };
