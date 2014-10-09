@@ -29,8 +29,6 @@
 			L.LayerGroup.prototype.initialize.call(this, options);
 			this._route = route;
 
-			this._wpIndices = route.waypointIndices || this._findWaypointIndices();
-
 			if (this.options.extendToWaypoints) {
 				this._extendToWaypoints();
 			}
@@ -80,13 +78,14 @@
 
 		_extendToWaypoints: function() {
 			var wps = this._route.inputWaypoints,
+				wpIndices = this._getWaypointIndices(),
 			    i,
 			    wpLatLng,
 			    routeCoord;
 
 			for (i = 0; i < wps.length; i++) {
 				wpLatLng = wps[i].latLng;
-				routeCoord = L.latLng(this._route.coordinates[this._wpIndices[i]]);
+				routeCoord = L.latLng(this._route.coordinates[wpIndices[i]]);
 				if (wpLatLng.distanceTo(routeCoord) >
 					this.options.missingRouteTolerance) {
 					this._addSegment([wpLatLng, routeCoord],
@@ -109,8 +108,9 @@
 		},
 
 		_findNearestWpBefore: function(i) {
-			var j = this._wpIndices.length - 1;
-			while (j >= 0 && this._wpIndices[j] > i) {
+			var wpIndices = this._getWaypointIndices(),
+				j = wpIndices.length - 1;
+			while (j >= 0 && wpIndices[j] > i) {
 				j--;
 			}
 
@@ -124,6 +124,14 @@
 				latlng: e.latlng
 			});
 		},
+
+		_getWaypointIndices: function() {
+			if (!this._wpIndices) {
+				this._wpIndices = this._route.waypointIndices || this._findWaypointIndices();
+			}
+
+			return this._wpIndices;
+		}
 	});
 
 	L.Routing.line = function(route, options) {
