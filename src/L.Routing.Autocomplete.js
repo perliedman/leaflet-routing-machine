@@ -93,8 +93,8 @@
 		_createClickListener: function(r) {
 			var resultSelected = this._resultSelected(r);
 			return L.bind(function() {
-				resultSelected();
 				this._elem.blur();
+				resultSelected();
 			}, this);
 		},
 
@@ -160,6 +160,11 @@
 		_keyDown: function(e) {
 			if (this._isOpen) {
 				switch (e.keyCode) {
+				// Escape
+				case 27:
+					this.close();
+					L.DomEvent.preventDefault(e);
+					return;
 				// Up
 				case 38:
 					this._select(-1);

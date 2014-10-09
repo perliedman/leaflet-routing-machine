@@ -182,6 +182,7 @@
 					wp.latLng = r.center;
 					this._updateMarkers();
 					this._fireChanged();
+					this._focusGeocoder(i + 1);
 				}, this, L.extend({
 					resultFn: this.options.geocoder.geocode,
 					resultContext: this.options.geocoder,
@@ -382,6 +383,17 @@
 			}
 			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
 			delete this._newWp;
+		},
+
+		_focusGeocoder: function(i) {
+			var input;
+			if (this._geocoderElems[i]) {
+				input = this._geocoderElems[i].input;
+				input.focus();
+				input.select();
+			} else {
+				document.activeElement.blur();
+			}
 		}
 	});
 
