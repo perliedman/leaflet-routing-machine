@@ -173,7 +173,8 @@
 			geocoderInput.value = wp.name;
 
 			L.DomEvent.addListener(geocoderInput, 'click', function() {
-				this.select();
+				// .select() doesn't work on (some?) iOS devices
+				this.setSelectionRange(0, 9999);
 			}, geocoderInput);
 
 			new L.Routing.Autocomplete(geocoderInput, function(r) {
@@ -390,7 +391,8 @@
 			if (this._geocoderElems[i]) {
 				input = this._geocoderElems[i].input;
 				input.focus();
-				input.select();
+				// .select() doesn't work on (some?) iOS devices
+				input.setSelectionRange(0, 9999);
 			} else {
 				document.activeElement.blur();
 			}
