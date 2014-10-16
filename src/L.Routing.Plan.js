@@ -12,6 +12,16 @@
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
 
+	function selectInputText(input) {
+		if (input.setSelectionRange) {
+			// On iOS, select() doesn't work
+			input.setSelectionRange(0, 9999);
+		} else {
+			// On at least IE8, setSeleectionRange doesn't exist
+			input.select();
+		}
+	}
+
 	L.Routing.Plan = L.Class.extend({
 		includes: L.Mixin.Events,
 
@@ -173,8 +183,7 @@
 			geocoderInput.value = wp.name;
 
 			L.DomEvent.addListener(geocoderInput, 'click', function() {
-				// .select() doesn't work on (some?) iOS devices
-				this.setSelectionRange(0, 9999);
+				selectInputText(this);
 			}, geocoderInput);
 
 			new L.Routing.Autocomplete(geocoderInput, function(r) {
@@ -391,8 +400,7 @@
 			if (this._geocoderElems[i]) {
 				input = this._geocoderElems[i].input;
 				input.focus();
-				// .select() doesn't work on (some?) iOS devices
-				input.setSelectionRange(0, 9999);
+				selectInputText(input);
 			} else {
 				document.activeElement.blur();
 			}
