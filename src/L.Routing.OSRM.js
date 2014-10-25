@@ -38,17 +38,22 @@
 
 		route: function(waypoints, callback, context, options) {
 			var timedOut = false,
-				timer = setTimeout(function() {
-					timedOut = true;
-					callback.call(context || callback, {
-						status: -1,
-						message: 'OSRM request timed out.'
-					});
-				}, this.options.timeout),
 				wps = [],
-				wp,
 				url,
+				timer,
+				wp,
 				i;
+
+			options = options || {};
+			url = this.buildRouteUrl(waypoints, options);
+
+			timer = setTimeout(function() {
+								timedOut = true;
+								callback.call(context || callback, {
+									status: -1,
+									message: 'OSRM request timed out.'
+								});
+							}, this.options.timeout);
 
 			// Create a copy of the waypoints, since they
 			// might otherwise be asynchronously modified while
@@ -57,9 +62,6 @@
 				wp = waypoints[i];
 				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
 			}
-
-			options = options || {};
-			url = this._buildRouteUrl(wps, options);
 
 			L.Routing._jsonp(url, function(data) {
 				clearTimeout(timer);
@@ -134,7 +136,7 @@
 			return wps;
 		},
 
-		_buildRouteUrl: function(waypoints, options) {
+		buildRouteUrl: function(waypoints, options) {
 			var locs = [],
 			    computeInstructions,
 			    computeAlternative,
@@ -164,7 +166,8 @@
 				'alt=' + computeAlternative + '&' +
 				(options.z ? 'z=' + options.z + '&' : '') +
 				locs.join('&') +
-				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '');
+				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '') +
+				(options.fileformat ? '?output=' + options.fileformat : '');
 		},
 
 		_locationKey: function(location) {
