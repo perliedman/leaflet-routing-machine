@@ -176,6 +176,10 @@
 			if (this.options.autoRoute) {
 				this.route({});
 			}
+			if (!this._plan.isReady()) {
+				this._clearLine();
+				this._clearAlts();
+			}
 			this.fire('waypointschanged', {waypoints: e.waypoints});
 		},
 

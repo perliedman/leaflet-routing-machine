@@ -171,6 +171,7 @@
 		_createGeocoder: function(i) {
 			var nWps = this._waypoints.length,
 				g = this.options.createGeocoder(i, nWps),
+				closeButton = g.closeButton,
 				geocoderInput = g.input,
 				wp = this._waypoints[i];
 			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, nWps));
@@ -185,6 +186,12 @@
 			L.DomEvent.addListener(geocoderInput, 'click', function() {
 				selectInputText(this);
 			}, geocoderInput);
+
+			if (closeButton) {
+				L.DomEvent.addListener(closeButton, 'click', function() {
+					this.spliceWaypoints(i, 1);
+				}, this);
+			}
 
 			new L.Routing.Autocomplete(geocoderInput, function(r) {
 					geocoderInput.value = r.name;
