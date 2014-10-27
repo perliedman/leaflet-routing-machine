@@ -48,10 +48,14 @@
 				return '';
 			},
 			createGeocoder: function() {
-				var e = L.DomUtil.create('input', '');
+				var container = L.DomUtil.create('div', ''),
+					input = L.DomUtil.create('input', '', container),
+					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
+
 				return {
-					container: e,
-					input: e
+					container: container,
+					input: input,
+					closeButton: remove
 				};
 			},
 			waypointNameFallback: function(latLng) {

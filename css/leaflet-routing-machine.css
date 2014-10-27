@@ -88,9 +88,13 @@
 .leaflet-routing-icon-arrive           { background-position: -200px 0; }
 .leaflet-routing-icon-via              { background-position: -200px 0; }
 
-.leaflet-routing-geocoders input {
-    width: 292px;
+.leaflet-routing-geocoders div {
     padding: 4px;
+}
+
+.leaflet-routing-geocoders input {
+    width: 286px;
+    line-height: 1.67;
     border: 1px solid #ccc;
 }
 
@@ -99,7 +103,7 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: white;
-    margin: 0 6px;
+    margin: 0;
     float: right;
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -137,4 +141,22 @@
 .leaflet-routing-geocoder-no-results {
     font-style: italic;
     color: #888;
+}
+
+.leaflet-routing-remove-waypoint {
+    position: relative;
+    float: right;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    left: 4px;
+    color: #ccc;
+}
+
+.leaflet-routing-remove-waypoint:hover {
+    color: inherit;
+}
+
+.leaflet-routing-remove-waypoint:before {
+    content: '\00d7'
 }
