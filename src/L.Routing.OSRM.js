@@ -167,7 +167,8 @@
 				(options.z ? 'z=' + options.z + '&' : '') +
 				locs.join('&') +
 				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '') +
-				(options.fileformat ? '?output=' + options.fileformat : '');
+				(options.fileformat ? '&output=' + options.fileformat : '') +
+				(options.allowUTurns ? '&uturns=' + options.allowUTurns : '');
 		},
 
 		_locationKey: function(location) {
