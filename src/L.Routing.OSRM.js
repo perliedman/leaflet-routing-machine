@@ -8,6 +8,7 @@
 	/* jshint camelcase: false */
 
 	L.Routing = L.Routing || {};
+	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
 	L.Routing._jsonpCallbackId = 0;
 	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
@@ -75,7 +76,7 @@
 			}
 
 			coordinates = this._decode(response.route_geometry, 6);
-			actualWaypoints = this._toWaypoints(response.via_points);
+			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
 			alts = [{
 				name: response.route_name.join(', '),
 				coordinates: coordinates,
@@ -110,13 +111,13 @@
 			callback.call(context, null, alts);
 		},
 
-		_toWaypoints: function(vias) {
+		_toWaypoints: function(inputWaypoints, vias) {
 			var wps = [],
 			    i;
 			for (i = 0; i < vias.length; i++) {
-				wps.push({
-					latLng: L.latLng(vias[i])
-				});
+				wps.push(L.Routing.waypoint(L.latLng(vias[i]),
+				                            inputWaypoints[i].name,
+				                            inputWaypoints[i].options));
 			}
 
 			return wps;
@@ -136,6 +137,11 @@
 				hint = this._hints.locations[locationKey];
 				if (hint) {
 					locs.push('hint=' + hint);
+				}
+
+				if (waypoints[i].options.allowUTurn)
+				{
+					locs.push('u=true');
 				}
 			}
 
