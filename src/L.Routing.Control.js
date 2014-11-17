@@ -85,6 +85,10 @@
 		getPlan: function() {
 			return this._plan;
 		},
+		
+		getLine: function() {
+			return this._line;
+		},
 
 		_routeSelected: function(e) {
 			var route = e.route,
