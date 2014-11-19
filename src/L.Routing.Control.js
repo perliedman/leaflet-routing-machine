@@ -60,6 +60,19 @@
 			return container;
 		},
 
+		addTo: function (map) {
+			if(this.options.wrapper) {
+				this._container = this.onAdd(map);
+				this._wrapper = L.DomUtil.get(this.options.wrapper);
+				this._wrapper.style.position = 'relative';
+				this._wrapper.appendChild(this._container);
+			}
+			else
+				L.Control.prototype.addTo.call(this, map);
+
+			return this;
+		},
+		
 		onRemove: function(map) {
 			if (this._line) {
 				map.removeLayer(this._line);
