@@ -39,7 +39,7 @@
 			geocoderClassName: '',
 			geocoderPlaceholder: function(i, numberWaypoints) {
 				return i === 0 ?
-						"Start" :
+						'Start' :
 					(i < numberWaypoints - 1 ?
 									'Via ' + i :
 									'End');
