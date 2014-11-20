@@ -39,7 +39,7 @@
 			geocoderClassName: '',
 			geocoderPlaceholder: function(i, numberWaypoints) {
 				return i === 0 ?
-					'Start' :
+						"Start" :
 					(i < numberWaypoints - 1 ?
 									'Via ' + i :
 									'End');
@@ -359,6 +359,14 @@
 				this._waypoints[i].name = '';
 				this._updateWaypointName(i, this._geocoderElems && this._geocoderElems[i].input, true);
 				this._fireChanged();
+			}, this);
+			m.on('click',function(e){
+				//this is a special case delete first waypoint
+				if (i == 0 && this.getWaypoints().length == 2 && this._waypoints[1].latLng){
+					this.spliceWaypoints(i,2,this.getWaypoints()[1].latLng);
+				}else{
+					this.spliceWaypoints(i,1);
+				}
 			}, this);
 		},
 
