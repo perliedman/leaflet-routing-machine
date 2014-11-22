@@ -5,6 +5,8 @@
 
 	L.Routing = L.Routing || {};
 
+	L.extend(L.Routing, require('./L.Routing.Localization'));
+
 	L.Routing.Formatter = L.Class.extend({
 		options: {
 			units: 'metric',
@@ -17,21 +19,9 @@
 				minutes: 'mín',
 				seconds: 's'
 			},
+      language: 'en',
 			roundingSensitivity: 1,
 			distanceTemplate: '{value} {unit}'
-		},
-
-		statics: {
-			DIR: {
-				N: 'north',
-				NE: 'northeast',
-				E: 'east',
-				SE: 'southeast',
-				S: 'south',
-				SW: 'southwest',
-				W: 'west',
-				NW: 'northwest'
-			}
 		},
 
 		initialize: function(options) {
@@ -94,7 +84,10 @@
 		formatInstruction: function(instr, i) {
 			if (instr.type !== undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({exit: this._formatOrder(instr.exit), dir: L.Routing.Formatter.DIR[instr.direction]},
+					L.extend({
+							exit: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
+							dir: L.Routing.Localization[this.options.language].directions[instr.direction]
+						},
 						instr));
 			} else {
 				return instr.text;
@@ -129,38 +122,12 @@
 		},
 
 		_getInstructionTemplate: function(instr, i) {
-			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
-			case 'SlightRight':
-				return 'Slight right' + (instr.road ? ' onto {road}' : '');
-			case 'Right':
-				return 'Right' + (instr.road ? ' onto {road}' : '');
-			case 'SharpRight':
-				return 'Sharp right' + (instr.road ? ' onto {road}' : '');
-			case 'TurnAround':
-				return 'Turn around';
-			case 'SharpLeft':
-				return 'Sharp left' + (instr.road ? ' onto {road}' : '');
-			case 'Left':
-				return 'Left' + (instr.road ? ' onto {road}' : '');
-			case 'SlightLeft':
-				return 'Slight left' + (instr.road ? ' onto {road}' : '');
-			case 'WaypointReached':
-				return 'Waypoint reached';
-			case 'Roundabout':
-				return  'Take the {exit} exit in the roundabout';
-			case 'DestinationReached':
-				return  'Destination reached';
-			}
+			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
+					strings = L.Routing.Localization[this.options.language].instructions[type];
+
+			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		},
 
-		_formatOrder: function(n) {
-			var i = n % 10 - 1,
-				suffix = ['st', 'nd', 'rd'];
-
-			return suffix[i] ? n + suffix[i] : n + 'th';
-		}
 	});
 
 	module.exports = L.Routing;
