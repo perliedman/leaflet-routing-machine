@@ -91,6 +91,51 @@
 				return n + '.';
 			}
 		},
+
+		'sv': {
+			directions: {
+				N: 'norr',
+				NE: 'nordost',
+				E: 'öst',
+				SE: 'sydost',
+				S: 'syd',
+				SW: 'sydväst',
+				W: 'väst',
+				NW: 'nordväst'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Åk åt {dir}', ' på {road}'],
+				'Continue':
+					['Fortsätt {dir}', ' på {road}'],
+				'SlightRight':
+					['Svagt höger', ' på {road}'],
+				'Right':
+					['Sväng höger', ' på {road}'],
+				'SharpRight':
+					['Skarpt höger', ' på {road}'],
+				'TurnAround':
+					['Vänd'],
+				'SharpLeft':
+					['Skarpt vänster', ' på {road}'],
+				'Left':
+					['Sväng vänster', ' på {road}'],
+				'SlightLeft':
+					['Svagt vänster', ' på {road}'],
+				'WaypointReached':
+					['Viapunkt nådd'],
+				'Roundabout':
+					['Tag {exitStr} avfarten i rondellen'],
+				'DestinationReached':
+					['Framme vid resans mål'],
+			},
+			formatOrder: function(n) {
+				return ['första', 'andra', 'tredje', 'fjärde', 'femte',
+					'sjätte', 'sjunde', 'åttonde', 'nionde', 'tionde'
+					/* Can't possibly be more than ten exits, can there? */][n - 1];
+			}
+		}
 	};
 
 	module.exports = L.Routing;
