@@ -37,7 +37,7 @@
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
-					['Take the {exit} exit in the roundabout'],
+					['Take the {exitStr} exit in the roundabout'],
 				'DestinationReached':
 					['Destination reached'],
 			},
@@ -83,7 +83,7 @@
 				'WaypointReached':
 					['Zwischenhalt erreicht'],
 				'Roundabout':
-					['Nehmen Sie die {exit} Ausfahrt im Kreisverkehr'],
+					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr'],
 				'DestinationReached':
 					['Sie haben ihr Ziel erreicht'],
 			},
