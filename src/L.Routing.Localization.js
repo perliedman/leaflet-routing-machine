@@ -135,6 +135,49 @@
 					'sjätte', 'sjunde', 'åttonde', 'nionde', 'tionde'
 					/* Can't possibly be more than ten exits, can there? */][n - 1];
 			}
+		},
+
+		'sp': {
+			directions: {
+				N: 'norte',
+				NE: 'noreste',
+				E: 'este',
+				SE: 'sureste',
+				S: 'sur',
+				SW: 'suroeste',
+				W: 'oeste',
+				NW: 'noroeste'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Derecho {dir}', ' sobre {road}'],
+				'Continue':
+					['Continuar {dir}', ' en {road}'],
+				'SlightRight':
+					['Leve giro a la derecha', ' sobre {road}'],
+				'Right':
+					['Derecha', ' sobre {road}'],
+				'SharpRight':
+					['Giro pronunciado a la derecha', ' sobre {road}'],
+				'TurnAround':
+					['Dar vuelta'],
+				'SharpLeft':
+					['Giro pronunciado a la izquierda', ' sobre {road}'],
+				'Left':
+					['Izquierda', ' en {road}'],
+				'SlightLeft':
+					['Leve giro a la izquierda', ' en {road}'],
+				'WaypointReached':
+					['Llegó a un punto del camino'],
+				'Roundabout':
+					['Tomar {exitStr} salida en la rotonda'],
+				'DestinationReached':
+					['Llegada a destino'],
+			},
+			formatOrder: function(n) {
+				return n + 'º';
+			}
 		}
 	};
 
