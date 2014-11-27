@@ -188,8 +188,8 @@
 		},
 	});
 
-	L.Routing.itinerary = function(router) {
-		return new L.Routing.Itinerary(router);
+	L.Routing.itinerary = function(options) {
+		return new L.Routing.Itinerary(options);
 	};
 
 	module.exports = L.Routing;
