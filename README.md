@@ -104,4 +104,4 @@ To build the packaged files in ```dist```, run
 npm install
 ```
 
-This requires [Node and npm](http://nodejs.org/), as well as Make, which should be available on UNIXy systems, and installable via for example [Cygwin](http://www.cygwin.com/) if you're on Windows.
+This requires [Node and npm](http://nodejs.org/), as well as `grunt`.
