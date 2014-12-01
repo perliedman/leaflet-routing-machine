@@ -324,7 +324,7 @@
 
 		_createMarker: function(icon, i) {
 			var options = {
-				draggable: true
+				draggable: this.options.draggableWaypoints
 			};
 			if (icon) {
 				options.icon = icon;

@@ -157,11 +157,15 @@
 		},
 
 		_updateLine: function(route) {
+			var addWaypoints = this.options.addWaypoints !== undefined ?
+				this.options.addWaypoints : true;
 			this._clearLine();
 
 			this._line = this.options.routeLine(route,
-				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
-					this.options.lineOptions));
+				L.extend({
+					addWaypoints: addWaypoints,
+					extendToWaypoints: this.options.waypointMode === 'connect'
+				}, this.options.lineOptions));
 			this._line.addTo(this._map);
 			this._hookEvents(this._line);
 		},
