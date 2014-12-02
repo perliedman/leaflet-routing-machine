@@ -25,6 +25,7 @@
 
 			this._router = this.options.router || new L.Routing.OSRM(options);
 			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
+			this._requestCount = 0;
 
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
@@ -188,20 +189,28 @@
 		},
 
 		_setupRouteDragging: function() {
-			var lastCalled = 0;
+			var timer = 0,
+				waypoints;
 
 			this._plan.on('waypointdrag', L.bind(function(e) {
-				var now = new Date().getTime();
-				if (now - lastCalled >= this.options.routeDragInterval) {
-					this.route({
-						waypoints: e.waypoints,
-						geometryOnly: true,
-						callback: L.bind(this._updateLineCallback, this)
-					});
-					lastCalled = now;
+				waypoints = e.waypoints;
+
+				if (!timer) {
+					timer = setTimeout(L.bind(function() {
+						this.route({
+							waypoints: waypoints,
+							geometryOnly: true,
+							callback: L.bind(this._updateLineCallback, this)
+						});
+						timer = undefined;
+					}, this), this.options.routeDragInterval);
 				}
 			}, this));
 			this._plan.on('waypointdragend', function() {
+				if (timer) {
+					clearTimeout(timer);
+					timer = undefined;
+				}
 				this.route();
 			}, this);
 		},
@@ -213,11 +222,10 @@
 		},
 
 		route: function(options) {
-			var ts = new Date().getTime(),
+			var ts = ++this._requestCount,
 				wps;
 
 			options = options || {};
-			this._lastRequestTimestamp = ts;
 
 			if (this._plan.isReady()) {
 				if (this.options.useZoomParameter) {
@@ -231,7 +239,7 @@
 					// by checking the current request's timestamp
 					// against the last request's; ignore result if
 					// this isn't the latest request.
-					if (ts === this._lastRequestTimestamp) {
+					if (ts === this._requestCount) {
 						this._clearLine();
 						this._clearAlts();
 						if (err) {
