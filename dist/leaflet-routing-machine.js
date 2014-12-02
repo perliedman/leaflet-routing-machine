@@ -1803,10 +1803,10 @@
 				this.fire('waypointdrag', this._createWaypointEvent(i, e));
 			}, this);
 			m.on('dragend', function(e) {
-				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._waypoints[i].latLng = e.target.getLatLng();
 				this._waypoints[i].name = '';
 				this._updateWaypointName(i, this._geocoderElems && this._geocoderElems[i].input, true);
+				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._fireChanged();
 			}, this);
 		},
