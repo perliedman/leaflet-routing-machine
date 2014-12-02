@@ -233,6 +233,7 @@
 
 			this._router = this.options.router || new L.Routing.OSRM(options);
 			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
+			this._requestCount = 0;
 
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
@@ -365,11 +366,15 @@
 		},
 
 		_updateLine: function(route) {
+			var addWaypoints = this.options.addWaypoints !== undefined ?
+				this.options.addWaypoints : true;
 			this._clearLine();
 
 			this._line = this.options.routeLine(route,
-				L.extend({extendToWaypoints: this.options.waypointMode === 'connect'},
-					this.options.lineOptions));
+				L.extend({
+					addWaypoints: addWaypoints,
+					extendToWaypoints: this.options.waypointMode === 'connect'
+				}, this.options.lineOptions));
 			this._line.addTo(this._map);
 			this._hookEvents(this._line);
 		},
@@ -384,24 +389,36 @@
 			if (this.options.autoRoute) {
 				this.route({});
 			}
+			if (!this._plan.isReady()) {
+				this._clearLine();
+				this._clearAlts();
+			}
 			this.fire('waypointschanged', {waypoints: e.waypoints});
 		},
 
 		_setupRouteDragging: function() {
-			var lastCalled = 0;
+			var timer = 0,
+				waypoints;
 
 			this._plan.on('waypointdrag', L.bind(function(e) {
-				var now = new Date().getTime();
-				if (now - lastCalled >= this.options.routeDragInterval) {
-					this.route({
-						waypoints: e.waypoints,
-						geometryOnly: true,
-						callback: L.bind(this._updateLineCallback, this)
-					});
-					lastCalled = now;
+				waypoints = e.waypoints;
+
+				if (!timer) {
+					timer = setTimeout(L.bind(function() {
+						this.route({
+							waypoints: waypoints,
+							geometryOnly: true,
+							callback: L.bind(this._updateLineCallback, this)
+						});
+						timer = undefined;
+					}, this), this.options.routeDragInterval);
 				}
 			}, this));
 			this._plan.on('waypointdragend', function() {
+				if (timer) {
+					clearTimeout(timer);
+					timer = undefined;
+				}
 				this.route();
 			}, this);
 		},
@@ -413,11 +430,10 @@
 		},
 
 		route: function(options) {
-			var ts = new Date().getTime(),
+			var ts = ++this._requestCount,
 				wps;
 
 			options = options || {};
-			this._lastRequestTimestamp = ts;
 
 			if (this._plan.isReady()) {
 				if (this.options.useZoomParameter) {
@@ -431,7 +447,7 @@
 					// by checking the current request's timestamp
 					// against the last request's; ignore result if
 					// this isn't the latest request.
-					if (ts === this._lastRequestTimestamp) {
+					if (ts === this._requestCount) {
 						this._clearLine();
 						this._clearAlts();
 						if (err) {
@@ -466,7 +482,7 @@
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Itinerary":4,"./L.Routing.Line":6,"./L.Routing.OSRM":7,"./L.Routing.Plan":8}],3:[function(require,module,exports){
+},{"./L.Routing.Itinerary":4,"./L.Routing.Line":6,"./L.Routing.OSRM":8,"./L.Routing.Plan":9}],3:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -474,6 +490,8 @@
 	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 
 	L.Routing = L.Routing || {};
+
+	L.extend(L.Routing, require('./L.Routing.Localization'));
 
 	L.Routing.Formatter = L.Class.extend({
 		options: {
@@ -487,21 +505,9 @@
 				minutes: 'mín',
 				seconds: 's'
 			},
+			language: 'en',
 			roundingSensitivity: 1,
 			distanceTemplate: '{value} {unit}'
-		},
-
-		statics: {
-			DIR: {
-				N: 'north',
-				NE: 'northeast',
-				E: 'east',
-				SE: 'southeast',
-				S: 'south',
-				SW: 'southwest',
-				W: 'west',
-				NW: 'northwest'
-			}
 		},
 
 		initialize: function(options) {
@@ -564,7 +570,10 @@
 		formatInstruction: function(instr, i) {
 			if (instr.type !== undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({exit: this._formatOrder(instr.exit), dir: L.Routing.Formatter.DIR[instr.direction]},
+					L.extend({
+							exitStr: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
+							dir: L.Routing.Localization[this.options.language].directions[instr.direction]
+						},
 						instr));
 			} else {
 				return instr.text;
@@ -599,38 +608,12 @@
 		},
 
 		_getInstructionTemplate: function(instr, i) {
-			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'Head' : 'Continue') + ' {dir}' + (instr.road ? ' on {road}' : '');
-			case 'SlightRight':
-				return 'Slight right' + (instr.road ? ' onto {road}' : '');
-			case 'Right':
-				return 'Right' + (instr.road ? ' onto {road}' : '');
-			case 'SharpRight':
-				return 'Sharp right' + (instr.road ? ' onto {road}' : '');
-			case 'TurnAround':
-				return 'Turn around';
-			case 'SharpLeft':
-				return 'Sharp left' + (instr.road ? ' onto {road}' : '');
-			case 'Left':
-				return 'Left' + (instr.road ? ' onto {road}' : '');
-			case 'SlightLeft':
-				return 'Slight left' + (instr.road ? ' onto {road}' : '');
-			case 'WaypointReached':
-				return 'Waypoint reached';
-			case 'Roundabout':
-				return  'Take the {exit} exit in the roundabout';
-			case 'DestinationReached':
-				return  'Destination reached';
-			}
+			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
+					strings = L.Routing.Localization[this.options.language].instructions[type];
+
+			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		},
 
-		_formatOrder: function(n) {
-			var i = n % 10 - 1,
-				suffix = ['st', 'nd', 'rd'];
-
-			return suffix[i] ? n + suffix[i] : n + 'th';
-		}
 	});
 
 	module.exports = L.Routing;
@@ -638,7 +621,7 @@
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],4:[function(require,module,exports){
+},{"./L.Routing.Localization":7}],4:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1029,6 +1012,150 @@
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],7:[function(require,module,exports){
+(function() {
+	'use strict';
+	L.Routing = L.Routing || {};
+
+	L.Routing.Localization = {
+		'en': {
+			directions: {
+				N: 'north',
+				NE: 'northeast',
+				E: 'east',
+				SE: 'southeast',
+				S: 'south',
+				SW: 'southwest',
+				W: 'west',
+				NW: 'northwest'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Head {dir}', ' on {road}'],
+				'Continue':
+					['Continue {dir}', ' on {road}'],
+				'SlightRight':
+					['Slight right', ' onto {road}'],
+				'Right':
+					['Right', ' onto {road}'],
+				'SharpRight':
+					['Sharp right', ' onto {road}'],
+				'TurnAround':
+					['Turn around'],
+				'SharpLeft':
+					['Sharp left', ' onto {road}'],
+				'Left':
+					['Left', ' onto {road}'],
+				'SlightLeft':
+					['Slight left', ' onto {road}'],
+				'WaypointReached':
+					['Waypoint reached'],
+				'Roundabout':
+					['Take the {exitStr} exit in the roundabout'],
+				'DestinationReached':
+					['Destination reached'],
+			},
+			formatOrder: function(n) {
+				var i = n % 10 - 1,
+				suffix = ['st', 'nd', 'rd'];
+
+				return suffix[i] ? n + suffix[i] : n + 'th';
+			}
+		},
+
+		'de': {
+			directions: {
+				N: 'Norden',
+				NE: 'Nordosten',
+				E: 'Osten',
+				SE: 'Südosten',
+				S: 'Süden',
+				SW: 'Südwesten',
+				W: 'Westen',
+				NW: 'Nordwesten'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Richtung {dir}', ' auf {road}'],
+				'Continue':
+					['Geradeaus Richtung {dir}', ' auf {road}'],
+				'SlightRight':
+					['Leicht rechts abbiegen', ' auf {road}'],
+				'Right':
+					['Rechts abbiegen', ' auf {road}'],
+				'SharpRight':
+					['Scharf rechts abbiegen', ' auf {road}'],
+				'TurnAround':
+					['Wenden'],
+				'SharpLeft':
+					['Scharf links abbiegen', ' auf {road}'],
+				'Left':
+					['Links abbiegen', ' auf {road}'],
+				'SlightLeft':
+					['Leicht links abbiegen', ' auf {road}'],
+				'WaypointReached':
+					['Zwischenhalt erreicht'],
+				'Roundabout':
+					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr'],
+				'DestinationReached':
+					['Sie haben ihr Ziel erreicht'],
+			},
+			formatOrder: function(n) {
+				return n + '.';
+			}
+		},
+
+		'sv': {
+			directions: {
+				N: 'norr',
+				NE: 'nordost',
+				E: 'öst',
+				SE: 'sydost',
+				S: 'syd',
+				SW: 'sydväst',
+				W: 'väst',
+				NW: 'nordväst'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Åk åt {dir}', ' på {road}'],
+				'Continue':
+					['Fortsätt {dir}', ' på {road}'],
+				'SlightRight':
+					['Svagt höger', ' på {road}'],
+				'Right':
+					['Sväng höger', ' på {road}'],
+				'SharpRight':
+					['Skarpt höger', ' på {road}'],
+				'TurnAround':
+					['Vänd'],
+				'SharpLeft':
+					['Skarpt vänster', ' på {road}'],
+				'Left':
+					['Sväng vänster', ' på {road}'],
+				'SlightLeft':
+					['Svagt vänster', ' på {road}'],
+				'WaypointReached':
+					['Viapunkt nådd'],
+				'Roundabout':
+					['Tag {exitStr} avfarten i rondellen'],
+				'DestinationReached':
+					['Framme vid resans mål'],
+			},
+			formatOrder: function(n) {
+				return ['första', 'andra', 'tredje', 'fjärde', 'femte',
+					'sjätte', 'sjunde', 'åttonde', 'nionde', 'tionde'
+					/* Can't possibly be more than ten exits, can there? */][n - 1];
+			}
+		}
+	};
+
+	module.exports = L.Routing;
+})();
+
+},{}],8:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1318,7 +1445,7 @@
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1333,6 +1460,16 @@
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
+
+	function selectInputText(input) {
+		if (input.setSelectionRange) {
+			// On iOS, select() doesn't work
+			input.setSelectionRange(0, 9999);
+		} else {
+			// On at least IE8, setSeleectionRange doesn't exist
+			input.select();
+		}
+	}
 
 	L.Routing.Plan = L.Class.extend({
 		includes: L.Mixin.Events,
@@ -1360,10 +1497,14 @@
 				return '';
 			},
 			createGeocoder: function() {
-				var e = L.DomUtil.create('input', '');
+				var container = L.DomUtil.create('div', ''),
+					input = L.DomUtil.create('input', '', container),
+					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
+
 				return {
-					container: e,
-					input: e
+					container: container,
+					input: input,
+					closeButton: remove
 				};
 			},
 			waypointNameFallback: function(latLng) {
@@ -1483,6 +1624,7 @@
 		_createGeocoder: function(i) {
 			var nWps = this._waypoints.length,
 				g = this.options.createGeocoder(i, nWps),
+				closeButton = g.closeButton,
 				geocoderInput = g.input,
 				wp = this._waypoints[i];
 			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, nWps));
@@ -1495,8 +1637,14 @@
 			geocoderInput.value = wp.name;
 
 			L.DomEvent.addListener(geocoderInput, 'click', function() {
-				this.select();
+				selectInputText(this);
 			}, geocoderInput);
+
+			if (closeButton) {
+				L.DomEvent.addListener(closeButton, 'click', function() {
+					this.spliceWaypoints(i, 1);
+				}, this);
+			}
 
 			new L.Routing.Autocomplete(geocoderInput, function(r) {
 					geocoderInput.value = r.name;
@@ -1625,7 +1773,7 @@
 
 		_createMarker: function(icon, i) {
 			var options = {
-				draggable: true
+				draggable: this.options.draggableWaypoints
 			};
 			if (icon) {
 				options.icon = icon;
@@ -1712,7 +1860,7 @@
 			if (this._geocoderElems[i]) {
 				input = this._geocoderElems[i].input;
 				input.focus();
-				input.select();
+				selectInputText(input);
 			} else {
 				document.activeElement.blur();
 			}
