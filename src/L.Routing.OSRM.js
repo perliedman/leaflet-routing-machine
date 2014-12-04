@@ -36,15 +36,18 @@
 		},
 
 		route: function(waypoints, callback, context, options) {
-			var url = this._buildRouteUrl(waypoints, options),
-				timedOut = false,
+			var timedOut = false,
 				timer = setTimeout(function() {
 					timedOut = true;
 					callback.call(context || callback, {
 						status: -1,
 						message: 'OSRM request timed out.'
 					});
-				}, this.options.timeout);
+				}, this.options.timeout),
+				url;
+
+			options = options || {};
+			url = this._buildRouteUrl(waypoints, options);
 
 			L.Routing._jsonp(url, function(data) {
 				clearTimeout(timer);
