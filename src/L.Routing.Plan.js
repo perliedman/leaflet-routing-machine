@@ -30,7 +30,6 @@
 			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
 			geocodersClassName: '',
-			geocoderClassName: '',
 			geocoderPlaceholder: function(i, numberWaypoints) {
 				return i === 0 ?
 					'Start' :
