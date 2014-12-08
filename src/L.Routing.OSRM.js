@@ -45,15 +45,26 @@
 						message: 'OSRM request timed out.'
 					});
 				}, this.options.timeout),
-				url;
+				wps = [],
+				wp,
+				url,
+				i;
+
+			// Create a copy of the waypoints, since they
+			// might otherwise be asynchronously modified while
+			// the request is being processed.
+			for (i = 0; i < waypoints.length; i++) {
+				wp = waypoints[i];
+				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
+			}
 
 			options = options || {};
-			url = this._buildRouteUrl(waypoints, options);
+			url = this._buildRouteUrl(wps, options);
 
 			L.Routing._jsonp(url, function(data) {
 				clearTimeout(timer);
 				if (!timedOut) {
-					this._routeDone(data, waypoints, callback, context);
+					this._routeDone(data, wps, callback, context);
 				}
 			}, this, 'jsonp');
 
