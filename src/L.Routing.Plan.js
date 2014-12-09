@@ -27,6 +27,7 @@
 			],
 			draggableWaypoints: true,
 			addWaypoints: true,
+			addButtonClassName: '',
 			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
 			geocodersClassName: '',
@@ -50,6 +51,14 @@
 					input: input,
 					closeButton: remove
 				};
+			},
+			createMarker: function(i, wp, n) {
+				var options = {
+				      draggable: this.options.draggableWaypoints
+				    },
+				    marker = L.marker(wp.latLng, options);
+
+				return marker;
 			},
 			waypointNameFallback: function(latLng) {
 				var ns = latLng.lat < 0 ? 'S' : 'N',
@@ -149,7 +158,7 @@
 				this._geocoderElems.push(geocoderElem);
 			}
 
-			addWpBtn = L.DomUtil.create('button', '', container);
+			addWpBtn = L.DomUtil.create('button', this.options.addButtonClassName, container);
 			addWpBtn.setAttribute('type', 'button');
 			addWpBtn.innerHTML = '+';
 			if (this.options.addWaypoints) {
@@ -290,7 +299,6 @@
 
 		_updateMarkers: function() {
 			var i,
-			    icon,
 			    m;
 
 			if (!this._map) {
@@ -301,10 +309,8 @@
 
 			for (i = 0; i < this._waypoints.length; i++) {
 				if (this._waypoints[i].latLng) {
-					icon = (typeof(this.options.waypointIcon) === 'function') ?
-						this.options.waypointIcon(i, this._waypoints[i].name, this._waypoints.length) :
-						this.options.waypointIcon;
-					m = this._createMarker(icon, i);
+					m = this.options.createMarker(i, this._waypoints[i], this._waypoints.length);
+					m.addTo(this._map);
 					if (this.options.draggableWaypoints) {
 						this._hookWaypointEvents(m, i);
 					}
@@ -313,17 +319,6 @@
 				}
 				this._markers.push(m);
 			}
-		},
-
-		_createMarker: function(icon, i) {
-			var options = {
-				draggable: this.options.draggableWaypoints
-			};
-			if (icon) {
-				options.icon = icon;
-			}
-
-			return L.marker(this._waypoints[i].latLng, options).addTo(this._map);
 		},
 
 		_fireChanged: function() {
