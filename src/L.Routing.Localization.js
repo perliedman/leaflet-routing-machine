@@ -213,7 +213,7 @@
 				'WaypointReached':
 					['Aangekomen bij tussenpunt'],
 				'Roundabout':
-					['Neem de {exit}e afslag op de rotonde'],
+					['Neem de {exitStr} afslag op de rotonde'],
 				'DestinationReached':
 					['Aangekomen op eindpunt'],
 			},
