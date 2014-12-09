@@ -87,6 +87,10 @@
 			return this._plan;
 		},
 
+		getRouter: function() {
+			return this._router;
+		},
+
 		_routeSelected: function(e) {
 			var route = e.route,
 				fitMode = this.options.fitSelectedRoutes,
