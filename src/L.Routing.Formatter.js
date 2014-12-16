@@ -82,13 +82,13 @@
 		},
 
 		formatInstruction: function(instr, i) {
-			if (instr.type !== undefined) {
+			if (instr.text === undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
 					L.extend({
-							exitStr: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
-							dir: L.Routing.Localization[this.options.language].directions[instr.direction]
-						},
-						instr));
+						exitStr: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
+						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
+					},
+					instr));
 			} else {
 				return instr.text;
 			}
@@ -126,8 +126,7 @@
 					strings = L.Routing.Localization[this.options.language].instructions[type];
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
-		},
-
+		}
 	});
 
 	module.exports = L.Routing;

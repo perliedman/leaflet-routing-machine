@@ -8,20 +8,8 @@
 	/* jshint camelcase: false */
 
 	L.Routing = L.Routing || {};
+	L.extend(L.Routing, require('./L.Routing.Util'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
-
-	L.Routing._jsonpCallbackId = 0;
-	L.Routing._jsonp = function(url, callback, context, jsonpParam) {
-		var callbackId = '_l_routing_machine_' + (L.Routing._jsonpCallbackId++),
-		    script;
-		url += '&' + jsonpParam + '=' + callbackId;
-		window[callbackId] = L.Util.bind(callback, context);
-		script = document.createElement('script');
-		script.type = 'text/javascript';
-		script.src = url;
-		script.id = callbackId;
-		document.getElementsByTagName('head')[0].appendChild(script);
-	};
 
 	L.Routing.OSRM = L.Class.extend({
 		options: {
@@ -88,7 +76,7 @@
 				return;
 			}
 
-			coordinates = this._decode(response.route_geometry, 6);
+			coordinates = L.Routing._decodePolyline(response.route_geometry, 6);
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
 			alts = [{
 				name: response.route_name.join(', '),
@@ -102,7 +90,7 @@
 
 			if (response.alternative_geometries) {
 				for (i = 0; i < response.alternative_geometries.length; i++) {
-					coordinates = this._decode(response.alternative_geometries[i], 6);
+					coordinates = L.Routing._decodePolyline(response.alternative_geometries[i], 6);
 					alts.push({
 						name: response.alternative_names[i].join(', '),
 						coordinates: coordinates,

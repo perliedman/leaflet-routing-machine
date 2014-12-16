@@ -8,6 +8,7 @@
 	L.extend(L.Routing, require('./L.Routing.Line'));
 	L.extend(L.Routing, require('./L.Routing.Plan'));
 	L.extend(L.Routing, require('./L.Routing.OSRM'));
+	L.extend(L.Routing, require('./L.Routing.GraphHopper'));
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
