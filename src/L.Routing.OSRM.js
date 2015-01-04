@@ -108,7 +108,10 @@
 				}
 			}
 
-			this._saveHintData(response, inputWaypoints);
+			// only versions <4.5.0 will support this flag
+			if (response.hint_data) {
+				this._saveHintData(response.hint_data, inputWaypoints);
+			}
 			callback.call(context, null, alts);
 		},
 
@@ -163,9 +166,8 @@
 			return location.lat + ',' + location.lng;
 		},
 
-		_saveHintData: function(route, waypoints) {
-			var hintData = route.hint_data,
-			    loc;
+		_saveHintData: function(hintData, waypoints) {
+			var loc;
 			this._hints = {
 				checksum: hintData.checksum,
 				locations: {}
