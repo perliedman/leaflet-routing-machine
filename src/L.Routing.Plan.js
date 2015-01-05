@@ -25,7 +25,7 @@
 				{color: 'white', opacity: 0.8, weight: 6},
 				{color: 'red', opacity: 1, weight: 2, dashArray: '7,12'}
 			],
-                        showMarkers: true,
+			showMarkers: true,
 			draggableWaypoints: true,
 			addWaypoints: true,
 			addButtonClassName: '',
