@@ -16,6 +16,10 @@ title: API
       <li><a href="#l-routing-plan">L.Routing.Plan</a></li>
       <li><a href="#l-routing-line">L.Routing.Line</a></li>
       <li><a href="#l-routing-osrm">L.Routing.OSRM</a></li>
+      <li><a href="#l-routing-formatter">L.Routing.Formatter</a></li>
+      <li><a href="#l-routing-itinerarybuilder">L.Routing.ItineraryBuilder</a></li>
+      <li><a href="#l-routing-localization">L.Routing.Localization</a></li>
+      <li><a href="#l-routing-waypoint">L.Routing.Waypoint</a></li>
       <li><a href="#eventobjects">Event Objects</a></li>
     </ul>
   </div>
@@ -25,8 +29,8 @@ title: API
       <li><a href="#irouter">IRouter</a></li>
       <li><a href="#iroute">IRoute</a></li>
       <li><a href="#iroutesummary">IRouteSummary</a></li>
-      <li><a href="#iwaypoint">IWaypoint</a></li>
       <li><a href="#iinstruction">IInstruction</a></li>
+      <li><a href="#igeocoderelement">IGeocoderElement</a></li>
       <li><a href="#ierror">IError</a></li>
     </ul>
   </div>
@@ -65,11 +69,19 @@ Provides these options, in addition to the options of [`L.Routing.Itinerary`](#i
 
 Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
-`waypoints`            | [`IWaypoint`](#iwaypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
+`waypoints`            | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
 `router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM(options)` | The router to use to calculate routes between waypoints
 `plan`                 | [`L.Routing.Plan`](#l-routing-plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
 `geocoder`                 | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | - | Optional geocoder to use, unless the `plan` option is used
-`fitSelectedRoutes`    | `Boolean`             | `true`          | Automatically fit the map view to a route when it is selected
+`fitSelectedRoutes`    | `string`/`Boolean`    | `'smart'`       | How the map's view is fitted to a selected route result: `smart` will fit only if no waypoint is within the current view, or if the result covers a very small part of the view; other truthy values will always fit the map, falsy will never fit the map
+`routeLine`            | ``Function`           | -               | Function to create the map line when a route is presented on the map, with the signature: `fn(<`[`IRoute`](#iroute)`> route, <`[`LineOptions`](#lineoptions)`> options)`
+`autoRoute`            | `Boolean`             | `true`          | If true, route will automatically be calculated every time waypoints change, otherwise `route()` has to be called by the app
+`routeWhileDragging`   | `Boolean`             | `false`         | If true, routes will continually be calculated while the user drags waypoints, giving immediate feedback
+`routeDragInterval`    | `Number`              | `500`           | The minimum number of milliseconds between route calculations when waypoints are dragged
+`waypointMode`         | `String`              | `connect`       | Set to either `connect` (waypoints are connected by a line to the closest point on the calculated route) or `snap` (waypoints are moved to the closest point on the calculated route)
+`useZoomParameter`     | `Boolean`             | `false`         | If true, route will be recalculated when the map is zoomed
+
+
 
 ### Events
 
@@ -85,10 +97,12 @@ Event         | Data           | Description
 
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
-`getWaypoints()`       | [`IWaypoint`](#iwaypoint)`[]` | Returns the waypoints of the control's plan
-`setWaypoints(<`[`IWaypoint`](#iwaypoint)`[]> waypoints \| <L.LatLng[]> latLngs)` | `this` | Sets the waypoints of the control's plan
-`spliceWaypoints(<Number> index, <Number> waypointsToRemove, <`[`IWaypoint`](#iwaypoint)`? \| L.LatLng?>, ...)` | [`IWaypoint`](#iwaypoint)`[]` | Allows adding, removing or replacing waypoints in the control's plan. Syntax is the same as in [Array#splice](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/splice). Returns the array of removed points (if any).
+`getWaypoints()`       | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` | Returns the waypoints of the control's plan
+`setWaypoints(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[]> waypoints \| <L.LatLng[]> latLngs)` | `this` | Sets the waypoints of the control's plan
+`spliceWaypoints(<Number> index, <Number> waypointsToRemove, <`[`L.Routing.Waypoint`](#l-routing-waypoint)`? \| L.LatLng?>, ...)` | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` | Allows adding, removing or replacing waypoints in the control's plan. Syntax is the same as in [Array#splice](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/splice). Returns the array of removed points (if any).
 `getPlan()`            | [`L.Routing.Plan`](#l-routing-plan) | Returns the plan instance used by the control
+`getRouter()`          | [`IRouter`](#irouter) | Returns the router used by the control
+`route()`              | -              | Calculates the route between the current waypoints and presents in the itinerary, displaying the first result on the map
 
 ## <a name="l-routing-itinerary"></a> L.Routing.Itinerary
 
@@ -104,7 +118,6 @@ Factory                | Description
 
 Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
-`units`                | `String` | `'metric'`          | Units to use; `'metric'` or `'imperial'`
 `pointMarkerStyle`     | [`Path options`](http://leafletjs.com/reference.html#path-options) | `{radius: 5,color: '#03f',fillColor: 'white',opacity: 1,fillOpacity: 0.7}`| Style for the [CircleMarker](http://leafletjs.com/reference.html#circlemarker)s used when hovering an itinerary instruction
 `summaryTemplate`      | `String` | `'<h2>{name}</h2><h3>{distance}, {time}</h3>'` | String template to use for summarizing a route; the template is passed properties `name`, `distance` and `time`, where the latter two has already been processed through `distanceTemplate` and `timeTemplate` respectively
 `distanceTemplate`     | `String` | `'{value} {unit}'`  | String template to use for formatting distances as a string; passed properties `value` and `unit`
@@ -113,8 +126,9 @@ Option                 | Type     | Default             | Description
 `alternativeClassName` | `String` | `''`                | Class name to add to routing alternatives' elements
 `minimizedClassName`   | `String` | `''`                | Class name to add to minimized routing alternatives' elements
 `itineraryClassName`   | `String` | `''`                | Class name to add to route itinerary container
-`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more rounded, lower more accurate
 `show`                 | `Boolean`| `true`              | Display the itinerary initially; can later be changed with `hide()`and `show()` methods
+`formatter`            | [`Formatter`](#l-routing-formatter) | `new L.Routing.Formatter()` | The formatter to use when converting itinerary instructions, distances and times to strings
+`itineraryFormatter`   | [`ItineraryBuilder`](#l-routing-itinerarybuilder) | - | Object used to create the DOM structure for the itinerary and its instructions. Default uses a `table` to hold the itinerary
 
 ### Events
 
@@ -139,14 +153,13 @@ User interface to edit the plan for a route (an ordered list of waypoints). Impl
 
 Factory                | Description
 -----------------------|-------------------------------------------------------
-`L.Routing.plan(<`[`IWaypoint`](#iwaypoint)`[] \| L.LatLng[]> waypoints, <`[`PlanOptions`](#planoptions)`> options?)` | Instantiates a new plan with given waypoint locations and options
+`L.Routing.plan(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[] \| L.LatLng[]> waypoints, <`[`PlanOptions`](#planoptions)`> options?)` | Instantiates a new plan with given waypoint locations and options
 
 ### <a name="planoptions"></a> Options
 
 Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
 `geocoder`             | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | `-` | The geocoder to use (both address lookup and reverse geocoding when dragging waypoints)
-`waypointIcon`         | `L.Icon \| Function` | `L.Icon.Default` | Icon to use for waypoints, or a function that returns an icon, on the form: `icon(<Number> waypointIndex, <Number> numberWaypoints)`
 `addWaypoints`         | `Boolean`           | `true`        | Can new waypoints be added by the user
 `draggableWaypoints`   | `Boolean`           | `true`        | Can waypoints be dragged in the map
 `dragStyles`           | [`Path options`](http://leafletjs.com/reference.html#path-options)`[]` | `[{color: 'black', opacity: 0.15, weight: 7}, {color: 'white', opacity: 0.8, weight: 4}, {color: 'orange', opacity: 1, weight: 2, dashArray: '7,12'}]`| Styles used for the line or lines drawn when dragging a waypoint
@@ -154,6 +167,10 @@ Option                 | Type                | Default       | Description
 `geocoderPlaceholder`  | `Function`          | -             | Function to generate placeholder text for a waypoint geocoder: `placeholder(<Number> waypointIndex, <Number> numberWaypoints)`; by default, gives text "Start" for first waypoint, "End" for last, and "Via x" in between
 `geocodersClassName`   | `String`            | `''`          | HTML classname to assign to geocoders container
 `geocoderClass`        | `String`            | `''`          | HTML classname to assign to individual geocoder inputs
+`waypointNameFallback` | `Function`          | -             | When a waypoint's name can't be reverse geocoded, this function will be called to generate a name. Default will give a name based on the waypoint's latitude and longitude.
+`createGeocoder`       | `Function`          | -             | Create a geocoder for a waypoint; should return an [`IGeocoderElement`](#igeocoderelement)
+`addButtonClassName`   | `String`            | `''`          | HTML classname to assign to the add waypoint button
+`createMarker`         | `Function`          | -             | Creates a marker to use for a waypoint. The function should have the signature `createMarker(<Number> i, <[`L.Routing.Waypoint`](#l-routing-waypoint)`> waypoint, <Number> n)`, where `i` is the waypoint's index, `waypoint` is the waypoint itself, and `n` is the total number of waypoints in the plan
 
 ### Events
 
@@ -168,15 +185,15 @@ Event         | Data           | Description
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
 `isReady()`            | `Boolean`      | Returns `true` if the plan is ready to be routed, meaning it has at least a start and end waypoint, and both have coordinates
-`getWaypoints()`       | [`IWaypoint`](#iwaypoint)`[]` | Returns the plan's waypoints
-`setWaypoints(<`[`IWaypoint`](#iwaypoint)`[]> waypoints \| <L.LatLng[]> latLngs)` | `this` | Sets the plan's waypoints
-`spliceWaypoints(<Number> index, <Number> waypointsToRemove, <`[`IWaypoint`](#iwaypoint)`? \| L.LatLng?>, ...)` | [`IWaypoint`](#iwaypoint)`[]` | Allows adding, removing or replacing the plan's waypoints. Syntax is the same as in [Array#splice](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/splice). Returns the array of removed points (if any).
+`getWaypoints()`       | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` | Returns the plan's waypoints
+`setWaypoints(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[]> waypoints \| <L.LatLng[]> latLngs)` | `this` | Sets the plan's waypoints
+`spliceWaypoints(<Number> index, <Number> waypointsToRemove, <`[`L.Routing.Waypoint`](#l-routing-waypoint)`? \| L.LatLng?>, ...)` | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` | Allows adding, removing or replacing the plan's waypoints. Syntax is the same as in [Array#splice](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/splice). Returns the array of removed points (if any).
 `createGeocoders()`    | `HTMLElement`  | Creates and returns an HTML widget with geocoder input fields for editing waypoints by address
 
 
 ## <a name="l-routing-line"></a> L.Routing.Line
 
-Displays a route on the map, and allows adding new waypoints by dragging the line. Implements [ILayer](http://leafletjs.com/reference.html#ilayer).
+Displays a route on the map, and allows adding new waypoints by dragging the line. Extends [LayerGroup](http://leafletjs.com/reference.html#layergroup).
 
 ### Creation
 
@@ -188,8 +205,10 @@ Factory                | Description
 
 Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
-`styles`           | [`Path options`](http://leafletjs.com/reference.html#path-options)`[]` | `[{color: 'black', opacity: 0.15, weight: 7}, {color: 'white', opacity: 0.8, weight: 4}, {color: 'orange', opacity: 1, weight: 2}]`| Styles used for the line or lines drawn to represent the line
+`styles`           | [`Path options`](http://leafletjs.com/reference.html#path-options)`[]` | `[{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'red', opacity: 1, weight: 2}]`| Styles used for the line or lines drawn to represent the line
 `addWaypoints`         | `Boolean`| `true`              | Can new waypoints be added by dragging the line
+`missingRouteStyles`   | [`Path options`](http://leafletjs.com/reference.html#path-options)`[]` | `[{color: 'black', opacity: 0.15, weight: 7},{color: 'white', opacity: 0.6, weight: 4},{color: 'gray', opacity: 0.8, weight: 2, dashArray: '7,12'}]` | Styles used for the line or lines drawn to connect waypoints to the closest point on the calculated route (the non-routable part)
+
 
 ### Events
 
@@ -221,12 +240,76 @@ Factory                | Description
 Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
 `serviceUrl`           | `String` | `//router.project-osrm.org/viaroute` | Router service URL
+`timeout`              | `Number` | 30000               | Number of milliseconds before a route calculation times out, returning an error to the routing callback
 
 ### Methods
 
 Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
-`route(<`[`IWaypoint`](#iwaypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
+`route(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[]> waypoints, <Function> callback, <Object> context?), <`[`RoutingOptions`](#routingoptions)`> options)` | - | attempt to route through the provided waypoints, where each waypoint is an `L.Routing.Waypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
+`buildRouteUrl(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[]> waypoints, <`[`RoutingOptions`](#routingoptions)`> options)` | `String` | Returns the URL to calculate the route between the given waypoints; typically used for downloading the route in some other file format
+
+
+## <a name="routingoptions"></a> RoutingOptions
+
+Option                 | Type      | Default             | Description
+-----------------------|-----------|---------------------|------------------------------------------------------
+`z`                    | `Number`  | -                   | Current zoom level when the request was made
+`allowUTurns`          | `Boolean` | -                   | If U-turns are allowed in this route (migh only be applicable for OSRM backend)
+`geometryOnly`         | `Boolean` | `false`             | If true, try to save bandwidth by just giving the route geometry; also, multiple results are not required (typically used for route preview when dragging a waypoint)
+`fileFormat`           | `String`  | -                   | Fileformat to return
+
+
+## <a name="l-routing-formatter"></a> L.Routing.Formatter
+
+Implements functions to convert distances and times to strings, as well as converting an [`IInstruction`](#iinstruction) to a string. Override or implement your own if you need to customize formatting.
+
+### Creation
+
+Constructor                | Description
+-----------------------|-------------------------------------------------------
+`L.Routing.Formatter(<`[`FormatterOptions`](#formatteroptions)`> options?)` | Instantiates a new formatter with the provided options
+
+### <a name="formatteroptions"></a> Options
+
+Option                 | Type     | Default             | Description
+-----------------------|----------|---------------------|---------------------------------------------------------
+`language`             | `String` | `'en'`              | Language to use from [`L.Routing.Localization`](#l-routing-localization)
+`units`                | `String` | `'metric'`          | Units to use; `'metric'` or `'imperial'`
+`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more rounded, lower more accurate
+`unitNames`            | `Object` | `{meters: 'm',kilometers: 'km',yards: 'yd',miles: 'mi',hours: 'h',minutes: 'mín',seconds: 's'}` | Hash of unit names to use
+
+### Methods
+
+Method                 | Returns         | Description
+-----------------------|-----------------|-----------------------------------------------------------------
+`formatDistance(<Number> d)` | `String`  | Formats a distance given in meters to a string with suitable precision and unit
+`formatTime(<Number> t) | `String`       | Formats a time duration, given in seconds, to a string with suitable precision and unit
+`formatInstruction(<`[`IInstruction`](#iinstruction)`> instr)` | String | Formats an instruction to a human readable text
+
+## <a name="iitinerarybuilder"></a>ItineraryBuilder
+
+Creates the DOM structure for an itinerary. Subclass or reimplement to create your own itinerary structure.
+
+### Methods
+
+Method                                | Returns        | Description
+--------------------------------------|----------------|-----------------------------------------------------
+`createContainer(<String> className)` | `HTMLElement`  | Create the container in which the itinerary will be put; default will create a `table`
+`createStepsContainer(<HTMLElement> container) | `HTMLElement` | Create the container for the instructions/steps; default will create a `tbody`
+`createStep(<String> text, <String> distance, <HTMLElement> steps) | `HTMLElement` | Creates a DOM element for an instruction, with the provided text and distance (already formatted as string with unit); default will create a `tr`
+
+
+## <a name="l-routing-localization"></a>L.Routing.Localization
+
+Contains localization for strings used by the control. The object is a simple hash with language code as key.
+
+## <a name="l-routing-waypoint"></a> L.Routing.Waypoint
+
+property      | type         | description
+--------------|-------------|-----------------------------------
+`latLng`      | `L.LatLng`  | geographic location of the waypoint
+`name`        | `String?`   | name of the waypoint, typically an address; optional and possibly `null` or `undefined`
 
 
 ## <a name="eventobjects"></a> Event Objects
@@ -235,14 +318,14 @@ Method                 | Returns         | Description
 
 property      | type        | description
 --------------|------------|-----------------------------------
-waypoints     |[`IWaypoint`](#iwaypoint)`[]`  | The waypoints of the related route
+waypoints     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
 
 
 ### <a name="routingresultevent"></a> RoutingResultEvent
 
 property      | type        | description
 --------------|------------|-----------------------------------
-waypoints     |[`IWaypoint`](#iwaypoint)`[]`  | The waypoints of the related route
+waypoints     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
 routes        |[`IRoute`](#iroute)`[]`        | The routing alternatives
 
 
@@ -266,7 +349,7 @@ property      | type        | description
 --------------|-------------|-----------------------------------
 `index`       | `Number`    | Index of modification
 `nRemoved`    | `Number`    | Number of items removed
-`added`       | [`IWaypoint`](#iwaypoint)`[]` | Added waypoints
+`added`       | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` | Added waypoints
 
 
 ### <a name="linetouchedevent"></a> LineTouchedEvent
@@ -282,14 +365,8 @@ property      | type        | description
 
 Method                 | Returns        | Description
 -----------------------|----------------|-----------------------------------------------------------------
-`route(<`[`IWaypoint`](#iwaypoint)`[]> waypoints, <Function> callback, <Object> context?)` | - | attempt to route through the provided waypoints, where each waypoint is an `IWaypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
+`route(<`[`L.Routing.Waypoint`](#l-routing-waypoint)`[]> waypoints, <Function> callback, <Object> context?), <`[`RoutingOptions`](#routingoptions)`> options)` | - | attempt to route through the provided waypoints, where each waypoint is an `L.Routing.Waypoint`. Calls `callback(<`[`IError`](#ierror)`> err?, <`[`IRoute`](#iroute)`[]> routes?)` in the provided `context` when done or if an error is encountered
 
-## <a name="iwaypoint"></a> IWaypoint
-
-property      | type         | description
---------------|-------------|-----------------------------------
-`latLng`      | `L.LatLng`  | geographic location of the waypoint
-`name`        | `String?`   | name of the waypoint, typically an address; optional and possibly `null` or `undefined`
 
 ## <a name="iroute"></a> IRoute
 
@@ -357,6 +434,14 @@ property      | type        | description
 * `DestinationReached`
 * `EnterAgainstAllowedDirection`
 * `LeaveAgainstAllowedDirection`
+
+## <a name="igeocoderelement"></a>IGeocoderElement
+
+property      | type          | description
+--------------|---------------|------------------------------------
+`container`   | `HTMLElement` | The main element of the geocoder, that is added to the control
+`input`       | `HTMLElement` | Input element where the geocoder's `value` can be get and set
+`closeButton` | `HTMLElement` | Optional element which, when clicked, removes the corresponding waypoint
 
 ## <a name="ierror"></a> IError
 
