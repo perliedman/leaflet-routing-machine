@@ -17,10 +17,13 @@ L.Routing.control({
 		L.latLng(48.8588,2.3469),
 		L.latLng(52.3546,4.9039)
 	], {
-		waypointIcon: function(i) {
-			return new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) });
+		createMarker: function(i, wp) {
+			return L.marker(wp.latLng, {
+				draggable: true,
+				icon: new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) })
+			});
 		},
-		geocoder: L.Control.Geocoder.nominatim()
+		geocoder: L.Control.Geocoder.nominatim(),
 	}),
 	routeWhileDragging: true,
 	routeDragTimeout: 250
