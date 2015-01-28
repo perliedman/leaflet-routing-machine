@@ -31,7 +31,8 @@
 		formatDistance: function(d /* Number (meters) */) {
 			var un = this.options.unitNames,
 			    v,
-				data;
+				data,
+				decimalSeparator = (1.1).toLocaleString().substring(1, 2);
 
 			if (this.options.units === 'imperial') {
 				d = d / 1.609344;
@@ -49,7 +50,7 @@
 			} else {
 				v = this._round(d);
 				data = {
-					value: v >= 1000 ? (v / 1000) : v,
+					value: (v >= 1000 ? (v / 1000) : v).toString().replace('.', decimalSeparator),
 					unit: v >= 1000 ? un.kilometers : un.meters
 				};
 			}
