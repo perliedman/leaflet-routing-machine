@@ -25,6 +25,7 @@
 				{color: 'white', opacity: 0.8, weight: 6},
 				{color: 'red', opacity: 1, weight: 2, dashArray: '7,12'}
 			],
+			showMarkers: true,
 			draggableWaypoints: true,
 			addWaypoints: true,
 			addButtonClassName: '',
@@ -301,7 +302,7 @@
 			var i,
 			    m;
 
-			if (!this._map) {
+			if ((!this._map) || (!this.options.showMarkers)) {
 				return;
 			}
 
