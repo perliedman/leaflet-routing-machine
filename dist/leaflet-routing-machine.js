@@ -1553,7 +1553,10 @@
 				}
 			}
 
-			this._saveHintData(response, inputWaypoints);
+			// only versions <4.5.0 will support this flag
+			if (response.hint_data) {
+				this._saveHintData(response.hint_data, inputWaypoints);
+			}
 			callback.call(context, null, alts);
 		},
 
@@ -1608,9 +1611,8 @@
 			return location.lat + ',' + location.lng;
 		},
 
-		_saveHintData: function(route, waypoints) {
-			var hintData = route.hint_data,
-			    loc;
+		_saveHintData: function(hintData, waypoints) {
+			var loc;
 			this._hints = {
 				checksum: hintData.checksum,
 				locations: {}
@@ -1709,7 +1711,7 @@
 			case 7:
 				return 'Left';
 			case 8:
-				return 'SlightRight';
+				return 'SlightLeft';
 			case 9:
 				return 'WaypointReached';
 			case 10:
@@ -1799,10 +1801,10 @@
 					closeButton: remove
 				};
 			},
-			createMarker: function(i, wp, n) {
+			createMarker: function(i, wp) {
 				var options = {
-				      draggable: this.draggableWaypoints
-				    },
+						draggable: this.draggableWaypoints
+					},
 				    marker = L.marker(wp.latLng, options);
 
 				return marker;
@@ -2057,9 +2059,11 @@
 			for (i = 0; i < this._waypoints.length; i++) {
 				if (this._waypoints[i].latLng) {
 					m = this.options.createMarker(i, this._waypoints[i], this._waypoints.length);
-					m.addTo(this._map);
-					if (this.options.draggableWaypoints) {
-						this._hookWaypointEvents(m, i);
+					if (m) {
+						m.addTo(this._map);
+						if (this.options.draggableWaypoints) {
+							this._hookWaypointEvents(m, i);
+						}
 					}
 				} else {
 					m = null;

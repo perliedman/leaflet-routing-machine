@@ -52,10 +52,10 @@
 					closeButton: remove
 				};
 			},
-			createMarker: function(i, wp, n) {
+			createMarker: function(i, wp) {
 				var options = {
-				      draggable: this.draggableWaypoints
-				    },
+						draggable: this.draggableWaypoints
+					},
 				    marker = L.marker(wp.latLng, options);
 
 				return marker;
@@ -310,9 +310,11 @@
 			for (i = 0; i < this._waypoints.length; i++) {
 				if (this._waypoints[i].latLng) {
 					m = this.options.createMarker(i, this._waypoints[i], this._waypoints.length);
-					m.addTo(this._map);
-					if (this.options.draggableWaypoints) {
-						this._hookWaypointEvents(m, i);
+					if (m) {
+						m.addTo(this._map);
+						if (this.options.draggableWaypoints) {
+							this._hookWaypointEvents(m, i);
+						}
 					}
 				} else {
 					m = null;
