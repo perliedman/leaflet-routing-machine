@@ -2,7 +2,6 @@
   "name": "leaflet-routing-machine",
   "version": "1.1.0",
   "description": "Routing for Leaflet",
-  "main": "./dist/leaflet-routing-machine.js",
   "directories": {
     "example": "examples",
     "dist": "dist"
@@ -35,6 +34,7 @@
   "browserify-shim": {
     "leaflet": "global:L"
   },
+  "main": "./src/L.Routing.Control.js",
   "devDependencies": {
     "browserify": "^5.12.1",
     "browserify-shim": "^3.7.0",
