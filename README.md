@@ -1,7 +1,11 @@
 Leaflet Routing Machine [![NPM version](https://badge.fury.io/js/leaflet-routing-machine.png)](http://badge.fury.io/js/leaflet-routing-machine)
 =======================
 
-Find the way from A to B on a Leaflet map, using [OSRM](http://project-osrm.org/) as backend. Experimental support for [Mapbox's directions API](https://github.com/perliedman/lrm-mapbox) is available as an alternative to OSRM.
+Find the way from A to B on a Leaflet map. The plugin supports multiple backends:
+
+* [OSRM](http://project-osrm.org/) - builtin and used by default
+* [GraphHopper](https://graphhopper.com/) - through plugin [lrm-graphopper](https://github.com/perliedman/lrm-graphhopper)
+* [Mapbox Directions API](https://www.mapbox.com/developers/api/directions/) - through plugin [lrm-mapbox](https://github.com/perliedman/lrm-mapbox)
 
 Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-machine/).
 
