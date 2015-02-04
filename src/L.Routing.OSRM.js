@@ -1,14 +1,15 @@
 (function() {
 	'use strict';
 
-	var L = require('leaflet');
+	var L = require('leaflet'),
+		corslite = require('corslite'),
+		polyline = require('polyline');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
 	// underscores.
 	/* jshint camelcase: false */
 
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Util'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
 	L.Routing.OSRM = L.Class.extend({
@@ -36,12 +37,12 @@
 			url = this.buildRouteUrl(waypoints, options);
 
 			timer = setTimeout(function() {
-								timedOut = true;
-								callback.call(context || callback, {
-									status: -1,
-									message: 'OSRM request timed out.'
-								});
-							}, this.options.timeout);
+				timedOut = true;
+				callback.call(context || callback, {
+					status: -1,
+					message: 'OSRM request timed out.'
+				});
+			}, this.options.timeout);
 
 			// Create a copy of the waypoints, since they
 			// might otherwise be asynchronously modified while
@@ -51,12 +52,22 @@
 				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
-			L.Routing._jsonp(url, function(data) {
+			corslite(url, L.bind(function(err, resp) {
+				var data;
+
 				clearTimeout(timer);
 				if (!timedOut) {
-					this._routeDone(data, wps, callback, context);
+					if (!err) {
+						data = JSON.parse(resp.responseText);
+						this._routeDone(data, wps, callback, context);
+					} else {
+						callback.call(context || callback, {
+							status: -1,
+							message: 'HTTP request failed: ' + err
+						});
+					}
 				}
-			}, this, 'jsonp');
+			}, this));
 
 			return this;
 		},
@@ -76,7 +87,7 @@
 				return;
 			}
 
-			coordinates = L.Routing._decodePolyline(response.route_geometry, 6);
+			coordinates = polyline.decode(response.route_geometry, 6);
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
 			alts = [{
 				name: response.route_name.join(', '),
@@ -90,7 +101,7 @@
 
 			if (response.alternative_geometries) {
 				for (i = 0; i < response.alternative_geometries.length; i++) {
-					coordinates = L.Routing._decodePolyline(response.alternative_geometries[i], 6);
+					coordinates = polyline.decode(response.alternative_geometries[i], 6);
 					alts.push({
 						name: response.alternative_names[i].join(', '),
 						coordinates: coordinates,

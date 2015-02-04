@@ -1,6 +1,6 @@
 {
   "name": "leaflet-routing-machine",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Routing for Leaflet",
   "directories": {
     "example": "examples",
@@ -46,6 +46,8 @@
     "grunt-semantic-release": "^0.2.1"
   },
   "dependencies": {
-    "leaflet": "^0.7.2"
+    "corslite": "0.0.6",
+    "leaflet": "^0.7.2",
+    "polyline": "0.0.3"
   }
 }
