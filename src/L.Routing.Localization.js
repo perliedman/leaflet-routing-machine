@@ -37,7 +37,7 @@
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
-					['Take the {exitStr} exit in the roundabout'],
+					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
 				'DestinationReached':
 					['Destination reached'],
 			},
@@ -83,7 +83,7 @@
 				'WaypointReached':
 					['Zwischenhalt erreicht'],
 				'Roundabout':
-					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr'],
+					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr', ' auf {road}'],
 				'DestinationReached':
 					['Sie haben ihr Ziel erreicht'],
 			},
@@ -126,7 +126,7 @@
 				'WaypointReached':
 					['Viapunkt nådd'],
 				'Roundabout':
-					['Tag {exitStr} avfarten i rondellen'],
+					['Tag {exitStr} avfarten i rondellen', ' till {road}'],
 				'DestinationReached':
 					['Framme vid resans mål'],
 			},
@@ -171,7 +171,7 @@
 				'WaypointReached':
 					['Llegó a un punto del camino'],
 				'Roundabout':
-					['Tomar {exitStr} salida en la rotonda'],
+					['Tomar {exitStr} salida en la rotonda', ' en {road}'],
 				'DestinationReached':
 					['Llegada a destino'],
 			},
@@ -213,7 +213,7 @@
 				'WaypointReached':
 					['Aangekomen bij tussenpunt'],
 				'Roundabout':
-					['Neem de {exitStr} afslag op de rotonde'],
+					['Neem de {exitStr} afslag op de rotonde', ' de {road} op'],
 				'DestinationReached':
 					['Aangekomen op eindpunt'],
 			},
@@ -259,7 +259,7 @@
 				'WaypointReached':
 					['Point d\'étape atteint'],
 				'Roundabout':
-					['Au rond-point, prenez la {exitStr} sortie'],
+					['Au rond-point, prenez la {exitStr} sortie', ' sur {road}'],
 				'DestinationReached':
 					['Destination atteinte'],
 			},

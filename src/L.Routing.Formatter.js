@@ -85,7 +85,7 @@
 			if (instr.text === undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
 					L.extend({
-						exitStr: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
+						exitStr: instr.exit ? L.Routing.Localization[this.options.language].formatOrder(instr.exit) : '',
 						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
 					},
 					instr));
@@ -123,7 +123,7 @@
 
 		_getInstructionTemplate: function(instr, i) {
 			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
-					strings = L.Routing.Localization[this.options.language].instructions[type];
+				strings = L.Routing.Localization[this.options.language].instructions[type];
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}
