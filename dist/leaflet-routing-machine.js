@@ -761,7 +761,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			if (instr.text === undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
 					L.extend({
-						exitStr: L.Routing.Localization[this.options.language].formatOrder(instr.exit),
+						exitStr: instr.exit ? L.Routing.Localization[this.options.language].formatOrder(instr.exit) : '',
 						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
 					},
 					instr));
@@ -799,7 +799,7 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		_getInstructionTemplate: function(instr, i) {
 			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
-					strings = L.Routing.Localization[this.options.language].instructions[type];
+				strings = L.Routing.Localization[this.options.language].instructions[type];
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}
@@ -1240,7 +1240,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
-					['Take the {exitStr} exit in the roundabout'],
+					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
 				'DestinationReached':
 					['Destination reached'],
 			},
@@ -1286,7 +1286,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Zwischenhalt erreicht'],
 				'Roundabout':
-					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr'],
+					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr', ' auf {road}'],
 				'DestinationReached':
 					['Sie haben ihr Ziel erreicht'],
 			},
@@ -1329,7 +1329,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Viapunkt nådd'],
 				'Roundabout':
-					['Tag {exitStr} avfarten i rondellen'],
+					['Tag {exitStr} avfarten i rondellen', ' till {road}'],
 				'DestinationReached':
 					['Framme vid resans mål'],
 			},
@@ -1374,7 +1374,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Llegó a un punto del camino'],
 				'Roundabout':
-					['Tomar {exitStr} salida en la rotonda'],
+					['Tomar {exitStr} salida en la rotonda', ' en {road}'],
 				'DestinationReached':
 					['Llegada a destino'],
 			},
@@ -1416,7 +1416,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Aangekomen bij tussenpunt'],
 				'Roundabout':
-					['Neem de {exitStr} afslag op de rotonde'],
+					['Neem de {exitStr} afslag op de rotonde', ' de {road} op'],
 				'DestinationReached':
 					['Aangekomen op eindpunt'],
 			},
@@ -1462,7 +1462,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'WaypointReached':
 					['Point d\'étape atteint'],
 				'Roundabout':
-					['Au rond-point, prenez la {exitStr} sortie'],
+					['Au rond-point, prenez la {exitStr} sortie', ' sur {road}'],
 				'DestinationReached':
 					['Destination atteinte'],
 			},
