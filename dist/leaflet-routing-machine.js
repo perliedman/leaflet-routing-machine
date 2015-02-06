@@ -1836,7 +1836,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				return '';
 			},
 			createGeocoder: function() {
-				var container = L.DomUtil.create('div', ''),
+				var container = L.DomUtil.create('div', 'leaflet-routing-geocoder'),
 					input = L.DomUtil.create('input', '', container),
 					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
 
@@ -2001,13 +2001,27 @@ if (typeof module !== undefined) module.exports = polyline;
 					this._fireChanged();
 					this._focusGeocoder(i + 1);
 				}, this, L.extend({
-					resultFn: this.options.geocoder.geocode,
-					resultContext: this.options.geocoder,
-					autocompleteFn: this.options.geocoder.suggest,
-					autocompleteContext: this.options.geocoder
+					resultFn: this._getGeocodeCallback(geocoderInput, 'geocode'),
+					autocompleteFn: this._getGeocodeCallback(geocoderInput, 'suggest'),
 				}, this.options.autocompleteOptions));
 
 			return g;
+		},
+
+		_getGeocodeCallback: function(el, geocodeMethod) {
+			var geocoder = this.options.geocoder;
+
+			if (this.options.geocoder && this.options.geocoder[geocodeMethod]) {
+				return function(q, cb, context) {
+					L.DomUtil.addClass(el, 'leaflet-routing-spinner');
+					geocoder[geocodeMethod](q, function(responses) {
+						//L.DomUtil.removeClass(el, 'leaflet-routing-spinner');
+						cb.call(context, responses);
+					});
+				};
+			} else {
+				return undefined;
+			}
 		},
 
 		_updateGeocoders: function(e) {
