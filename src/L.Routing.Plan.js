@@ -42,7 +42,7 @@
 				return '';
 			},
 			createGeocoder: function() {
-				var container = L.DomUtil.create('div', ''),
+				var container = L.DomUtil.create('div', 'leaflet-routing-geocoder'),
 					input = L.DomUtil.create('input', '', container),
 					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
 
