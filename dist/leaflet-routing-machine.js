@@ -1029,8 +1029,15 @@ if (typeof module !== undefined) module.exports = polyline;
 			L.setOptions(this, options);
 		},
 
-		createContainer: function() {
-			return L.DomUtil.create('table', this.options.containerClassName);
+		createContainer: function(className) {
+			var table = L.DomUtil.create('table', className || ''),
+				colgroup = L.DomUtil.create('colgroup', '', table);
+
+			L.DomUtil.create('col', 'leaflet-routing-instruction-icon', colgroup);
+			L.DomUtil.create('col', 'leaflet-routing-instruction-text', colgroup);
+			L.DomUtil.create('col', 'leaflet-routing-instruction-distance', colgroup);
+
+			return table;
 		},
 
 		createStepsContainer: function() {
