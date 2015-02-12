@@ -87,12 +87,14 @@
 		_createAlternative: function(alt, i) {
 			var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
 				this.options.alternativeClassName +
-				(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : ''));
-			altDiv.innerHTML = L.Util.template(this.options.summaryTemplate, {
-				name: alt.name,
-				distance: this._formatter.formatDistance(alt.summary.totalDistance),
-				time: this._formatter.formatTime(alt.summary.totalTime)
-			});
+				(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : '')),
+				template = this.options.summaryTemplate,
+				data = L.extend({
+					name: alt.name,
+					distance: this._formatter.formatDistance(alt.summary.totalDistance),
+					time: this._formatter.formatTime(alt.summary.totalTime)
+				}, alt);
+			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
 
 			altDiv.appendChild(this._createItineraryContainer(alt));
