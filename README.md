@@ -7,7 +7,7 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * [GraphHopper](https://graphhopper.com/) - through plugin [lrm-graphopper](https://github.com/perliedman/lrm-graphhopper)
 * [Mapbox Directions API](https://www.mapbox.com/developers/api/directions/) - through plugin [lrm-mapbox](https://github.com/perliedman/lrm-mapbox)
 
-Watch the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-machine/).
+Try the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-machine/).
 
 ## Features
 
@@ -34,7 +34,7 @@ npm install --save leaflet-routing-machine
 
 ### Basics
 
-Quickest way to get routing on your map is to use [`L.Routing.Control`](http://www.liedman.net/leaflet-routing-machine/api/#l-routing-control):
+The quickest way to add routing to your map is to use [`L.Routing.Control`](http://www.liedman.net/leaflet-routing-machine/api/#l-routing-control):
 
 Include script and CSS:
 
