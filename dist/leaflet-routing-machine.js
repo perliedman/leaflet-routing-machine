@@ -1,4 +1,4 @@
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.L||(f.L={})).Routing=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -1908,8 +1908,7 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		spliceWaypoints: function() {
 			var args = [arguments[0], arguments[1]],
-			    i,
-			    wp;
+			    i;
 
 			for (i = 2; i < arguments.length; i++) {
 				args.push(arguments[i] && arguments[i].hasOwnProperty('latLng') ? arguments[i] : L.Routing.waypoint(arguments[i]));
@@ -1917,14 +1916,13 @@ if (typeof module !== undefined) module.exports = polyline;
 
 			[].splice.apply(this._waypoints, args);
 
-			while (this._waypoints.length < 2) {
-				wp = L.Routing.waypoint();
-				this._waypoints.push(wp);
-				args.push(wp);
-			}
-
 			this._updateMarkers();
 			this._fireChanged.apply(this, args);
+
+			// Make sure there's always at least two waypoints
+			while (this._waypoints.length < 2) {
+				this.spliceWaypoints(this._waypoints.length, 0, null);
+			}
 		},
 
 		onAdd: function(map) {
@@ -1998,7 +1996,11 @@ if (typeof module !== undefined) module.exports = polyline;
 
 			if (closeButton) {
 				L.DomEvent.addListener(closeButton, 'click', function() {
-					this.spliceWaypoints(i, 1);
+					if (i > 0 || this._waypoints.length > 2) {
+						this.spliceWaypoints(i, 1);
+					} else {
+						this.spliceWaypoints(i, 1, new L.Routing.Waypoint());
+					}
 				}, this);
 			}
 
