@@ -1,0 +1,154 @@
+---
+layout: tutorial
+title: Basics tutorial
+---
+
+<h2>Basics</h2>
+
+<p>
+    This tutorial will show you how to download, install and get started with using Leaflet Routing Machine.
+</p>
+
+<h3>Downloading and installing</h3>
+
+<p>
+    You can <a href="{{site.baseurl}}/download">download a ZIP</a> containing the necessary files, or you can
+    install it with NPM if you plan to bundle your scripts with Browserify or a similar tool
+</p>
+
+<pre><code>npm install --save leaflet-routing-machine</code></pre>
+
+<p>
+    Once you have the files, you need to include three files so that they are accessible from your page:
+    <ul>
+        <li>
+            <code>leaflet-routing-machine.js</code> - this is the JavaScript containing the plugin code. It
+            needs to be loaded <em>after</em> Leaflet itself has been loaded, since it relies on classes in
+            Leaflet.
+        </li>
+        <li>
+            <code>leaflet-routing-machine.css</code> - contains the stylesheet for the default look of the
+            plugin.
+        </li>
+        <li>
+            <code>leaflet.routing.icons.png</code> - sprites that contain the icons used to give turn
+            directions in the itinerary.
+        </li>
+</p>
+
+<h3>Including the plugin in a page</h3>
+
+<p>
+    The minimal HTML to create a page with Leaflet Routing Machine looks pretty much like the minimal 
+    Leaflet map page, but with the stylesheet and code mentioned above included in it:
+</p>
+
+<pre><code class="language-markup">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;title&gt;Leaflet Routing Machine Example&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css&quot; /&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;leaflet-routing-machine.css&quot; /&gt;
+    &lt;style&gt;
+        .map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;map&quot; class=&quot;map&quot;&gt;&lt;/div&gt;
+    &lt;script src=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;leaflet-routing-machine.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+<h3>Initialize the plugin</h3>
+
+<p>
+    The main class of the plugin is <a href="{{site.baseurl}}/api/#l-routing-control"><code>L.Routing.Control</code></a>. As you might guess from the name,
+    it is a control, and by default it will add a panel on the right side of the map that will contain
+    the itinerary of the route. As with any Leaflet control, the location of the control's interface
+    can be changed by using the option 
+    <a href="http://leafletjs.com/reference.html#control-position"><code>position</code></a>.
+</p>
+<p>
+    In its most basic form, the user will have no means of actually adding waypoints to the route. This means
+    you will have to provide the initial waypoints to the control&nbsp;<sup><a href="#note-1">1</a></sup>.
+</p>
+
+<pre class="line-numbers"><code class="language-javascript">var map = L.map('map');
+
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+L.Routing.control({
+    waypoints: [
+        L.latLng(57.74, 11.94),
+        L.latLng(57.6792, 11.949)
+    ],
+    routeWhileDragging: true
+}).addTo(map);</code></pre>
+
+<p>
+    Lines 1 to 5 contain the normal Leaflet initialization and setting up OpenStreetMap's tile layer.
+</p>
+
+<p>
+    Lines 7 to 13 initializes the control, and adds it to the map. As can be seen, the only argument
+    when creating the control is a set of options. Let's go through the used options and explain them one
+    by one:
+    <ul>
+        <li>
+            <code>waypoints</code> - defines which locations the route must visit. At least two waypoints,
+            the starting point and the destination,
+            must be provided to be able to create a route. A waypoint can either by simply an <code>L.LatLng</code>
+            object, or an <a href="{{site.baseurl}}/api/#l-routing-waypoint"><code>L.Routing.Waypoint</code></a>
+            object for more advanced usage.
+        </li>
+        <li>
+            <code>routeWhileDragging</code> - allows the plugin to recalculate the route while a waypoint is dragged
+            on the map. This consumes more network bandwidth and load on the route calculation backend, but gives
+            nice feedback to the user on reasonably fast networks.
+        </li>
+    </ul>
+</p>
+
+<p>The result should be a fullscreen version of this&nbsp;<sup><a href="#note-2">2</a></sup>:</p>
+
+<div id="map" class="map"></div>
+
+<h2>Next steps</h2>
+<p>
+    This is the most basic setup for Leaflet Routing Machine. Continue with one of the other tutorials, for example
+    <a href="{{site.baseurl}}/tutorials/geocoders">geocoders</a> to add support for address lookup, or
+    <a href="{{site.baseurl}}/tutorials/interaction">interaction</a> for some examples on how to connect map interactions
+    to the route plugin.
+</p>
+
+<hr/>
+<p>
+    <small>
+        <a name="note-1"><sup>1</sup></a>
+        While this might seem awkward, it is for good reason: any real application will want to
+        customize how the user interacts with the map; a common method is to bring up a popup when the map
+        is clicked, from which the user can choose the use the clicked location as start or destination.
+        Also, by default Leaflet Routing Machine cannot lookup addresses (geocode), since there are too
+        many different services that provide this functionality, and the plugin shouldn't decide which ones
+        to use.
+    </small>
+</p>
+<p>
+    <small>
+        <a name="note-2"><sup>2</sup></a>
+        In my examples, I use maps from <a href="http://www.mapbox.com">Mapbox</a> instead of the default
+        OpenStreetMap rendering. They look much better, in my opinion, and comes very reasonably priced.
+        Also, Mapbox does a lot of good work for both OpenStreetMap and open source, so I feel pretty good
+        about giving them a small amount of my money.
+    </small>
+</p>
+
+<script src="index.js"></script>

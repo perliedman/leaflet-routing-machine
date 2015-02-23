@@ -86,7 +86,7 @@
 .leaflet-routing-icon-depart           { background-position: -160px 0; }
 .leaflet-routing-icon-enter-roundabout { background-position: -180px 0; }
 .leaflet-routing-icon-arrive           { background-position: -200px 0; }
-.leaflet-routing-icon-via              { background-position: -200px 0; }
+.leaflet-routing-icon-via              { background-position: -220px 0; }
 
 .leaflet-routing-geocoders div {
     padding: 4px 0px 4px 0px;
@@ -162,7 +162,7 @@
     height: 1px;
     z-index: 1;
     right: 1px;
-    top: 3px;
+    top: 4px;
     bottom: 0;
     margin: auto;
     padding: 2px;
@@ -179,11 +179,10 @@
     line-height: 1;
 }
 
-.leaflet-routing-geocoder .leaflet-routing-spinner.leaflet-routing-remove-waypoint:after {
-    content: none;
-    background: url(throbber.gif);
-}
-
 .leaflet-routing-remove-waypoint:hover {
     color: black;
+}
+
+.leaflet-routing-instruction-distance {
+    width: 48px;
 }

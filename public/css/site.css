@@ -1,0 +1,59 @@
+code {
+    background: none;
+    border: none;
+    border-radius: 0;
+}
+
+.map {
+    width: 100%;
+    height: 640px;
+}
+
+.hero {
+    position: relative;
+}
+
+.hero-header {
+    margin: auto;
+    background: rgba(255,255,255,0.7);
+    width: 100%;
+    text-align: center;
+    margin-top: 32px;
+}
+
+.hero-heading a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.leaflet-container input {
+    margin-bottom: inherit;
+}
+
+.leaflet-container button {
+    display: inherit;
+    height: inherit;
+    width: inherit;
+    padding: inherit;
+    box-sizing: inherit;
+}
+
+.leaflet-container th, .leaflet-container td {
+    padding: inherit;
+    border-bottom: inherit;
+}
+
+.leaflet-container h2, .leaflet-container h3 {
+    line-height: inherit;
+    letter-spacing: inherit;
+    margin-top: inherit;
+    margin-bottom: inherit;
+    font-weight: inherit;
+}
+
+pre > code {
+    display: block;
+    padding: 0;
+    margin: 0;
+    font-size: 100%;
+}

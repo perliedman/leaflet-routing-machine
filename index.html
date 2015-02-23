@@ -1,82 +1,79 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>Leaflet OSRM Example</title>
-    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
-    <link rel="stylesheet" href="dist/leaflet-routing-machine.css" />
-    <link rel="stylesheet" href="lib/leaflet.iconlabel.css" />
-    <link rel="stylesheet" href="lib/L.Control.Sidebar.css" />
-    <link rel="stylesheet" href="lib/prism.css">
-    <link rel="stylesheet" href="index.css" />
-</head>
-<body>
-    <div id="map" class="map"></div>
-    <div id="sidebar">
-        <h1>Leaflet Routing Machine</h1>
-        <p>
-            This is a control for routing in <a href="http://leafletjs.com">Leaflet</a>.
-            In short, it helps finding the way from one location to another, possibly
-            visiting a couple of via points in between. Behind the scenes, it uses
-            <a href="http://project-osrm.org/">OSRM</a> to search the routes.
-        </p>
-        <p>
-            Drag and drop the blue waypoint markers, or grab the orange route line and
-            drag a new via waypoint. You can also enter an address in the address
-            text fields on the right side.
-        </p>
-        <p>
-            The plugin is free and open source. Downloads and documentation is available on
-            <a href="https://github.com/perliedman/leaflet-routing-machine">Leaflet Routing Machine's GitHub page</a>.
-        </p>
+---
+layout: default
+---
 
-        <h2><span id="example-fold" class="handle closed">&#9660;</span><span<em>More examples</em></span></h2>
-        <ul id="examples" class="examples hide">
-        </ul>
-
-        <h2>About this example</h2>
-        <p>
-            This is a basic example, where two waypoints have been added. Also,
-            a <a href="http://en.wikipedia.org/wiki/Geocoding">geocoder</a> has been added
-            to support entering addresses, as well as finding the address for a location
-            when a waypoint is drag-and-dropped on the map. It uses OpenStreetMap's
-            <a href="http://wiki.openstreetmap.org/wiki/Nominatim">Nominatim</a> through
-            <a href="https://github.com/perliedman/leaflet-control-geocoder">Leaflet Control Geocoder</a>,
-            which works well with Leaflet Routing Machine.
-        </p>
-
-        <p>
-            The example also uses <a href="https://github.com/jacobtoye/Leaflet.iconlabel">Leaflet.iconLabel</a>
-            to put the small letter indicators next to the waypoint markers in the map.
-        </p>
-
-        <p>
-            We also enable <code>routeWhileDragging</code>, so that the route is updated while the waypoint markers
-            are dragged on the map.
-        </p>
-<pre><code class="language-javascript">L.Routing.control({
-    plan: L.Routing.plan([
-        L.latLng(48.8588,2.3469),
-        L.latLng(52.3546,4.9039)
-    ], {
-        createMarker: function(i, wp) {
-            return L.marker(wp.latLng, {
-                draggable: true,
-                icon: new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) })
-            });
-        },
-        geocoder: L.Control.Geocoder.nominatim()
-    }),
-    routeWhileDragging: true
-}).addTo(map);</code></pre>
+    <div class="row">
+      <div class="twelve columns">
+        <a name="example"></a>
+        <div id="map" class="map"></div>
+      </div>
+      <div class="one-half column">
+      </div>
     </div>
-    <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
-    <script src="dist/leaflet-routing-machine.js"></script>
-    <script src="lib/Control.Geocoder.js"></script>
-    <script src="lib/leaflet.iconlabel.js"></script>
-    <script src="lib/L.Control.Sidebar.js"></script>
-    <script src="lib/prism.js"></script>
-    <script src="common.js"></script>
-    <script src="index.js"></script>
-</body>
-</html>
+    <hr>
+    <h2><a name="about"></a>About</h2>
+    <p>
+      <em>Leaflet Routing Machine</em> is an easy, flexible and extensible way to add routing
+      to a <a href="http://leafletjs.com/">Leaflet</a> map. Using the default is just a few lines of
+      code to add fully functional routing, but you can still customize almost every aspect of the
+      user interface and interactions.
+    </p>
+    <h3>Features</h3>
+    <ul>
+      <li>Standard Leaflet control, with Leaflet look and feel</li>
+      <li>Routing from start to destination, with possibility of via points</li>
+      <li>Add, edit and remove waypoints through both address input and using the map</li>
+      <li>Multiple language support</li>
+      <li>
+        Support for several routing engines:
+        <ul>
+          <li><a href="http://project-osrm.org/">OSRM</a> - builtin default</li>
+          <li><a href="https://graphhopper.com/">GraphHopper</a> - through plugin <a href="https://github.com/perliedman/lrm-graphhopper">lrm-graphhopper</a></li>
+          <li><a href="https://www.mapbox.com/developers/api/directions/">Mapbox Directions API</a> - through plugin <a href="https://github.com/perliedman/lrm-mapbox">lrm-mapbox</a></li>
+        </ul>
+      </li>
+      <li>Highly customizable for advanced use</li>
+      <li>Customizable look (theming / skins)</li>
+      <li>Open Source released under <a href="http://en.wikipedia.org/wiki/ISC_license">ISC License</a> (more or less equivalent with the MIT license)</li>
+    </ul>
+    <h2><a name="getting-started"></a>Getting started</h2>
+    <p>
+      Getting started with Leaflet Routing Machine is easy. <a href="{{site.baseurl}}/download">Download</a> the files and
+      include <code>leaflet-routing-machine.css</code> and <code>leaflet-routing-machine.js</code> in a Leaflet page:
+    </p>
+    <pre><code class="language-markup">[...]
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;leaflet-routing-machine.css&quot; /&gt;
+&lt;script src=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;leaflet-routing-machine.js&quot;&gt;&lt;/script&gt;
+[...]</code></pre>
+    <p>If you prefer, you can also install using NPM:<p>
+    <pre><code class="bash">npm install --save leaflet-routing-machine</code></pre>
+    <p>
+      To add the basic routing control to your <code>map</code> instance, use this Javascript code:
+    </p>
+    <pre><code class="language-javascript">L.Routing.control({
+  waypoints: [
+    L.latLng(57.74, 11.94),
+    L.latLng(57.6792, 11.949)
+  ]
+}).addTo(map);</code></pre>
+    <p>
+      Note that in the most basic version, the control will not be able to do address lookups (geocoding), so you
+      will have to provide the latitude and longitude of the waypoints. See the 
+      <a href="{{site.baseurl}}/tutorials">tutorials page</a> for information about adding address lookup and much
+      more. You might also want to dive into the <a href="{{site.baseurl}}/api/">API docs</a> for details.
+    </p>
+
+    <h2>Help, problems and contributing</h2>
+    <p>
+      The plugin is free and open source.
+      <a href="https://github.com/perliedman/leaflet-routing-machine">Leaflet Routing Machine is hosted on GitHub</a>,
+      where you can <a href="https://github.com/perliedman/leaflet-routing-machine/issues">report issues or bugs</a>. 
+    </p>
+    <p>
+      Feedback and help is always welcome in any form: documentation, tutorials or code. Feel free to add a pull request,
+      or contact me at <a href="mailto:per@liedman.net">per@liedman.net</a>.
+    </p>
+
+<script src="{{site.baseurl}}/public/scripts/index.js"></script>
