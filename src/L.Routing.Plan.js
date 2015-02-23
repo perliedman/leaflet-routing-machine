@@ -105,8 +105,7 @@
 
 		spliceWaypoints: function() {
 			var args = [arguments[0], arguments[1]],
-			    i,
-			    wp;
+			    i;
 
 			for (i = 2; i < arguments.length; i++) {
 				args.push(arguments[i] && arguments[i].hasOwnProperty('latLng') ? arguments[i] : L.Routing.waypoint(arguments[i]));
@@ -114,14 +113,13 @@
 
 			[].splice.apply(this._waypoints, args);
 
-			while (this._waypoints.length < 2) {
-				wp = L.Routing.waypoint();
-				this._waypoints.push(wp);
-				args.push(wp);
-			}
-
 			this._updateMarkers();
 			this._fireChanged.apply(this, args);
+
+			// Make sure there's always at least two waypoints
+			while (this._waypoints.length < 2) {
+				this.spliceWaypoints(this._waypoints.length, 0, null);
+			}
 		},
 
 		onAdd: function(map) {
@@ -195,7 +193,11 @@
 
 			if (closeButton) {
 				L.DomEvent.addListener(closeButton, 'click', function() {
-					this.spliceWaypoints(i, 1);
+					if (i > 0 || this._waypoints.length > 2) {
+						this.spliceWaypoints(i, 1);
+					} else {
+						this.spliceWaypoints(i, 1, new L.Routing.Waypoint());
+					}
 				}, this);
 			}
 
