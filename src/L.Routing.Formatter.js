@@ -111,9 +111,9 @@
 			case 'Left':
 				return 'turn-left';
 			case 'SlightLeft':
-				return 'slight-left';
+				return 'bear-left';
 			case 'WaypointReached':
-				return 'arrive';
+				return 'via';
 			case 'Roundabout':
 				return 'enter-roundabout';
 			case 'DestinationReached':
