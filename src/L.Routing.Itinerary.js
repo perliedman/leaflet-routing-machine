@@ -84,6 +84,14 @@
 			L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
 		},
 
+		toggle: function(){
+			if(L.DomUtil.hasClass(this._container, 'leaflet-routing-container-hide')){
+				this.show();
+			}else{
+				this.hide();
+			}
+		},
+		
 		_createAlternative: function(alt, i) {
 			var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
 				this.options.alternativeClassName +

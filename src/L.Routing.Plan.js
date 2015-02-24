@@ -352,6 +352,14 @@
 				this.fire('waypointdragend', this._createWaypointEvent(i, e));
 				this._fireChanged();
 			}, this);
+			m.on('click',function(e){
+				//this is a special case delete first waypoint
+				if (i == 0 && this.getWaypoints().length == 2 && this._waypoints[1].latLng){
+					this.spliceWaypoints(i,2,this.getWaypoints()[1].latLng);
+				}else{
+					this.spliceWaypoints(i,1);
+				}
+			}, this);
 		},
 
 		_createWaypointEvent: function(i, e) {
