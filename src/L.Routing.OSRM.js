@@ -140,13 +140,15 @@
 
 		buildRouteUrl: function(waypoints, options) {
 			var locs = [],
+				wp,
 			    computeInstructions,
 			    computeAlternative,
 			    locationKey,
 			    hint;
 
 			for (var i = 0; i < waypoints.length; i++) {
-				locationKey = this._locationKey(waypoints[i].latLng);
+				wp = waypoints[i];
+				locationKey = this._locationKey(wp.latLng);
 				locs.push('loc=' + locationKey);
 
 				hint = this._hints.locations[locationKey];
@@ -154,8 +156,7 @@
 					locs.push('hint=' + hint);
 				}
 
-				if (waypoints[i].options.allowUTurn)
-				{
+				if (wp.options && wp.options.allowUTurn) {
 					locs.push('u=true');
 				}
 			}
