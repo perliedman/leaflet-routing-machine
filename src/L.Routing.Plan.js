@@ -220,14 +220,15 @@
 
 		_updateGeocoders: function(e) {
 			var newElems = [],
+				addLast = e.index >= this._geocoderElems.length,
 			    i,
 			    geocoderElem,
 			    beforeElem;
 
 			// Determine where to insert geocoders for new waypoints
-			if (e.index >= this._geocoderElems.length) {
-				// lastChild is the "add new wp" button
-				beforeElem = this._geocoderContainer.lastChild;
+			if (addLast) {
+				beforeElem = 
+					this._geocoderElems[this._geocoderElems.length].container.nextSibling;
 			} else {
 				beforeElem = this._geocoderElems[e.index].container;
 			}
