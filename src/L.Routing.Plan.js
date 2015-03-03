@@ -26,6 +26,7 @@
 				{color: 'red', opacity: 1, weight: 2, dashArray: '7,12'}
 			],
 			draggableWaypoints: true,
+			routeWhileDragging: false,
 			addWaypoints: true,
 			addButtonClassName: '',
 			maxGeocoderTolerance: 200,
@@ -227,7 +228,7 @@
 
 			// Determine where to insert geocoders for new waypoints
 			if (addLast) {
-				beforeElem = 
+				beforeElem =
 					this._geocoderElems[this._geocoderElems.length].container.nextSibling;
 			} else {
 				beforeElem = this._geocoderElems[e.index].container;
@@ -338,65 +339,99 @@
 			}
 		},
 
-		_hookWaypointEvents: function(m, i) {
-			m.on('dragstart', function(e) {
-				this.fire('waypointdragstart', this._createWaypointEvent(i, e));
-			}, this);
-			m.on('drag', function(e) {
-				this._waypoints[i].latLng = e.target.getLatLng();
-				this.fire('waypointdrag', this._createWaypointEvent(i, e));
-			}, this);
-			m.on('dragend', function(e) {
-				this._waypoints[i].latLng = e.target.getLatLng();
-				this._waypoints[i].name = '';
-				this._updateWaypointName(i, this._geocoderElems && this._geocoderElems[i].input, true);
-				this.fire('waypointdragend', this._createWaypointEvent(i, e));
-				this._fireChanged();
-			}, this);
-		},
+		_hookWaypointEvents: function(m, i, trackMouseMove) {
+			var eventLatLng = function(e) {
+					return trackMouseMove ? e.latlng : e.target.getLatLng();
+				},
+				dragStart = L.bind(function(e) {
+					this.fire('waypointdragstart', {index: i, latlng: eventLatLng(e)});
+				}, this),
+				drag = L.bind(function(e) {
+					this._waypoints[i].latLng = eventLatLng(e);
+					this.fire('waypointdrag', {index: i, latlng: eventLatLng(e)});
+				}, this),
+				dragEnd = L.bind(function(e) {
+					this._waypoints[i].latLng = eventLatLng(e);
+					this._waypoints[i].name = '';
+					this._updateWaypointName(i, this._geocoderElems && this._geocoderElems[i].input, true);
+					this.fire('waypointdragend', {index: i, latlng: eventLatLng(e)});
+					this._fireChanged();
+				}, this),
+				mouseMove,
+				mouseUp;
 
-		_createWaypointEvent: function(i, e) {
-			return {index: i, latlng: e.target.getLatLng()};
+			if (trackMouseMove) {
+				mouseMove = L.bind(function(e) {
+					this._markers[i].setLatLng(e.latlng);
+					drag(e);
+				}, this);
+				mouseUp = L.bind(function(e) {
+					this._map.dragging.enable();
+					this._map.off('mouseup', mouseUp);
+					this._map.off('mousemove', mouseMove);
+					dragEnd(e);
+				}, this);
+				this._map.dragging.disable();
+				this._map.on('mousemove', mouseMove);
+				this._map.on('mouseup', mouseUp);
+				dragStart({latlng: this._waypoints[i].latLng});
+			} else {
+				m.on('dragstart', dragStart);
+				m.on('drag', drag);
+				m.on('dragend', dragEnd);
+			}
 		},
 
 		dragNewWaypoint: function(e) {
-			var i;
-			this._newWp = {
-				afterIndex: e.afterIndex,
-				marker: L.marker(e.latlng).addTo(this._map),
-				lines: []
-			};
+			var newWpIndex = e.afterIndex + 1;
+			if (this.options.routeWhileDragging) {
+				this.spliceWaypoints(newWpIndex, 0, e.latlng);
+				this._hookWaypointEvents(this._markers[newWpIndex], newWpIndex, true);
+			} else {
+				this._dragNewWaypoint(newWpIndex, e.latlng);
+			}
+		},
+
+		_dragNewWaypoint: function(newWpIndex, initialLatLng) {
+			var wp = new L.Routing.Waypoint(initialLatLng),
+				prevWp = this._waypoints[newWpIndex - 1],
+				nextWp = this._waypoints[newWpIndex],
+				marker = this.options.createMarker(newWpIndex, wp, this._waypoints.length + 1),
+				lines = [],
+				mouseMove = L.bind(function(e) {
+					var i;
+					if (marker) {
+						marker.setLatLng(e.latlng);
+					}
+					for (i = 0; i < lines.length; i++) {
+						lines[i].spliceLatLngs(1, 1, e.latlng);
+					}
+				}, this),
+				mouseUp = L.bind(function(e) {
+					var i;
+					if (marker) {
+						this._map.removeLayer(marker);
+					}
+					for (i = 0; i < lines.length; i++) {
+						this._map.removeLayer(lines[i]);
+					}
+					this._map.off('mousemove', mouseMove);
+					this._map.off('mouseup', mouseUp);
+					this.spliceWaypoints(newWpIndex, 0, e.latlng);
+				}, this),
+				i;
+
+			if (marker) {
+				marker.addTo(this._map);
+			}
 
 			for (i = 0; i < this.options.dragStyles.length; i++) {
-				this._newWp.lines.push(L.polyline([
-					this._waypoints[e.afterIndex].latLng,
-					e.latlng,
-					this._waypoints[e.afterIndex + 1].latLng
-				], this.options.dragStyles[i]).addTo(this._map));
+				lines.push(L.polyline([prevWp.latLng, initialLatLng, nextWp.latLng],
+					this.options.dragStyles[i]).addTo(this._map));
 			}
 
-			this._markers.splice(e.afterIndex + 1, 0, this._newWp.marker);
-			this._map.on('mousemove', this._onDragNewWp, this);
-			this._map.on('mouseup', this._onWpRelease, this);
-		},
-
-		_onDragNewWp: function(e) {
-			var i;
-			this._newWp.marker.setLatLng(e.latlng);
-			for (i = 0; i < this._newWp.lines.length; i++) {
-				this._newWp.lines[i].spliceLatLngs(1, 1, e.latlng);
-			}
-		},
-
-		_onWpRelease: function(e) {
-			var i;
-			this._map.off('mouseup', this._onWpRelease, this);
-			this._map.off('mousemove', this._onDragNewWp, this);
-			for (i = 0; i < this._newWp.lines.length; i++) {
-				this._map.removeLayer(this._newWp.lines[i]);
-			}
-			this.spliceWaypoints(this._newWp.afterIndex + 1, 0, e.latlng);
-			delete this._newWp;
+			this._map.on('mousemove', mouseMove);
+			this._map.on('mouseup', mouseUp);
 		},
 
 		_focusGeocoder: function(i) {
