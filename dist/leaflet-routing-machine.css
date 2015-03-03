@@ -86,7 +86,7 @@
 .leaflet-routing-icon-depart           { background-position: -160px 0; }
 .leaflet-routing-icon-enter-roundabout { background-position: -180px 0; }
 .leaflet-routing-icon-arrive           { background-position: -200px 0; }
-.leaflet-routing-icon-via              { background-position: -200px 0; }
+.leaflet-routing-icon-via              { background-position: -220px 0; }
 
 .leaflet-routing-geocoders div {
     padding: 4px 0px 4px 0px;
