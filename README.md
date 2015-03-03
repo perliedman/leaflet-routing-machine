@@ -7,7 +7,7 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * [GraphHopper](https://graphhopper.com/) - through plugin [lrm-graphopper](https://github.com/perliedman/lrm-graphhopper)
 * [Mapbox Directions API](https://www.mapbox.com/developers/api/directions/) - through plugin [lrm-mapbox](https://github.com/perliedman/lrm-mapbox)
 
-Try the [Leaflet Routing Machine demo](http://www.liedman.net/leaflet-routing-machine/).
+See the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.
 
 ## Features
 
