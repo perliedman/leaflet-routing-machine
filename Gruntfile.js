@@ -7,6 +7,7 @@ module.exports = function(grunt) {
 				dest: 'dist/leaflet-routing-machine.js',
 				options: {
 					browserifyOptions: {
+						transform: 'browserify-shim',
 						standalone: 'L.Routing'
 					}
 				}

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "prepublish": "grunt",
+    "publish": "scripts/publish.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -28,9 +29,6 @@
     "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
   },
   "homepage": "https://github.com/perliedman/leaflet-routing-machine",
-  "browserify": {
-    "transform": "browserify-shim"
-  },
   "browserify-shim": {
     "leaflet": "global:L"
   },
