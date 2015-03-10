@@ -1,5 +1,4 @@
-var map = L.map('map', { scrollWheelZoom: false }),
-	sidebar = L.control.sidebar('sidebar', { position: 'left' }).addTo(map);
+var map = L.map('map', { scrollWheelZoom: false });
 
 
 L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.jokgn3nn/{z}/{x}/{y}.png', {
@@ -7,10 +6,6 @@ L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.jokgn3nn/{z}/{x}/{y}.png', {
 		'Routes from <a href="http://project-osrm.org/">OSRM</a>, ' +
 		'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map);
-
-setTimeout(function () {
-	sidebar.show();
-}, 500);
 
 L.Routing.control({
 	plan: L.Routing.plan([
@@ -24,6 +19,7 @@ L.Routing.control({
 			});
 		},
 		geocoder: L.Control.Geocoder.nominatim(),
+		routeWhileDragging: true
 	}),
 	routeWhileDragging: true,
 	routeDragTimeout: 250
