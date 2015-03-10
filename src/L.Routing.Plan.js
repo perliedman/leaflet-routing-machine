@@ -229,7 +229,7 @@
 			// Determine where to insert geocoders for new waypoints
 			if (addLast) {
 				beforeElem =
-					this._geocoderElems[this._geocoderElems.length].container.nextSibling;
+					this._geocoderElems[this._geocoderElems.length - 1].container.nextSibling;
 			} else {
 				beforeElem = this._geocoderElems[e.index].container;
 			}
