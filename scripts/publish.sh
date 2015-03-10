@@ -21,6 +21,7 @@ mkdir -p dist
 mkdir -p _data
 cd $CWD/dist
 zip -r $TMP/dist/leaflet-routing-machine-$VERSION.zip leaflet-routing-machine* leaflet.routing.icons.png
+cp leaflet-routing-machine* leaflet.routing.icons.png $TMP/dist
 cd $TMP
 echo -e "- version: $VERSION\n" >>_data/versions.yml
 
