@@ -213,20 +213,21 @@
 		},
 
 		_updateGeocoders: function() {
-			var i,
+			var elems = [],
+				i,
 			    geocoderElem;
 
 			for (i = 0; i < this._geocoderElems.length; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i].container);
 			}
 
-			this._geocoderElems = [];
-
 			for (i = this._waypoints.length - 1; i >= 0; i--) {
 				geocoderElem = this._createGeocoder(i);
 				this._geocoderContainer.insertBefore(geocoderElem.container, this._geocoderContainer.firstChild);
-				this._geocoderElems.push(geocoderElem);
+				elems.push(geocoderElem);
 			}
+
+			this._geocoderElems = elems.reverse();
 		},
 
 		_updateGeocoder: function(i, geocoderElem) {
