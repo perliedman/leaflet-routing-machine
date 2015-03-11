@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.L||(f.L={})).Routing=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -1948,18 +1948,10 @@ if (typeof module !== undefined) module.exports = polyline;
 		createGeocoders: function() {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
 				waypoints = this._waypoints,
-			    i,
-			    geocoderElem,
 			    addWpBtn;
 
 			this._geocoderContainer = container;
 			this._geocoderElems = [];
-
-			for (i = 0; i < waypoints.length; i++) {
-				geocoderElem = this._createGeocoder(i);
-				container.appendChild(geocoderElem.container);
-				this._geocoderElems.push(geocoderElem);
-			}
 
 			addWpBtn = L.DomUtil.create('button', this.options.addButtonClassName, container);
 			addWpBtn.setAttribute('type', 'button');
@@ -1972,6 +1964,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				addWpBtn.style.display = 'none';
 			}
 
+			this._updateGeocoders();
 			this.on('waypointsspliced', this._updateGeocoders);
 
 			return container;
@@ -2023,39 +2016,20 @@ if (typeof module !== undefined) module.exports = polyline;
 			return g;
 		},
 
-		_updateGeocoders: function(e) {
-			var newElems = [],
-				addLast = e.index >= this._geocoderElems.length,
-			    i,
-			    geocoderElem,
-			    beforeElem;
+		_updateGeocoders: function() {
+			var i,
+			    geocoderElem;
 
-			// Determine where to insert geocoders for new waypoints
-			if (addLast) {
-				beforeElem =
-					this._geocoderElems[this._geocoderElems.length - 1].container.nextSibling;
-			} else {
-				beforeElem = this._geocoderElems[e.index].container;
-			}
-
-			// Insert new geocoders for new waypoints
-			for (i = 0; i < e.added.length; i++) {
-				geocoderElem = this._createGeocoder(e.index + i);
-				this._geocoderContainer.insertBefore(geocoderElem.container, beforeElem);
-				newElems.push(geocoderElem);
-			}
-			//newElems.reverse();
-
-			for (i = e.index; i < e.index + e.nRemoved; i++) {
+			for (i = 0; i < this._geocoderElems.length; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i].container);
 			}
 
-			newElems.splice(0, 0, e.index, e.nRemoved);
-			[].splice.apply(this._geocoderElems, newElems);
+			this._geocoderElems = [];
 
-			for (i = 0; i < this._geocoderElems.length; i++) {
-				this._geocoderElems[i].input.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
-				this._geocoderElems[i].input.className = this.options.geocoderClass(i, this._waypoints.length);
+			for (i = this._waypoints.length - 1; i >= 0; i--) {
+				geocoderElem = this._createGeocoder(i);
+				this._geocoderContainer.insertBefore(geocoderElem.container, this._geocoderContainer.firstChild);
+				this._geocoderElems.push(geocoderElem);
 			}
 		},
 
