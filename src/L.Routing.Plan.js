@@ -144,18 +144,10 @@
 		createGeocoders: function() {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
 				waypoints = this._waypoints,
-			    i,
-			    geocoderElem,
 			    addWpBtn;
 
 			this._geocoderContainer = container;
 			this._geocoderElems = [];
-
-			for (i = 0; i < waypoints.length; i++) {
-				geocoderElem = this._createGeocoder(i);
-				container.appendChild(geocoderElem.container);
-				this._geocoderElems.push(geocoderElem);
-			}
 
 			addWpBtn = L.DomUtil.create('button', this.options.addButtonClassName, container);
 			addWpBtn.setAttribute('type', 'button');
@@ -168,6 +160,7 @@
 				addWpBtn.style.display = 'none';
 			}
 
+			this._updateGeocoders();
 			this.on('waypointsspliced', this._updateGeocoders);
 
 			return container;
@@ -219,39 +212,20 @@
 			return g;
 		},
 
-		_updateGeocoders: function(e) {
-			var newElems = [],
-				addLast = e.index >= this._geocoderElems.length,
-			    i,
-			    geocoderElem,
-			    beforeElem;
+		_updateGeocoders: function() {
+			var i,
+			    geocoderElem;
 
-			// Determine where to insert geocoders for new waypoints
-			if (addLast) {
-				beforeElem =
-					this._geocoderElems[this._geocoderElems.length - 1].container.nextSibling;
-			} else {
-				beforeElem = this._geocoderElems[e.index].container;
-			}
-
-			// Insert new geocoders for new waypoints
-			for (i = 0; i < e.added.length; i++) {
-				geocoderElem = this._createGeocoder(e.index + i);
-				this._geocoderContainer.insertBefore(geocoderElem.container, beforeElem);
-				newElems.push(geocoderElem);
-			}
-			//newElems.reverse();
-
-			for (i = e.index; i < e.index + e.nRemoved; i++) {
+			for (i = 0; i < this._geocoderElems.length; i++) {
 				this._geocoderContainer.removeChild(this._geocoderElems[i].container);
 			}
 
-			newElems.splice(0, 0, e.index, e.nRemoved);
-			[].splice.apply(this._geocoderElems, newElems);
+			this._geocoderElems = [];
 
-			for (i = 0; i < this._geocoderElems.length; i++) {
-				this._geocoderElems[i].input.placeholder = this.options.geocoderPlaceholder(i, this._waypoints.length);
-				this._geocoderElems[i].input.className = this.options.geocoderClass(i, this._waypoints.length);
+			for (i = this._waypoints.length - 1; i >= 0; i--) {
+				geocoderElem = this._createGeocoder(i);
+				this._geocoderContainer.insertBefore(geocoderElem.container, this._geocoderContainer.firstChild);
+				this._geocoderElems.push(geocoderElem);
 			}
 		},
 
