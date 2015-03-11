@@ -1,6 +1,6 @@
 {
   "name": "leaflet-routing-machine",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Routing for Leaflet",
   "directories": {
     "example": "examples",
