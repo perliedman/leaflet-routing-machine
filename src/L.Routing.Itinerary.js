@@ -24,7 +24,8 @@
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			show: true
+			show: true,
+			collapsible: undefined
 		},
 
 		initialize: function(options) {
@@ -35,9 +36,15 @@
 			});
 		},
 
-		onAdd: function() {
+		onAdd: function(map) {
+			var collapsible = this.options.collapsible,
+				collapseBtn;
+
+			collapsible = collapsible || (collapsible === undefined && map.getSize().x <= 640);
+
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
-				(!this.options.show ? 'leaflet-routing-container-hide' : '') +
+				(!this.options.show ? 'leaflet-routing-container-hide ' : '') +
+				(collapsible ? 'leaflet-routing-collapsible ' : '') +
 				this.options.containerClassName);
 			this._altContainer = this.createAlternativesContainer();
 			this._container.appendChild(this._altContainer);
@@ -45,6 +52,13 @@
 			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
 				L.DomEvent.stopPropagation(e);
 			});
+
+			if (collapsible) {
+				collapseBtn = L.DomUtil.create('span', 'leaflet-routing-collapse-btn');
+				L.DomEvent.on(collapseBtn, 'click', this._toggle, this);
+				this._container.insertBefore(collapseBtn, this._container.firstChild);
+			}
+
 			return this._container;
 		},
 
@@ -82,6 +96,11 @@
 
 		hide: function() {
 			L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
+		},
+
+		_toggle: function() {
+			var collapsed = L.DomUtil.hasClass(this._container, 'leaflet-routing-container-hide');
+			this[collapsed ? 'show' : 'hide']();
 		},
 
 		_createAlternative: function(alt, i) {
