@@ -10,5 +10,6 @@ L.Routing.control({
 		L.latLng(57.6792, 11.949)
 	],
 	geocoder: L.Control.Geocoder.nominatim(),
-    routeWhileDragging: true
+    routeWhileDragging: true,
+    reverseWaypoints: true
 }).addTo(map);

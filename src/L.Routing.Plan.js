@@ -28,6 +28,7 @@
 			draggableWaypoints: true,
 			routeWhileDragging: false,
 			addWaypoints: true,
+			reverseWaypoints: false,
 			addButtonClassName: '',
 			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
@@ -144,20 +145,28 @@
 		createGeocoders: function() {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
 				waypoints = this._waypoints,
-			    addWpBtn;
+			    addWpBtn,
+			    reverseBtn;
 
 			this._geocoderContainer = container;
 			this._geocoderElems = [];
 
-			addWpBtn = L.DomUtil.create('button', this.options.addButtonClassName, container);
-			addWpBtn.setAttribute('type', 'button');
-			addWpBtn.innerHTML = '+';
+
 			if (this.options.addWaypoints) {
+				addWpBtn = L.DomUtil.create('button', 'leaflet-routing-add-waypoint ' + this.options.addButtonClassName, container);
+				addWpBtn.setAttribute('type', 'button');
 				L.DomEvent.addListener(addWpBtn, 'click', function() {
 					this.spliceWaypoints(waypoints.length, 0, null);
 				}, this);
-			} else {
-				addWpBtn.style.display = 'none';
+			}
+
+			if (this.options.reverseWaypoints) {
+				reverseBtn = L.DomUtil.create('button', 'leaflet-routing-reverse-waypoints', container);
+				reverseBtn.setAttribute('type', 'button');
+				L.DomEvent.addListener(reverseBtn, 'click', function() {
+					this._waypoints.reverse();
+					this.setWaypoints(this._waypoints);
+				}, this);
 			}
 
 			this._updateGeocoders();

@@ -121,6 +121,15 @@
     transition: background-color 0.2s ease;
 }
 
+.leaflet-routing-add-waypoint:after {
+    content: '+';
+}
+
+.leaflet-routing-reverse-waypoints:after {
+    font-weight: normal;
+    content: '\21c5';
+}
+
 .leaflet-routing-geocoders button:hover {
     background-color: #eee;
 }
