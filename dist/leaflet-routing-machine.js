@@ -838,7 +838,8 @@ if (typeof module !== undefined) module.exports = polyline;
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			show: true
+			show: true,
+			collapsible: undefined
 		},
 
 		initialize: function(options) {
@@ -849,9 +850,15 @@ if (typeof module !== undefined) module.exports = polyline;
 			});
 		},
 
-		onAdd: function() {
+		onAdd: function(map) {
+			var collapsible = this.options.collapsible,
+				collapseBtn;
+
+			collapsible = collapsible || (collapsible === undefined && map.getSize().x <= 640);
+
 			this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
-				(!this.options.show ? 'leaflet-routing-container-hide' : '') +
+				(!this.options.show ? 'leaflet-routing-container-hide ' : '') +
+				(collapsible ? 'leaflet-routing-collapsible ' : '') +
 				this.options.containerClassName);
 			this._altContainer = this.createAlternativesContainer();
 			this._container.appendChild(this._altContainer);
@@ -859,6 +866,13 @@ if (typeof module !== undefined) module.exports = polyline;
 			L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
 				L.DomEvent.stopPropagation(e);
 			});
+
+			if (collapsible) {
+				collapseBtn = L.DomUtil.create('span', 'leaflet-routing-collapse-btn');
+				L.DomEvent.on(collapseBtn, 'click', this._toggle, this);
+				this._container.insertBefore(collapseBtn, this._container.firstChild);
+			}
+
 			return this._container;
 		},
 
@@ -896,6 +910,11 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		hide: function() {
 			L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
+		},
+
+		_toggle: function() {
+			var collapsed = L.DomUtil.hasClass(this._container, 'leaflet-routing-container-hide');
+			this[collapsed ? 'show' : 'hide']();
 		},
 
 		_createAlternative: function(alt, i) {
@@ -1832,6 +1851,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			draggableWaypoints: true,
 			routeWhileDragging: false,
 			addWaypoints: true,
+			reverseWaypoints: false,
 			addButtonClassName: '',
 			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
@@ -1948,20 +1968,28 @@ if (typeof module !== undefined) module.exports = polyline;
 		createGeocoders: function() {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
 				waypoints = this._waypoints,
-			    addWpBtn;
+			    addWpBtn,
+			    reverseBtn;
 
 			this._geocoderContainer = container;
 			this._geocoderElems = [];
 
-			addWpBtn = L.DomUtil.create('button', this.options.addButtonClassName, container);
-			addWpBtn.setAttribute('type', 'button');
-			addWpBtn.innerHTML = '+';
+
 			if (this.options.addWaypoints) {
+				addWpBtn = L.DomUtil.create('button', 'leaflet-routing-add-waypoint ' + this.options.addButtonClassName, container);
+				addWpBtn.setAttribute('type', 'button');
 				L.DomEvent.addListener(addWpBtn, 'click', function() {
 					this.spliceWaypoints(waypoints.length, 0, null);
 				}, this);
-			} else {
-				addWpBtn.style.display = 'none';
+			}
+
+			if (this.options.reverseWaypoints) {
+				reverseBtn = L.DomUtil.create('button', 'leaflet-routing-reverse-waypoints', container);
+				reverseBtn.setAttribute('type', 'button');
+				L.DomEvent.addListener(reverseBtn, 'click', function() {
+					this._waypoints.reverse();
+					this.setWaypoints(this._waypoints);
+				}, this);
 			}
 
 			this._updateGeocoders();

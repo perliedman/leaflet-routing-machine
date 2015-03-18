@@ -2,11 +2,12 @@
     width: 320px;
     background-color: white;
     padding-top: 4px;
-    transition: margin-right 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .leaflet-control-container .leaflet-routing-container-hide {
-    margin-right: -340px;
+    width: 32px;
+    height: 32px;
 }
 
 .leaflet-routing-container h2 {
@@ -18,6 +19,10 @@
     font-weight: normal;
 }
 
+.leaflet-routing-collapsible .leaflet-routing-geocoders {
+    margin-top: 20px;
+}
+
 .leaflet-routing-alt, .leaflet-routing-geocoders {
     padding: 6px;
     margin-top: 2px;
@@ -26,6 +31,11 @@
     max-height: 320px;
     overflow-y: auto;
     transition: all 0.2s ease;
+}
+
+.leaflet-control-container .leaflet-routing-container-hide .leaflet-routing-alt, 
+.leaflet-control-container .leaflet-routing-container-hide .leaflet-routing-geocoders {
+    display: none;
 }
 
 .leaflet-bar .leaflet-routing-alt:last-child {
@@ -94,6 +104,7 @@
 
 .leaflet-routing-geocoders input {
     width: 303px;
+    width: calc(100% - 4px);
     line-height: 1.67;
     border: 1px solid #ccc;
 }
@@ -108,6 +119,15 @@
     float: right;
     cursor: pointer;
     transition: background-color 0.2s ease;
+}
+
+.leaflet-routing-add-waypoint:after {
+    content: '+';
+}
+
+.leaflet-routing-reverse-waypoints:after {
+    font-weight: normal;
+    content: '\21c5';
 }
 
 .leaflet-routing-geocoders button:hover {
@@ -185,4 +205,53 @@
 
 .leaflet-routing-instruction-distance {
     width: 48px;
+}
+
+.leaflet-routing-collapse-btn {
+    position: absolute;
+    top: 0;
+    right: 6px;
+    font-size: 24px;
+    color: #ccc;
+    font-weight: bold;
+}
+
+.leaflet-routing-collapse-btn:after {
+    content: '\00d7';
+}
+
+.leaflet-routing-container-hide .leaflet-routing-collapse-btn {
+    position: relative;
+    left: 4px;
+    top: 4px;
+    display: block;
+    width: 26px;
+    height: 23px;
+    background-image: url('routing-icon.png');
+}
+
+.leaflet-routing-container-hide .leaflet-routing-collapse-btn:after {
+    content: none;
+}
+
+.leaflet-top .leaflet-routing-container.leaflet-routing-container-hide {
+    margin-top: 10px !important;
+}
+.leaflet-right .leaflet-routing-container.leaflet-routing-container-hide {
+    margin-right: 10px !important;
+}
+.leaflet-bottom .leaflet-routing-container.leaflet-routing-container-hide {
+    margin-bottom: 10px !important;
+}
+.leaflet-left .leaflet-routing-container.leaflet-routing-container-hide {
+    margin-left: 10px !important;
+}
+
+@media only screen and (max-width: 640px) {
+    .leaflet-routing-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+        height: 100%;
+    }
 }
