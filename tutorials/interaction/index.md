@@ -86,6 +86,10 @@ method.
 
 ### Reversing the route
 
+> _Note_: From version 2.3.0 and later, this functionality is included in the plugin by setting the option
+> `reverseWaypoints` to `true` for the `L.Routing.Plan` instance. The code below still serves as a good
+> example of how to add custom buttons to the routing control's panel.
+
 It is common to have button to reverse the direction of the route (i.e. reverse the list of waypoints).
 Lets go through the steps necessary to implement such a button.
 
