@@ -157,6 +157,10 @@ L.Routing.control({
 });
 ```
 
+### TomTom Online Routing API
+
+[Mathias Rohnstock](https://github.com/drmonty) has written a plugin for Leaflet Routing Machine: [lrm-tomtom](https://github.com/drmonty/lrm-tomtom). Check it out!
+
 ### Using other routers
 
 You can also build support for other routing software. This way, you can for example use
