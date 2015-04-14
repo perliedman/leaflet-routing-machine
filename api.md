@@ -288,7 +288,7 @@ Method                 | Returns         | Description
 `formatTime(<Number> t) | `String`       | Formats a time duration, given in seconds, to a string with suitable precision and unit
 `formatInstruction(<`[`IInstruction`](#iinstruction)`> instr)` | String | Formats an instruction to a human readable text
 
-## <a name="iitinerarybuilder"></a>ItineraryBuilder
+## <a name="l-routing-itinerarybuilder"></a>ItineraryBuilder
 
 Creates the DOM structure for an itinerary. Subclass or reimplement to create your own itinerary structure.
 
