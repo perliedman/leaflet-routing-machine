@@ -74,6 +74,7 @@ Option                 | Type                | Default       | Description
 `plan`                 | [`L.Routing.Plan`](#l-routing-plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
 `geocoder`                 | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | - | Optional geocoder to use, unless the `plan` option is used
 `fitSelectedRoutes`    | `string`/`Boolean`    | `'smart'`       | How the map's view is fitted to a selected route result: `smart` will fit only if no waypoint is within the current view, or if the result covers a very small part of the view; other truthy values will always fit the map, falsy will never fit the map
+`lineOptions`          | [`LineOptions`](#lineoptions) |         | Options passed when creating a new [`L.Routing.Line`](#l-routing-line), for example styling
 `routeLine`            | ``Function`           | -               | Function to create the map line when a route is presented on the map, with the signature: `fn(<`[`IRoute`](#iroute)`> route, <`[`LineOptions`](#lineoptions)`> options)`
 `autoRoute`            | `Boolean`             | `true`          | If true, route will automatically be calculated every time waypoints change, otherwise `route()` has to be called by the app
 `routeWhileDragging`   | `Boolean`             | `false`         | If true, routes will continually be calculated while the user drags waypoints, giving immediate feedback
