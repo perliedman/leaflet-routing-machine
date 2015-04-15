@@ -312,7 +312,13 @@ property      | type         | description
 --------------|-------------|-----------------------------------
 `latLng`      | `L.LatLng`  | geographic location of the waypoint
 `name`        | `String?`   | name of the waypoint, typically an address; optional and possibly `null` or `undefined`
+`options`     | [`WaypointOptions?`](#waypointoptions)   | Options
 
+### <a name="waypointoptions"></a> Options
+
+Option                 | Type      | Default             | Description
+-----------------------|-----------|---------------------|---------------------------------------------------------
+`allowUTurn`           | `Boolean` | `false`             | When using OSRM for routing, allow U-turn at this waypoint
 
 ## <a name="eventobjects"></a> Event Objects
 
