@@ -171,7 +171,7 @@ Option                 | Type                | Default       | Description
 `waypointNameFallback` | `Function`          | -             | When a waypoint's name can't be reverse geocoded, this function will be called to generate a name. Default will give a name based on the waypoint's latitude and longitude.
 `createGeocoder`       | `Function`          | -             | Create a geocoder for a waypoint; should take the waypoints index as argument and return an [`IGeocoderElement`](#igeocoderelement)
 `addButtonClassName`   | `String`            | `''`          | HTML classname to assign to the add waypoint button
-`createMarker`         | `Function`          | -             | Creates a marker to use for a waypoint. The function should have the signature `createMarker(<Number> i, <[`L.Routing.Waypoint`](#l-routing-waypoint)`> waypoint, <Number> n)`, where `i` is the waypoint's index, `waypoint` is the waypoint itself, and `n` is the total number of waypoints in the plan; if return value is falsy, no marker is added for the waypoint
+`createMarker`         | `Function`          | -             | Creates a marker to use for a waypoint. The function should have the signature `createMarker(<Number> i, <`[`L.Routing.Waypoint`](#l-routing-waypoint)`> waypoint, <Number> n)`, where `i` is the waypoint's index, `waypoint` is the waypoint itself, and `n` is the total number of waypoints in the plan; if return value is falsy, no marker is added for the waypoint
 `routeWhileDragging`   | `Boolean`           | `false`       | If true, the route is continously recalculated while waypoint markers are dragged
 
 ### Events
