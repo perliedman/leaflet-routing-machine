@@ -12,7 +12,16 @@ quick. However, there are cases where OSRM's defaults doesn't cut it: you want t
 do bike routing, while OSRM's open servers only route for cars at the time of writing.
 The free servers comes with no SLA, which might be another cause to use another server.
 
-### Using your own OSRM server
+### Table of contents
+
+* [Using your own OSRM server](#osrm)
+* [GraphHopper](#graphhopper)
+* [Mapbox directions API](#mapbox)
+* [TomTom online routing API](#tomtom)
+* [Using other routers](#other-routers)
+* [Preventing excessive requests (and bills)](#prevent-requests)
+
+### <a name="osrm"></a> Using your own OSRM server
 
 If it's just the configuration and/or reliablity of the free servers that you need to
 control yourself, you can quite easily [set up your own OSRM server](https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM).
@@ -40,7 +49,7 @@ L.Routing.control({
 });
 ```
 
-### GraphHopper
+### <a name="graphhopper"></a> GraphHopper
 
 Another popular, open source routing software is [GraphHopper](https://graphhopper.com/). It's fast, works
 well with OpenStreetMap data and runs on a lot of platforms (even on Android).
@@ -104,7 +113,7 @@ L.Routing.control({
 });
 ```
 
-### Mapbox directions API
+### <a name="mapbox"></a> Mapbox directions API
 
 Another popular alternative for routing is to use
 [Mapbox Directions API](https://www.mapbox.com/developers/api/directions/). The directions API
@@ -157,11 +166,11 @@ L.Routing.control({
 });
 ```
 
-### TomTom Online Routing API
+### <a name="tomtom"></a> TomTom Online Routing API
 
 [Mathias Rohnstock](https://github.com/drmonty) has written a plugin for Leaflet Routing Machine: [lrm-tomtom](https://github.com/drmonty/lrm-tomtom). Check it out!
 
-### Using other routers
+### <a name="other-routers"></a> Using other routers
 
 You can also build support for other routing software. This way, you can for example use
 Leaflet Routing Machine with proprietary routing software of your choice.
@@ -195,7 +204,7 @@ time for the route.
 By implementing these interfaces, you will get all the other functionality of
 Leaflet Routing Machine for free.
 
-### Preventing excessive requests (and bills)
+### <a name="prevent-requests"></a> Preventing excessive requests (and bills)
 
 Several routing services bill you per routing requests, or take very long time to
 respond to a request. In these scenarios, it might
