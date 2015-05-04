@@ -222,7 +222,7 @@
 				var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
 				lng += dlng;
 				//array.push( {lat: lat * precision, lng: lng * precision} );
-				array.push( [lat * precision, lng * precision] );
+				array.push( L.latLng(lat * precision, lng * precision) );
 			}
 			return array;
 		},
