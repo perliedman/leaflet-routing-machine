@@ -10,7 +10,7 @@
 			},
 			initialize: function(latLng, name, options) {
 				L.Util.setOptions(this, options);
-				this.latLng = latLng;
+				this.latLng = L.latLng(latLng);
 				this.name = name;
 			}
 		});
