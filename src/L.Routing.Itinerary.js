@@ -25,7 +25,13 @@
 			minimizedClassName: '',
 			itineraryClassName: '',
 			show: true,
-			collapsible: undefined
+			collapsible: undefined,
+			collapseBtn: function(itinerary) {
+				var collapseBtn = L.DomUtil.create('span', itinerary.options.collapseBtnClass);
+				L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
+				itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
+			},
+			collapseBtnClass: 'leaflet-routing-collapse-btn'
 		},
 
 		initialize: function(options) {
@@ -37,8 +43,7 @@
 		},
 
 		onAdd: function(map) {
-			var collapsible = this.options.collapsible,
-				collapseBtn;
+			var collapsible = this.options.collapsible;
 
 			collapsible = collapsible || (collapsible === undefined && map.getSize().x <= 640);
 
@@ -54,9 +59,7 @@
 			});
 
 			if (collapsible) {
-				collapseBtn = L.DomUtil.create('span', 'leaflet-routing-collapse-btn');
-				L.DomEvent.on(collapseBtn, 'click', this._toggle, this);
-				this._container.insertBefore(collapseBtn, this._container.firstChild);
+				this.options.collapseBtn(this);
 			}
 
 			return this._container;
