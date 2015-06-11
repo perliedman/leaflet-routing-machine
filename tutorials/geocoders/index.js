@@ -1,6 +1,6 @@
 var map1 = L.map('map-1', { scrollWheelZoom: false });
 
-L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.jokgn3nn/{z}/{x}/{y}.png', {
+L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + LRM.apiToken, {
     attribution: 'Maps by <a href="https://www.mapbox.com/about/maps/">MapBox</a>. ' +
         'Routes from <a href="http://project-osrm.org/">OSRM</a>, ' +
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
@@ -17,7 +17,7 @@ L.Routing.control({
 
 var map2 = L.map('map-2', { scrollWheelZoom: false });
 
-L.tileLayer('https://a.tiles.mapbox.com/v3/liedman.jokgn3nn/{z}/{x}/{y}.png', {
+L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + LRM.apiToken, {
     attribution: 'Maps by <a href="https://www.mapbox.com/about/maps/">MapBox</a>. ' +
         'Routes from <a href="http://project-osrm.org/">OSRM</a>, ' +
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
