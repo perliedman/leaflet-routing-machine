@@ -308,7 +308,49 @@
 			formatOrder: function(n) {
 				return n + 'º';
 			}
-		}
+		},
+		'pt': {
+			directions: {
+				N: 'norte',
+				NE: 'nordeste',
+				E: 'leste',
+				SE: 'sudeste',
+				S: 'sul',
+				SW: 'sudoeste',
+				W: 'oeste',
+				NW: 'noroeste'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Siga {dir}', ' na {road}'],
+				'Continue':
+					['Continue {dir}', ' na {road}'],
+				'SlightRight':
+					['Curva ligeira a direita', ' na {road}'],
+				'Right':
+					['Curva a direita', ' na {road}'],
+				'SharpRight':
+					['Curva fechada a direita', ' na {road}'],
+				'TurnAround':
+					['Retorne'],
+				'SharpLeft':
+					['Curva fechada a esquerda', ' na {road}'],
+				'Left':
+					['Curva a esquerda', ' na {road}'],
+				'SlightLeft':
+					['Curva ligueira a esquerda', ' na {road}'],
+				'WaypointReached':
+					['Ponto de interesse atingido'],
+				'Roundabout':
+					['Pegue a {exitStr} saída na rotatória', ' na {road}'],
+				'DestinationReached':
+					['Destino atingido'],
+			},
+			formatOrder: function(n) {
+				return n + 'º';
+			}
+		},
 	};
 
 	module.exports = L.Routing;
