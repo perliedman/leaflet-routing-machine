@@ -43,10 +43,12 @@
 			geocoderClass: function() {
 				return '';
 			},
-			createGeocoder: function() {
+			createGeocoder: function(i, nWps, plan) {
 				var container = L.DomUtil.create('div', 'leaflet-routing-geocoder'),
 					input = L.DomUtil.create('input', '', container),
 					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
+
+				input.disabled = !plan.options.addWaypoints;
 
 				return {
 					container: container,
@@ -177,7 +179,7 @@
 
 		_createGeocoder: function(i) {
 			var nWps = this._waypoints.length,
-				g = this.options.createGeocoder(i, nWps),
+				g = this.options.createGeocoder(i, nWps, this),
 				closeButton = g.closeButton,
 				geocoderInput = g.input,
 				wp = this._waypoints[i];
