@@ -46,7 +46,7 @@
 			createGeocoder: function(i, nWps, plan) {
 				var container = L.DomUtil.create('div', 'leaflet-routing-geocoder'),
 					input = L.DomUtil.create('input', '', container),
-					remove = L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container);
+					remove = plan.options.addWaypoints ? L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container) : undefined;
 
 				input.disabled = !plan.options.addWaypoints;
 
