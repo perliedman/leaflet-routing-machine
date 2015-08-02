@@ -1,9 +1,9 @@
 ---
 layout: tutorial
-title: GraphHopper, Mapbox and other routing software
+title: GraphHopper, Mapbox, Valhalla and other routing software
 ---
 
-## GraphHopper, Mapbox and other routing software
+## GraphHopper, Mapbox, Valhalla and other routing software
 
 Behind the UI, Leaflet Routing Machine queries [OSRM](http://project-osrm.org)'s 
 servers each time the route is recalculated, unless you tell it to use something else.
@@ -156,6 +156,22 @@ L.Routing.control({
     router: L.Routing.mapbox('access-token');
 });
 ```
+
+### Mapzen Valhalla
+
+[Mapzen Valhalla](https://mapzen.com/projects/valhalla/) is supported through Mapzen's own plugin [lrm-valhalla](https://github.com/valhalla/lrm-valhalla).
+
+Download prebuilt files: [http://mapzen.com/resources/lrm-valhalla-0.0.9.zip](http://mapzen.com/resources/lrm-valhalla-0.0.9.zip)
+
+Load this file with a `<script>` tag in your page, after Leaflet and Leaflet Routing Machine has been loaded.
+
+Or, to use with for example Browserify:
+
+```
+npm install --save lrm-valhalla
+```
+
+See the [lrm-valhalla](https://github.com/valhalla/lrm-valhalla) project page for info and docs on using the plug-in as well as the Valhalla API reference. 
 
 ### TomTom Online Routing API
 
