@@ -130,6 +130,9 @@ Option                 | Type     | Default             | Description
 `show`                 | `Boolean`| `true`              | Display the itinerary initially; can later be changed with `hide()`and `show()` methods
 `formatter`            | [`Formatter`](#l-routing-formatter) | `new L.Routing.Formatter()` | The formatter to use when converting itinerary instructions, distances and times to strings
 `itineraryFormatter`   | [`ItineraryBuilder`](#l-routing-itinerarybuilder) | - | Object used to create the DOM structure for the itinerary and its instructions. Default uses a `table` to hold the itinerary
+`collapsible`          | `Boolean`| `undefined`         | If `true`, a collapse button is added, if `false`, no button is added, if `undefined`, a button is added if the screen width is small (typically mobile devices)
+`collapseBtn`          | `Function` |                   | Function that takes the `L.Routing.Itinerary` instance as argument, and creates a collapse button
+`collapseBtnClass`     | `String` | `'leaflet-routing-collapse-btn'` | Class used by default for the collapse button 
 
 ### Events
 
