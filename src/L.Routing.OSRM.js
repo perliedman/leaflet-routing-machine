@@ -87,7 +87,7 @@
 				return;
 			}
 
-			coordinates = polyline.decode(response.route_geometry, 6);
+			coordinates = this._decodePolyline(response.route_geometry);
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
 			alts = [{
 				name: response.route_name.join(', '),
@@ -101,7 +101,7 @@
 
 			if (response.alternative_geometries) {
 				for (i = 0; i < response.alternative_geometries.length; i++) {
-					coordinates = polyline.decode(response.alternative_geometries[i], 6);
+					coordinates = this._decodePolyline(response.alternative_geometries[i]);
 					alts.push({
 						name: response.alternative_names[i].join(', '),
 						coordinates: coordinates,
@@ -124,6 +124,17 @@
 				this._saveHintData(response.hint_data, inputWaypoints);
 			}
 			callback.call(context, null, alts);
+		},
+
+		_decodePolyline: function(routeGeometry) {
+			var cs = polyline.decode(routeGeometry, 6),
+				result = [],
+				i;
+			for (i = 0; i < cs.length; i++) {
+				result.push(L.latLng(cs[i]));
+			}
+
+			return result;
 		},
 
 		_toWaypoints: function(inputWaypoints, vias) {
@@ -188,43 +199,6 @@
 				loc = waypoints[i].latLng;
 				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
 			}
-		},
-
-		// Adapted from
-		// https://github.com/DennisSchiefer/Project-OSRM-Web/blob/develop/WebContent/routing/OSRM.RoutingGeometry.js
-		_decode: function(encoded, precision) {
-			var len = encoded.length,
-			    index=0,
-			    lat=0,
-			    lng = 0,
-			    array = [];
-
-			precision = Math.pow(10, -precision);
-
-			while (index < len) {
-				var b,
-				    shift = 0,
-				    result = 0;
-				do {
-					b = encoded.charCodeAt(index++) - 63;
-					result |= (b & 0x1f) << shift;
-					shift += 5;
-				} while (b >= 0x20);
-				var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-				lat += dlat;
-				shift = 0;
-				result = 0;
-				do {
-					b = encoded.charCodeAt(index++) - 63;
-					result |= (b & 0x1f) << shift;
-					shift += 5;
-				} while (b >= 0x20);
-				var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-				lng += dlng;
-				//array.push( {lat: lat * precision, lng: lng * precision} );
-				array.push( L.latLng(lat * precision, lng * precision) );
-			}
-			return array;
 		},
 
 		_convertSummary: function(osrmSummary) {
