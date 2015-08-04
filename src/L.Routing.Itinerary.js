@@ -88,7 +88,7 @@
 				this._altElements.push(altDiv);
 			}
 
-			this.fire('routeselected', {route: this._routes[0]});
+			this._selectRoute(this._routes[0]);
 
 			return this;
 		},
@@ -159,22 +159,20 @@
 		},
 
 		_addRowListeners: function(row, coordinate) {
-			var _this = this,
-			    marker;
 			L.DomEvent.addListener(row, 'mouseover', function() {
-				marker = L.circleMarker(coordinate,
-					_this.options.pointMarkerStyle).addTo(_this._map);
-			});
+				this._marker = L.circleMarker(coordinate,
+					this.options.pointMarkerStyle).addTo(this._map);
+			}, this);
 			L.DomEvent.addListener(row, 'mouseout', function() {
-				if (marker) {
-					_this._map.removeLayer(marker);
-					marker = null;
+				if (this._marker) {
+					this._map.removeLayer(this._marker);
+					delete this._marker;
 				}
-			});
+			}, this);
 			L.DomEvent.addListener(row, 'click', function(e) {
-				_this._map.panTo(coordinate);
+				this._map.panTo(coordinate);
 				L.DomEvent.stopPropagation(e);
-			});
+			}, this);
 		},
 
 		_onAltClicked: function(e) {
@@ -201,7 +199,7 @@
 
 					if (isCurrentSelection) {
 						// TODO: don't fire if the currently active is clicked
-						this.fire('routeselected', {route: this._routes[j]});
+						this._selectRoute(this._routes[j]);
 					} else {
 						n.scrollTop = 0;
 					}
@@ -210,6 +208,14 @@
 
 			L.DomEvent.stop(e);
 		},
+
+		_selectRoute: function(route) {
+			if (this._marker) {
+				this._map.removeLayer(this._marker);
+				delete this._marker;
+			}
+			this.fire('routeselected', {route: route});
+		}
 	});
 
 	L.Routing.itinerary = function(options) {
