@@ -46,6 +46,11 @@
 				suffix = ['st', 'nd', 'rd'];
 
 				return suffix[i] ? n + suffix[i] : n + 'th';
+			},
+			ui: {
+				startPlaceholder: 'Start',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'End'
 			}
 		},
 
@@ -89,6 +94,11 @@
 			},
 			formatOrder: function(n) {
 				return n + '.';
+			},
+			ui: {
+				startPlaceholder: 'Start',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Ziel'
 			}
 		},
 
@@ -134,6 +144,11 @@
 				return ['första', 'andra', 'tredje', 'fjärde', 'femte',
 					'sjätte', 'sjunde', 'åttonde', 'nionde', 'tionde'
 					/* Can't possibly be more than ten exits, can there? */][n - 1];
+			},
+			ui: {
+				startPlaceholder: 'Från',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Till'
 			}
 		},
 
@@ -177,6 +192,11 @@
 			},
 			formatOrder: function(n) {
 				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Inicio',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Destino'
 			}
 		},
 		'nl': {
@@ -218,11 +238,16 @@
 					['Aangekomen op eindpunt'],
 			},
 			formatOrder: function(n) {
-				if (n == 1 || n >= 20) {
-					return n + "ste";
+				if (n === 1 || n >= 20) {
+					return n + 'ste';
 				} else {
-					return n + "de";
+					return n + 'de';
 				}
+			},
+			ui: {
+				startPlaceholder: 'Vertrekpunt',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Bestemming'
 			}
 		},
 		'fr': {
@@ -265,6 +290,11 @@
 			},
 			formatOrder: function(n) {
 				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Départ',
+				viaPlaceholder: 'Intermédiaire {viaNumber}',
+				endPlaceholder: 'Arrivée'
 			}
 		},
 		'it': {
@@ -307,6 +337,11 @@
 			},
 			formatOrder: function(n) {
 				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Partenza',
+				viaPlaceholder: 'Intermedia {viaNumber}',
+				endPlaceholder: 'Destinazione'
 			}
 		},
 		'pt': {
@@ -349,6 +384,11 @@
 			},
 			formatOrder: function(n) {
 				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Origem',
+				viaPlaceholder: 'Intermédio {viaNumber}',
+				endPlaceholder: 'Destino'
 			}
 		},
 	};

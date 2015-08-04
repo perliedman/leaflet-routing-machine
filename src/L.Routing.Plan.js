@@ -33,12 +33,14 @@
 			maxGeocoderTolerance: 200,
 			autocompleteOptions: {},
 			geocodersClassName: '',
-			geocoderPlaceholder: function(i, numberWaypoints) {
+			language: 'en',
+			geocoderPlaceholder: function(i, numberWaypoints, plan) {
+				var l = L.Routing.Localization[plan.options.language].ui;
 				return i === 0 ?
-					'Start' :
+					l.startPlaceholder :
 					(i < numberWaypoints - 1 ?
-									'Via ' + i :
-									'End');
+									L.Util.template(l.viaPlaceholder, {viaNumber: i}) :
+									l.endPlaceholder);
 			},
 			geocoderClass: function() {
 				return '';
@@ -183,7 +185,7 @@
 				closeButton = g.closeButton,
 				geocoderInput = g.input,
 				wp = this._waypoints[i];
-			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, nWps));
+			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, nWps, this));
 			geocoderInput.className = this.options.geocoderClass(i, nWps);
 
 			this._updateWaypointName(i, geocoderInput);
