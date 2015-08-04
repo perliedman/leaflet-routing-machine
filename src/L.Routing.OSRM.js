@@ -90,7 +90,7 @@
 			coordinates = this._decodePolyline(response.route_geometry);
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
 			alts = [{
-				name: response.route_name.join(', '),
+				name: this._createName(response.route_name),
 				coordinates: coordinates,
 				instructions: response.route_instructions ? this._convertInstructions(response.route_instructions) : [],
 				summary: response.route_summary ? this._convertSummary(response.route_summary) : [],
@@ -103,7 +103,7 @@
 				for (i = 0; i < response.alternative_geometries.length; i++) {
 					coordinates = this._decodePolyline(response.alternative_geometries[i]);
 					alts.push({
-						name: response.alternative_names[i].join(', '),
+						name: this._createName(response.alternative_names[i]),
 						coordinates: coordinates,
 						instructions: response.alternative_instructions[i] ? this._convertInstructions(response.alternative_instructions[i]) : [],
 						summary: response.alternative_summaries[i] ? this._convertSummary(response.alternative_summaries[i]) : [],
@@ -147,6 +147,22 @@
 			}
 
 			return wps;
+		},
+
+		_createName: function(nameParts) {
+			var name = '',
+				i;
+
+			for (i = 0; i < nameParts.length; i++) {
+				if (nameParts[i]) {
+					if (name) {
+						name += ', ';
+					}
+					name += nameParts[i].charAt(0).toUpperCase() + nameParts[i].slice(1);
+				}
+			}
+
+			return name;
 		},
 
 		buildRouteUrl: function(waypoints, options) {
