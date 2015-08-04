@@ -28,7 +28,7 @@
 			L.setOptions(this, options);
 		},
 
-		formatDistance: function(d /* Number (meters) */) {
+		formatDistance: function(d /* Number (meters) */, sensitivity) {
 			var un = this.options.unitNames,
 			    v,
 				data;
@@ -37,17 +37,17 @@
 				d = d / 1.609344;
 				if (d >= 1000) {
 					data = {
-						value: (this._round(d) / 1000),
+						value: (this._round(d) / 1000, sensitivity),
 						unit: un.miles
 					};
 				} else {
 					data = {
-						value: this._round(d / 1.760),
+						value: this._round(d / 1.760, sensitivity),
 						unit: un.yards
 					};
 				}
 			} else {
-				v = this._round(d);
+				v = this._round(d, sensitivity);
 				data = {
 					value: v >= 1000 ? (v / 1000) : v,
 					unit: v >= 1000 ? un.kilometers : un.meters
@@ -57,8 +57,9 @@
 			return L.Util.template(this.options.distanceTemplate, data);
 		},
 
-		_round: function(d) {
-			var pow10 = Math.pow(10, (Math.floor(d / this.options.roundingSensitivity) + '').length - 1),
+		_round: function(d, sensitivity) {
+			var s = sensitivity || this.options.roundingSensitivity,
+				pow10 = Math.pow(10, (Math.floor(d / s) + '').length - 1),
 				r = Math.floor(d / pow10),
 				p = (r > 5) ? pow10 : pow10 / 2;
 

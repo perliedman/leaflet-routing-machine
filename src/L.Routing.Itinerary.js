@@ -24,6 +24,7 @@
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
+			totalDistanceRoundingSensitivity: 10,
 			show: true,
 			collapsible: undefined,
 			collapseBtn: function(itinerary) {
@@ -113,7 +114,7 @@
 				template = this.options.summaryTemplate,
 				data = L.extend({
 					name: alt.name,
-					distance: this._formatter.formatDistance(alt.summary.totalDistance),
+					distance: this._formatter.formatDistance(alt.summary.totalDistance, this.options.totalDistanceRoundingSensitivity),
 					time: this._formatter.formatTime(alt.summary.totalTime)
 				}, alt);
 			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
