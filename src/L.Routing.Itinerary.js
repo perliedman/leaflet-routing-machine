@@ -119,6 +119,7 @@
 				}, alt);
 			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
+			this.on('alternateChosen', this._onAltClicked, this);
 
 			altDiv.appendChild(this._createItineraryContainer(alt));
 			return altDiv;
@@ -183,7 +184,7 @@
 			    isCurrentSelection,
 			    classFn;
 
-			altElem = e.target || window.event.srcElement;
+			altElem = e.routesIndex ? this._altElements[e.routesIndex] : e.target || window.event.srcElement;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
 				altElem = altElem.parentElement;
 			}
@@ -198,13 +199,14 @@
 						L.DomUtil[classFn](n, this.options.minimizedClassName);
 					}
 
-					if (isCurrentSelection) {
-						var alts = this._routes.slice();
-						alts.splice(j,1);
-						// TODO: don't fire if the currently active is clicked
-						this._selectRoute({route: this._routes[j], alternatives: alts});
-					} else {
-						n.scrollTop = 0;
+					if (!e.routesIndex) {
+						if (isCurrentSelection) {
+							var alts = this._routes.slice();
+							alts.splice(j,1);
+							this._selectRoute({route: this._routes[j], alternatives: alts});
+						} else {
+							n.scrollTop = 0;
+						}
 					}
 				}
 			}

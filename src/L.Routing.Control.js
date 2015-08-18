@@ -198,6 +198,7 @@
 				var alts = this._routes.slice();
 				var selected = alts.splice(e.target._route.routesIndex, 1)[0];
 				this._routeSelected({route: selected, alternatives: alts});
+				this.fire('alternateChosen', {routesIndex: e.target._route.routesIndex});
 			}, this);
 		},
 
