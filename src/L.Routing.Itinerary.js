@@ -89,7 +89,7 @@
 				this._altElements.push(altDiv);
 			}
 
-			this._selectRoute(this._routes[0]);
+			this._selectRoute({route: this._routes[0], alternatives: this._routes.slice(1)});
 
 			return this;
 		},
@@ -199,8 +199,10 @@
 					}
 
 					if (isCurrentSelection) {
+						var alts = this._routes.slice();
+						alts.splice(j,1);
 						// TODO: don't fire if the currently active is clicked
-						this._selectRoute(this._routes[j]);
+						this._selectRoute({route: this._routes[j], alternatives: alts});
 					} else {
 						n.scrollTop = 0;
 					}
@@ -210,12 +212,12 @@
 			L.DomEvent.stop(e);
 		},
 
-		_selectRoute: function(route) {
+		_selectRoute: function(routes) {
 			if (this._marker) {
 				this._map.removeLayer(this._marker);
 				delete this._marker;
 			}
-			this.fire('routeselected', {route: route});
+			this.fire('routeselected', routes);
 		}
 	});
 
