@@ -184,7 +184,7 @@
 			    isCurrentSelection,
 			    classFn;
 
-			altElem = e.routesIndex ? this._altElements[e.routesIndex] : e.target || window.event.srcElement;
+			altElem = !isNaN(e.routesIndex) ? this._altElements[e.routesIndex] : e.target || window.event.srcElement;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
 				altElem = altElem.parentElement;
 			}
@@ -199,7 +199,7 @@
 						L.DomUtil[classFn](n, this.options.minimizedClassName);
 					}
 
-					if (!e.routesIndex) {
+					if (isNaN(e.routesIndex)) {
 						if (isCurrentSelection) {
 							var alts = this._routes.slice();
 							alts.splice(j,1);
