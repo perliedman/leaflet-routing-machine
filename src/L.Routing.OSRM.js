@@ -192,8 +192,8 @@
 				!(options && options.geometryOnly);
 
 			return this.options.serviceUrl + '?' +
-				'instructions=' + computeInstructions + '&' +
-				'alt=' + computeAlternative + '&' +
+				'instructions=' + computeInstructions.toString() + '&' +
+				'alt=' + computeAlternative.toString() + '&' +
 				(options.z ? 'z=' + options.z + '&' : '') +
 				locs.join('&') +
 				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '') +
