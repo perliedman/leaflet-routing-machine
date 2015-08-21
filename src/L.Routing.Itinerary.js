@@ -107,6 +107,10 @@
 			this[collapsed ? 'show' : 'hide']();
 		},
 
+		_dispatchRoutes: function(e) {
+			this.fire('routeselected', e);
+		},
+
 		_createAlternative: function(alt, i) {
 			var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
 				this.options.alternativeClassName +
@@ -119,7 +123,7 @@
 				}, alt);
 			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
-			this.on('alternateChosen', this._onAltClicked, this);
+			this.on('routeselected', this._selectAlt, this);
 
 			altDiv.appendChild(this._createItineraryContainer(alt));
 			return altDiv;
@@ -133,7 +137,6 @@
 
 			this._altElements = [];
 		},
-
 
 		_createItineraryContainer: function(r) {
 			var container = this._itineraryBuilder.createContainer(),
@@ -178,36 +181,39 @@
 		},
 
 		_onAltClicked: function(e) {
-			var altElem,
-			    j,
-			    n,
-			    isCurrentSelection,
-			    classFn;
-
-			altElem = !isNaN(e.routesIndex) ? this._altElements[e.routesIndex] : e.target || window.event.srcElement;
+			var altElem = e.target || window.event.srcElement;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
 				altElem = altElem.parentElement;
 			}
 
+			var j = this._altElements.indexOf(altElem);
+			var alts = this._routes.slice();
+			var route = alts.splice(j, 1)[0];
+
+			this.fire('dispatchroutes', {
+				route: route,
+				alternatives: alts
+			});
+		},
+
+		_selectAlt: function(e) {
+			var altElem,
+			    j,
+			    n,
+			    classFn;
+
+			altElem = this._altElements[e.route.routesIndex];
+
 			if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
 				for (j = 0; j < this._altElements.length; j++) {
 					n = this._altElements[j];
-					isCurrentSelection = altElem === n;
-					classFn = isCurrentSelection ? 'removeClass' : 'addClass';
+					classFn = j === e.route.routesIndex ? 'removeClass' : 'addClass';
 					L.DomUtil[classFn](n, 'leaflet-routing-alt-minimized');
 					if (this.options.minimizedClassName) {
 						L.DomUtil[classFn](n, this.options.minimizedClassName);
 					}
 
-					if (isNaN(e.routesIndex)) {
-						if (isCurrentSelection) {
-							var alts = this._routes.slice();
-							alts.splice(j,1);
-							this._selectRoute({route: this._routes[j], alternatives: alts});
-						} else {
-							n.scrollTop = 0;
-						}
-					}
+					if (j !== e.route.routesIndex) n.scrollTop = 0;
 				}
 			}
 
