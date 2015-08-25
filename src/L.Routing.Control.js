@@ -17,7 +17,8 @@
 			routeWhileDragging: false,
 			routeDragInterval: 500,
 			waypointMode: 'connect',
-			useZoomParameter: false
+			useZoomParameter: false,
+			showAlternatives: false
 		},
 
 		initialize: function(options) {
@@ -174,7 +175,7 @@
 				this._alternatives[i] = this.options.routeLine(alt,
 					L.extend({
 						isAlternative: true
-					}, this.options.altLineOptions));
+					}, this.options.altLineOptions || this.options.lineOptions));
 				this._alternatives[i].addTo(this._map);
 				this._hookAltEvents(this._alternatives[i]);
 			}, this);

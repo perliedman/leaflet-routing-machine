@@ -32,8 +32,7 @@
 				L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
 				itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
 			},
-			collapseBtnClass: 'leaflet-routing-collapse-btn',
-			showAlternatives: false
+			collapseBtnClass: 'leaflet-routing-collapse-btn'
 		},
 
 		initialize: function(options) {
