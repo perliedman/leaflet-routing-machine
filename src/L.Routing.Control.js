@@ -94,7 +94,7 @@
 
 		_routeSelected: function(e) {
 			var route = e.route,
-				alternatives = e.alternatives,
+				alternatives = this.options.showAlternatives && e.alternatives,
 				fitMode = this.options.fitSelectedRoutes,
 				fitBounds =
 					(fitMode === 'smart' && !this._waypointsVisible()) ||
