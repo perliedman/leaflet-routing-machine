@@ -30,7 +30,6 @@
 
 			L.Routing.Itinerary.prototype.initialize.call(this, options);
 
-			this.on('dispatchroutes', this._dispatchRoutes, this);
 			this.on('routeselected', this._routeSelected, this);
 			this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 			if (options.routeWhileDragging) {
@@ -199,7 +198,7 @@
 			l.on('linetouched', function(e) {
 				var alts = this._routes.slice();
 				var selected = alts.splice(e.target._route.routesIndex, 1)[0];
-				this.fire('dispatchroutes', {route: selected, alternatives: alts});
+				this.fire('routeselected', {route: selected, alternatives: alts});
 			}, this);
 		},
 

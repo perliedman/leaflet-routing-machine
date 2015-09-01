@@ -107,10 +107,6 @@
 			this[collapsed ? 'show' : 'hide']();
 		},
 
-		_dispatchRoutes: function(e) {
-			this.fire('routeselected', e);
-		},
-
 		_createAlternative: function(alt, i) {
 			var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
 				this.options.alternativeClassName +
@@ -190,7 +186,7 @@
 			var alts = this._routes.slice();
 			var route = alts.splice(j, 1)[0];
 
-			this.fire('dispatchroutes', {
+			this.fire('routeselected', {
 				route: route,
 				alternatives: alts
 			});
