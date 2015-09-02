@@ -89,7 +89,7 @@
 				this._altElements.push(altDiv);
 			}
 
-			this._selectRoute(this._routes[0]);
+			this._selectRoute({route: this._routes[0], alternatives: this._routes.slice(1)});
 
 			return this;
 		},
@@ -119,6 +119,7 @@
 				}, alt);
 			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
+			this.on('routeselected', this._selectAlt, this);
 
 			altDiv.appendChild(this._createItineraryContainer(alt));
 			return altDiv;
@@ -132,7 +133,6 @@
 
 			this._altElements = [];
 		},
-
 
 		_createItineraryContainer: function(r) {
 			var container = this._itineraryBuilder.createContainer(),
@@ -177,45 +177,51 @@
 		},
 
 		_onAltClicked: function(e) {
-			var altElem,
-			    j,
-			    n,
-			    isCurrentSelection,
-			    classFn;
-
-			altElem = e.target || window.event.srcElement;
+			var altElem = e.target || window.event.srcElement;
 			while (!L.DomUtil.hasClass(altElem, 'leaflet-routing-alt')) {
 				altElem = altElem.parentElement;
 			}
 
+			var j = this._altElements.indexOf(altElem);
+			var alts = this._routes.slice();
+			var route = alts.splice(j, 1)[0];
+
+			this.fire('routeselected', {
+				route: route,
+				alternatives: alts
+			});
+		},
+
+		_selectAlt: function(e) {
+			var altElem,
+			    j,
+			    n,
+			    classFn;
+
+			altElem = this._altElements[e.route.routesIndex];
+
 			if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
 				for (j = 0; j < this._altElements.length; j++) {
 					n = this._altElements[j];
-					isCurrentSelection = altElem === n;
-					classFn = isCurrentSelection ? 'removeClass' : 'addClass';
+					classFn = j === e.route.routesIndex ? 'removeClass' : 'addClass';
 					L.DomUtil[classFn](n, 'leaflet-routing-alt-minimized');
 					if (this.options.minimizedClassName) {
 						L.DomUtil[classFn](n, this.options.minimizedClassName);
 					}
 
-					if (isCurrentSelection) {
-						// TODO: don't fire if the currently active is clicked
-						this._selectRoute(this._routes[j]);
-					} else {
-						n.scrollTop = 0;
-					}
+					if (j !== e.route.routesIndex) n.scrollTop = 0;
 				}
 			}
 
 			L.DomEvent.stop(e);
 		},
 
-		_selectRoute: function(route) {
+		_selectRoute: function(routes) {
 			if (this._marker) {
 				this._map.removeLayer(this._marker);
 				delete this._marker;
 			}
-			this.fire('routeselected', {route: route});
+			this.fire('routeselected', routes);
 		}
 	});
 

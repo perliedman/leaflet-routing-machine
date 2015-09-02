@@ -17,7 +17,8 @@
 			routeWhileDragging: false,
 			routeDragInterval: 500,
 			waypointMode: 'connect',
-			useZoomParameter: false
+			useZoomParameter: false,
+			showAlternatives: false
 		},
 
 		initialize: function(options) {
@@ -93,12 +94,13 @@
 
 		_routeSelected: function(e) {
 			var route = e.route,
+				alternatives = this.options.showAlternatives && e.alternatives,
 				fitMode = this.options.fitSelectedRoutes,
 				fitBounds =
 					(fitMode === 'smart' && !this._waypointsVisible()) ||
 					(fitMode !== 'smart' && fitMode);
 
-			this._updateLine(route);
+			this._updateLines({route: route, alternatives: alternatives});
 
 			if (fitBounds) {
 				this._map.fitBounds(this._line.getBounds());
@@ -135,7 +137,7 @@
 				boundsSize = bounds.getSize();
 				return (boundsSize.x > mapSize.x / 5 ||
 					boundsSize.y > mapSize.y / 5) && this._waypointsInViewport();
-					
+
 			} catch (e) {
 				return false;
 			}
@@ -161,12 +163,23 @@
 			return false;
 		},
 
-		_updateLine: function(route) {
+		_updateLines: function(routes) {
 			var addWaypoints = this.options.addWaypoints !== undefined ?
 				this.options.addWaypoints : true;
-			this._clearLine();
+			this._clearLines();
 
-			this._line = this.options.routeLine(route,
+			// add alternatives first so they lie below the main route
+			this._alternatives = [];
+			if (routes.alternatives) routes.alternatives.forEach(function(alt, i) {
+				this._alternatives[i] = this.options.routeLine(alt,
+					L.extend({
+						isAlternative: true
+					}, this.options.altLineOptions || this.options.lineOptions));
+				this._alternatives[i].addTo(this._map);
+				this._hookAltEvents(this._alternatives[i]);
+			}, this);
+
+			this._line = this.options.routeLine(routes.route,
 				L.extend({
 					addWaypoints: addWaypoints,
 					extendToWaypoints: this.options.waypointMode === 'connect'
@@ -181,12 +194,20 @@
 			}, this);
 		},
 
+		_hookAltEvents: function(l) {
+			l.on('linetouched', function(e) {
+				var alts = this._routes.slice();
+				var selected = alts.splice(e.target._route.routesIndex, 1)[0];
+				this.fire('routeselected', {route: selected, alternatives: alts});
+			}, this);
+		},
+
 		_onWaypointsChanged: function(e) {
 			if (this.options.autoRoute) {
 				this.route({});
 			}
 			if (!this._plan.isReady()) {
-				this._clearLine();
+				this._clearLines();
 				this._clearAlts();
 			}
 			this.fire('waypointschanged', {waypoints: e.waypoints});
@@ -221,7 +242,7 @@
 
 		_updateLineCallback: function(err, routes) {
 			if (!err) {
-				this._updateLine(routes[0]);
+				this._updateLines({route: routes[0], alternatives: routes.slice(1) });
 			}
 		},
 
@@ -244,28 +265,37 @@
 					// against the last request's; ignore result if
 					// this isn't the latest request.
 					if (ts === this._requestCount) {
-						this._clearLine();
+						this._clearLines();
 						this._clearAlts();
 						if (err) {
 							this.fire('routingerror', {error: err});
 							return;
 						}
 
+						routes.forEach(function(route, i) { route.routesIndex = i; });
+
 						if (!options.geometryOnly) {
 							this.fire('routesfound', {waypoints: wps, routes: routes});
 							this.setAlternatives(routes);
 						} else {
-							this._routeSelected({route: routes[0]});
+							var selectedRoute = routes.splice(0,1)[0];
+							this._routeSelected({route: selectedRoute, alternatives: routes});
 						}
 					}
 				}, this, options);
 			}
 		},
 
-		_clearLine: function() {
+		_clearLines: function() {
 			if (this._line) {
 				this._map.removeLayer(this._line);
 				delete this._line;
+			}
+			if (this._alternatives && this._alternatives.length) {
+				for (var i in this._alternatives) {
+					this._map.removeLayer(this._alternatives[i]);
+				}
+				this._alternatives = [];
 			}
 		}
 	});
