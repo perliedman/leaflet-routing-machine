@@ -139,18 +139,29 @@
 
 		_createGeocoder: function(i) {
 			var geocoder = this.options.createGeocoderElement(this._waypoints[i], i, this._waypoints.length, this.options);
-			geocoder.on('delete', function() {
+			geocoder
+			.on('delete', function() {
 				if (i > 0 || this._waypoints.length > 2) {
 					this.spliceWaypoints(i, 1);
 				} else {
 					this.spliceWaypoints(i, 1, new L.Routing.Waypoint());
 				}
-			}, this);
-			geocoder.on('geocoded', function() {
+			}, this)
+			.on('geocoded', function(e) {
 				this._updateMarkers();
 				this._fireChanged();
 				this._focusGeocoder(i + 1);
-			}, this);
+				this.fire('waypointgeocoded', {
+					waypointIndex: i,
+					waypoint: e.waypoint
+				});
+			}, this)
+			.on('reversegeocoded', function(e) {
+				this.fire('waypointgeocoded', {
+					waypointIndex: i,
+					waypoint: e.waypoint
+				});
+			});
 
 			return geocoder;
 		},

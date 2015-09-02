@@ -89,7 +89,7 @@
 					geocoderInput.value = r.name;
 					wp.name = r.name;
 					wp.latLng = r.center;
-					this.fire('geocoded', { value: r });
+					this.fire('geocoded', { waypoint: wp, value: r });
 				}, this, L.extend({
 					resultFn: this.options.geocoder.geocode,
 					resultContext: this.options.geocoder,
@@ -125,9 +125,8 @@
 					}, this);
 				} else {
 					wp.name = wpCoords;
+					this._update();
 				}
-
-				this._update();
 			}
 		},
 
@@ -141,6 +140,7 @@
 			var wp = this._waypoint,
 			    value = wp && wp.name ? wp.name : '';
 			this.setValue(value);
+			this.fire('reversegeocoded', {waypoint: wp, value: value});
 		}
 	});
 
