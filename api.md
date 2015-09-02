@@ -81,6 +81,8 @@ Option                 | Type                | Default       | Description
 `routeDragInterval`    | `Number`              | `500`           | The minimum number of milliseconds between route calculations when waypoints are dragged
 `waypointMode`         | `String`              | `connect`       | Set to either `connect` (waypoints are connected by a line to the closest point on the calculated route) or `snap` (waypoints are moved to the closest point on the calculated route)
 `useZoomParameter`     | `Boolean`             | `false`         | If true, route will be recalculated when the map is zoomed
+`showAlternatives`     | `Boolean`             | `false`         | If true, alternative polyline[s] will be shown on the map when available at the same time as the primary polyline
+`altLineOptions`       | [`LineOptions`](#lineoptions) |         | Options passed when creating a new [`L.Routing.Line`](#l-routing-line) for showing _alternative_ line[s], when `showAlternatives` is set to `true`. If not set and `showAlternatives` is `true`, alternative lines will be styled using `lineOptions`
 
 
 
