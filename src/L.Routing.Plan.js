@@ -77,13 +77,13 @@
 
 			[].splice.apply(this._waypoints, args);
 
-			this._updateMarkers();
-			this._fireChanged.apply(this, args);
-
 			// Make sure there's always at least two waypoints
 			while (this._waypoints.length < 2) {
 				this.spliceWaypoints(this._waypoints.length, 0, null);
 			}
+
+			this._updateMarkers();
+			this._fireChanged.apply(this, args);
 		},
 
 		onAdd: function(map) {
