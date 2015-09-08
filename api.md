@@ -186,7 +186,7 @@ Event         | Data           | Description
 --------------|----------------|---------------------------------------------------------------
 `waypointschanged`  | [`RoutingEvent`](#routingevent) | Fired when one or more waypoints change (added, deleted, moved)
 `waypointsspliced`  | [`WaypointsSplicedEvent`](#waypointssplicedevent) | Also fired when waypoints changed, but includes more finegrained details on actual changes, like a call to `Array.splice`
-
+`waypointgeocoded`  | [`GeocodingEvent`](#geocodingevent) | Fired when a waypoint is geocoded or reverse geocoded
 
 ### Methods
 
@@ -372,6 +372,14 @@ property      | type        | description
 --------------|-------------|-----------------------------------
 `afterIndex`  | `Number`    | Index of the waypoint closest before the location where the line was touched
 `latlng`      | `Number`    | Location where the line was touched
+
+
+### <a name="geocodingevent"></a> GeocodingEvent
+
+property      | type        | description
+--------------|-------------|-----------------------------------
+`waypointIndex`  | `Number`    | Index of the waypoint that was geocoded
+`waypoint`       | [`L.Routing.Waypoint`](#l-routing-waypoint)    | The waypoint that was geocoded
 
 ## <a name="irouter"></a> IRouter
 
