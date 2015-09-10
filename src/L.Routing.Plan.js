@@ -161,7 +161,7 @@
 					waypointIndex: i,
 					waypoint: e.waypoint
 				});
-			});
+			}, this);
 
 			return geocoder;
 		},
