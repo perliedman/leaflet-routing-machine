@@ -15,7 +15,8 @@
 	L.Routing.OSRM = L.Class.extend({
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
-			timeout: 30 * 1000
+			timeout: 30 * 1000,
+			routingOptions: {}
 		},
 
 		initialize: function(options) {
@@ -33,8 +34,7 @@
 				wp,
 				i;
 
-			options = options || {};
-			url = this.buildRouteUrl(waypoints, options);
+			url = this.buildRouteUrl(waypoints, L.extend({}, this.options.routingOptions, options));
 
 			timer = setTimeout(function() {
 				timedOut = true;
