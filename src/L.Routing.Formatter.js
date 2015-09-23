@@ -31,18 +31,19 @@
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
 			var un = this.options.unitNames,
 			    v,
+			    yards,
 				data;
 
 			if (this.options.units === 'imperial') {
-				d = d / 1.609344;
-				if (d >= 1000) {
+				yards = d / 0.9144;
+				if (yards >= 1000) {
 					data = {
-						value: (this._round(d) / 1000, sensitivity),
+						value: this._round(d / 1609.344, sensitivity),
 						unit: un.miles
 					};
 				} else {
 					data = {
-						value: this._round(d / 1.760, sensitivity),
+						value: this._round(yards, sensitivity),
 						unit: un.yards
 					};
 				}
