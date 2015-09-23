@@ -50,7 +50,17 @@ describe('L.Routing.Formatter', function() {
 			expect(parseInt(p.formatDistance(22000), 10)).toBe(20);
 			expect(parseInt(p.formatDistance(24000), 10)).toBe(25);
 			expect(parseInt(p.formatDistance(86000), 10)).toBe(90);
-		})
+		});
+		it('formats imperial units properly', function() {
+			var p = new L.Routing.Formatter({
+				distanceTemplate: '{value}',
+				units: 'imperial'
+			});
+			expect(parseInt(p.formatDistance(800), 10)).toBe(900);
+			expect(parseInt(p.formatDistance(22000), 10)).toBe(15);
+			expect(parseInt(p.formatDistance(24500), 10)).toBe(15);
+			expect(parseInt(p.formatDistance(86000), 10)).toBe(55);
+		});
 	});
 
 	describe('.formatTime', function() {
