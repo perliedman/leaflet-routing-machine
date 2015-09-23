@@ -412,8 +412,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			routeDragInterval: 500,
 			waypointMode: 'connect',
 			useZoomParameter: false,
-			showAlternatives: false,
-			routingOptions: {}
+			showAlternatives: false
 		},
 
 		initialize: function(options) {
@@ -647,8 +646,6 @@ if (typeof module !== undefined) module.exports = polyline;
 
 			options = options || {};
 
-			var routingOptions = L.extend(options, this.options.routingOptions);
-
 			if (this._plan.isReady()) {
 				if (this.options.useZoomParameter) {
 					options.z = this._map && this._map.getZoom();
@@ -679,7 +676,7 @@ if (typeof module !== undefined) module.exports = polyline;
 							this._routeSelected({route: selectedRoute, alternatives: routes});
 						}
 					}
-				}, this, routingOptions);
+				}, this, options);
 			}
 		},
 
@@ -1852,7 +1849,8 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.Routing.OSRM = L.Class.extend({
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
-			timeout: 30 * 1000
+			timeout: 30 * 1000,
+			routingOptions: {}
 		},
 
 		initialize: function(options) {
@@ -1870,8 +1868,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				wp,
 				i;
 
-			options = options || {};
-			url = this.buildRouteUrl(waypoints, options);
+			url = this.buildRouteUrl(waypoints, L.extend(options || {}, this.options.routingOptions));
 
 			timer = setTimeout(function() {
 				timedOut = true;

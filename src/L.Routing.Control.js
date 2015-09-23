@@ -18,8 +18,7 @@
 			routeDragInterval: 500,
 			waypointMode: 'connect',
 			useZoomParameter: false,
-			showAlternatives: false,
-			routingOptions: {}
+			showAlternatives: false
 		},
 
 		initialize: function(options) {
@@ -253,8 +252,6 @@
 
 			options = options || {};
 
-			var routingOptions = L.extend(options, this.options.routingOptions);
-
 			if (this._plan.isReady()) {
 				if (this.options.useZoomParameter) {
 					options.z = this._map && this._map.getZoom();
@@ -285,7 +282,7 @@
 							this._routeSelected({route: selectedRoute, alternatives: routes});
 						}
 					}
-				}, this, routingOptions);
+				}, this, options);
 			}
 		},
 
