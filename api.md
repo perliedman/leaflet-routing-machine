@@ -135,6 +135,7 @@ Option                 | Type     | Default             | Description
 `collapsible`          | `Boolean`| `undefined`         | If `true`, a collapse button is added, if `false`, no button is added, if `undefined`, a button is added if the screen width is small (typically mobile devices)
 `collapseBtn`          | `Function` |                   | Function that takes the `L.Routing.Itinerary` instance as argument, and creates a collapse button
 `collapseBtnClass`     | `String` | `'leaflet-routing-collapse-btn'` | Class used by default for the collapse button 
+`totalDistanceRoundingSensitivity` | `Number` | `-1` | How much rounding should be applied to total route distance: positive values use smart rounding, where higher means more accurate, lower less accurate; negative values means fixed precision, where the number of decimals is `-roundingSensitivity`.
 
 ### Events
 
@@ -284,7 +285,7 @@ Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
 `language`             | `String` | `'en'`              | Language to use from [`L.Routing.Localization`](#l-routing-localization)
 `units`                | `String` | `'metric'`          | Units to use; `'metric'` or `'imperial'`
-`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more accurate, lower less accurate
+`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances: positive values use smart rounding, where higher means more accurate, lower less accurate; negative values means fixed precision, where the number of decimals is `-roundingSensitivity`
 `unitNames`            | `Object` | `{meters: 'm',kilometers: 'km',yards: 'yd',miles: 'mi',hours: 'h',minutes: 'mín',seconds: 's'}` | Hash of unit names to use
 
 ### Methods
