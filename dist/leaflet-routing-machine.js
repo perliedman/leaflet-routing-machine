@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.L||(f.L={})).Routing=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -736,28 +736,37 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
 			var un = this.options.unitNames,
+				simpleRounding = sensitivity <= 0,
+				round = simpleRounding ? function(v) { return v; } : L.bind(this._round, this),
 			    v,
-				data;
+			    yards,
+				data,
+				pow10;
 
 			if (this.options.units === 'imperial') {
-				d = d / 1.609344;
-				if (d >= 1000) {
+				yards = d / 0.9144;
+				if (yards >= 1000) {
 					data = {
-						value: (this._round(d) / 1000, sensitivity),
+						value: round(d / 1609.344, sensitivity),
 						unit: un.miles
 					};
 				} else {
 					data = {
-						value: this._round(d / 1.760, sensitivity),
+						value: round(yards, sensitivity),
 						unit: un.yards
 					};
 				}
 			} else {
-				v = this._round(d, sensitivity);
+				v = round(d, sensitivity);
 				data = {
 					value: v >= 1000 ? (v / 1000) : v,
 					unit: v >= 1000 ? un.kilometers : un.meters
 				};
+			}
+
+			if (simpleRounding) {
+				pow10 = Math.pow(10, -sensitivity);
+				data.value = Math.round(data.value * pow10) / pow10;
 			}
 
 			return L.Util.template(this.options.distanceTemplate, data);
@@ -1025,7 +1034,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			totalDistanceRoundingSensitivity: 10,
+			totalDistanceRoundingSensitivity: -1,
 			show: true,
 			collapsible: undefined,
 			collapseBtn: function(itinerary) {
@@ -1849,7 +1858,8 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.Routing.OSRM = L.Class.extend({
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
-			timeout: 30 * 1000
+			timeout: 30 * 1000,
+			routingOptions: {}
 		},
 
 		initialize: function(options) {
@@ -1867,8 +1877,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				wp,
 				i;
 
-			options = options || {};
-			url = this.buildRouteUrl(waypoints, options);
+			url = this.buildRouteUrl(waypoints, L.extend({}, this.options.routingOptions, options));
 
 			timer = setTimeout(function() {
 				timedOut = true;
@@ -1962,10 +1971,10 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		_decodePolyline: function(routeGeometry) {
 			var cs = polyline.decode(routeGeometry, 6),
-				result = [],
+				result = new Array(cs.length),
 				i;
-			for (i = 0; i < cs.length; i++) {
-				result.push(L.latLng(cs[i]));
+			for (i = cs.length - 1; i >= 0; i--) {
+				result[i] = L.latLng(cs[i]);
 			}
 
 			return result;
@@ -2125,6 +2134,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			for (i = 0; i < indices.length; i++) {
 				indices[i] = Math.min(maxCoordIndex, Math.max(indices[i], 0));
 			}
+			return indices;
 		}
 	});
 
@@ -2301,7 +2311,7 @@ if (typeof module !== undefined) module.exports = polyline;
 					waypointIndex: i,
 					waypoint: e.waypoint
 				});
-			});
+			}, this);
 
 			return geocoder;
 		},
