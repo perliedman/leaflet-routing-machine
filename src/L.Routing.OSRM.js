@@ -291,6 +291,7 @@
 			for (i = 0; i < indices.length; i++) {
 				indices[i] = Math.min(maxCoordIndex, Math.max(indices[i], 0));
 			}
+			return indices;
 		}
 	});
 
