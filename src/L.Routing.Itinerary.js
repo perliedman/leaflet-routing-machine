@@ -24,7 +24,7 @@
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			totalDistanceRoundingSensitivity: 10,
+			totalDistanceRoundingSensitivity: -1,
 			show: true,
 			collapsible: undefined,
 			collapseBtn: function(itinerary) {

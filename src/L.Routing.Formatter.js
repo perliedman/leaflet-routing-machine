@@ -30,29 +30,37 @@
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
 			var un = this.options.unitNames,
+				simpleRounding = sensitivity <= 0,
+				round = simpleRounding ? function(v) { return v; } : L.bind(this._round, this),
 			    v,
 			    yards,
-				data;
+				data,
+				pow10;
 
 			if (this.options.units === 'imperial') {
 				yards = d / 0.9144;
 				if (yards >= 1000) {
 					data = {
-						value: this._round(d / 1609.344, sensitivity),
+						value: round(d / 1609.344, sensitivity),
 						unit: un.miles
 					};
 				} else {
 					data = {
-						value: this._round(yards, sensitivity),
+						value: round(yards, sensitivity),
 						unit: un.yards
 					};
 				}
 			} else {
-				v = this._round(d, sensitivity);
+				v = round(d, sensitivity);
 				data = {
 					value: v >= 1000 ? (v / 1000) : v,
 					unit: v >= 1000 ? un.kilometers : un.meters
 				};
+			}
+
+			if (simpleRounding) {
+				pow10 = Math.pow(10, -sensitivity);
+				data.value = Math.round(data.value * pow10) / pow10;
 			}
 
 			return L.Util.template(this.options.distanceTemplate, data);
