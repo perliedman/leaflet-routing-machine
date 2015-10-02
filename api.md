@@ -284,7 +284,7 @@ Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
 `language`             | `String` | `'en'`              | Language to use from [`L.Routing.Localization`](#l-routing-localization)
 `units`                | `String` | `'metric'`          | Units to use; `'metric'` or `'imperial'`
-`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more rounded, lower more accurate
+`roundingSensitivity`  | `Number` | `1`                 | How much rounding should be applied to distances; higher means more accurate, lower less accurate
 `unitNames`            | `Object` | `{meters: 'm',kilometers: 'km',yards: 'yd',miles: 'mi',hours: 'h',minutes: 'mín',seconds: 's'}` | Hash of unit names to use
 
 ### Methods
