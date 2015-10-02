@@ -128,10 +128,10 @@
 
 		_decodePolyline: function(routeGeometry) {
 			var cs = polyline.decode(routeGeometry, 6),
-				result = [],
+				result = new Array(cs.length),
 				i;
-			for (i = 0; i < cs.length; i++) {
-				result.push(L.latLng(cs[i]));
+			for (i = cs.length - 1; i >= 0; i--) {
+				result[i] = L.latLng(cs[i]);
 			}
 
 			return result;
