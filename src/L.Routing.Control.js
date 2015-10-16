@@ -243,6 +243,8 @@
 		_updateLineCallback: function(err, routes) {
 			if (!err) {
 				this._updateLines({route: routes[0], alternatives: routes.slice(1) });
+			} else {
+				this._clearLines();
 			}
 		},
 
