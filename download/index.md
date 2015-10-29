@@ -6,6 +6,11 @@ layout: default
 
 Download the latest release of Leaflet Routing Machine:
 
+<small>
+_Note:_ If you're using Leaflet's 1.0.0 beta release, you need to use a beta release of Leaflet Routing Machine as well. Please download or install version 3.0.0-beta.1 of Leaflet Routing Machine in this case; version 2 will _only_ work
+with Leaflet 0.7.
+</small>
+
 {% for version in site.data.versions reversed %}
 * [leaflet-routing-machine-{{ version.version }}.zip]({{site.baseurl}}/dist/leaflet-routing-machine-{{ version.version }}.zip)
 {% endfor %}
