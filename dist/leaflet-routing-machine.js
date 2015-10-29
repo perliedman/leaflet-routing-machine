@@ -395,7 +395,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Itinerary'));
@@ -637,6 +637,8 @@ if (typeof module !== undefined) module.exports = polyline;
 		_updateLineCallback: function(err, routes) {
 			if (!err) {
 				this._updateLines({route: routes[0], alternatives: routes.slice(1) });
+			} else {
+				this._clearLines();
 			}
 		},
 
@@ -707,7 +709,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 
 	L.Routing = L.Routing || {};
 
@@ -736,28 +738,37 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
 			var un = this.options.unitNames,
+				simpleRounding = sensitivity <= 0,
+				round = simpleRounding ? function(v) { return v; } : L.bind(this._round, this),
 			    v,
-				data;
+			    yards,
+				data,
+				pow10;
 
 			if (this.options.units === 'imperial') {
-				d = d / 1.609344;
-				if (d >= 1000) {
+				yards = d / 0.9144;
+				if (yards >= 1000) {
 					data = {
-						value: (this._round(d) / 1000, sensitivity),
+						value: round(d / 1609.344, sensitivity),
 						unit: un.miles
 					};
 				} else {
 					data = {
-						value: this._round(d / 1.760, sensitivity),
+						value: round(yards, sensitivity),
 						unit: un.yards
 					};
 				}
 			} else {
-				v = this._round(d, sensitivity);
+				v = round(d, sensitivity);
 				data = {
 					value: v >= 1000 ? (v / 1000) : v,
 					unit: v >= 1000 ? un.kilometers : un.meters
 				};
+			}
+
+			if (simpleRounding) {
+				pow10 = Math.pow(10, -sensitivity);
+				data.value = Math.round(data.value * pow10) / pow10;
 			}
 
 			return L.Util.template(this.options.distanceTemplate, data);
@@ -846,7 +857,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
 
@@ -1002,7 +1013,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Formatter'));
@@ -1025,7 +1036,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			alternativeClassName: '',
 			minimizedClassName: '',
 			itineraryClassName: '',
-			totalDistanceRoundingSensitivity: 10,
+			totalDistanceRoundingSensitivity: -1,
 			show: true,
 			collapsible: undefined,
 			collapseBtn: function(itinerary) {
@@ -1239,7 +1250,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.ItineraryBuilder = L.Class.extend({
@@ -1290,7 +1301,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 
 	L.Routing = L.Routing || {};
 
@@ -1835,7 +1846,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null),
 		corslite = require('corslite'),
 		polyline = require('polyline');
 
@@ -1868,7 +1879,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				wp,
 				i;
 
-			url = this.buildRouteUrl(waypoints, L.extend(options || {}, this.options.routingOptions));
+			url = this.buildRouteUrl(waypoints, L.extend({}, this.options.routingOptions, options));
 
 			timer = setTimeout(function() {
 				timedOut = true;
@@ -1962,10 +1973,10 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		_decodePolyline: function(routeGeometry) {
 			var cs = polyline.decode(routeGeometry, 6),
-				result = [],
+				result = new Array(cs.length),
 				i;
-			for (i = 0; i < cs.length; i++) {
-				result.push(L.latLng(cs[i]));
+			for (i = cs.length - 1; i >= 0; i--) {
+				result[i] = L.latLng(cs[i]);
 			}
 
 			return result;
@@ -2125,6 +2136,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			for (i = 0; i < indices.length; i++) {
 				indices[i] = Math.min(maxCoordIndex, Math.max(indices[i], 0));
 			}
+			return indices;
 		}
 	});
 
@@ -2141,12 +2153,12 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
-	L.Routing.Plan = L.Class.extend({
+	L.Routing.Plan = L.Layer.extend({
 		includes: L.Mixin.Events,
 
 		options: {
@@ -2493,7 +2505,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.Waypoint = L.Class.extend({
