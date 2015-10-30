@@ -5,7 +5,7 @@ title: GraphHopper, Mapbox, Valhalla and other routing software
 
 ## GraphHopper, Mapbox, Valhalla and other routing software
 
-Behind the UI, Leaflet Routing Machine queries [OSRM](http://project-osrm.org)'s 
+Behind the UI, Leaflet Routing Machine queries [OSRM](http://project-osrm.org)'s
 servers each time the route is recalculated, unless you tell it to use something else.
 This is great for normal use: the service is free, OSRM is both good as well as *very*
 quick. However, there are cases where OSRM's defaults doesn't cut it: you want to
@@ -45,8 +45,8 @@ L.Routing.control({
 Another popular, open source routing software is [GraphHopper](https://graphhopper.com/). It's fast, works
 well with OpenStreetMap data and runs on a lot of platforms (even on Android).
 
-To use switch to using GraphHopper with Leaflet Routing Machine, you need to use the plugin 
-[lrm-graphhopper](https://github.com/perliedman/lrm-graphhopper). You can 
+To use switch to using GraphHopper with Leaflet Routing Machine, you need to use the plugin
+[lrm-graphhopper](https://github.com/perliedman/lrm-graphhopper). You can
 [download lrm-graphhopper](http://www.liedman.net/lrm-graphhopper/download/) and insert the
 JavaScript file into your page right after where it loads Leaflet Routing Machine:
 
@@ -65,7 +65,7 @@ L.Routing.control({
 ```
 
 Like OSRM, the GraphHopper router will by default use GraphHopper's public servers. You need to
-[register](https://graphhopper.com/dashboard/#/register) and get an API key to use these, and 
+[register](https://graphhopper.com/dashboard/#/register) and get an API key to use these, and
 you need to give that API key to the router instance.
 
 If you set up your own GraphHopper server, you don't need the API key, but instead configure the
@@ -111,11 +111,11 @@ Another popular alternative for routing is to use
 is a part of Mapbox's platform, so you can't install your own version of it, it's installed, hosted
 and supported by Mapbox. You'll need a Mapbox account to use this feature.
 
-First, you need an [API access token](https://www.mapbox.com/account/apps/) to identify that it's 
+First, you need an [API access token](https://www.mapbox.com/account/apps/) to identify that it's
 your account that should be billed for the routing.
 
-Second, you need to use the plugin 
-[lrm-mapbox](https://github.com/perliedman/lrm-mapbox). You can 
+Second, you need to use the plugin
+[lrm-mapbox](https://github.com/perliedman/lrm-mapbox). You can
 [download lrm-mapbox](http://www.liedman.net/lrm-mapbox/download/) and insert the
 JavaScript file into your page right after where it loads Leaflet Routing Machine:
 
@@ -171,18 +171,18 @@ Or, to use with for example Browserify:
 npm install --save lrm-valhalla
 ```
 
-See the [lrm-valhalla](https://github.com/valhalla/lrm-valhalla) project page for info and docs on using the plug-in as well as the Valhalla API reference. 
+See the [lrm-valhalla](https://github.com/valhalla/lrm-valhalla) project page for info and docs on using the plug-in as well as the Valhalla API reference.
 
 ### TomTom Online Routing API
 
-[Mathias Rohnstock](https://github.com/drmonty) has written a plugin for Leaflet Routing Machine: [lrm-tomtom](https://github.com/drmonty/lrm-tomtom). Check it out!
+[Mathias Rohnstock](https://github.com/mrohnstock) has written a plugin for Leaflet Routing Machine: [lrm-tomtom](https://github.com/mrohnstock/lrm-tomtom). Check it out!
 
 ### Using other routers
 
 You can also build support for other routing software. This way, you can for example use
 Leaflet Routing Machine with proprietary routing software of your choice.
 
-The basic requirement is that the router class must implement the 
+The basic requirement is that the router class must implement the
 [`IRouter`]({{site.baseurl}}/api/#irouter) interface, so that Leaflet Routing Machine knows
 how to communicate with your router. The interface is pretty simple and contains a single
 method:
