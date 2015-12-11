@@ -29,7 +29,7 @@ L.Routing.control({
         L.latLng(38.12, -122.22)
     ],
     routeWhileDragging: true,
-    geocoder: L.Control.Geocoder.mapbox('pk.eyJ1IjoibGllZG1hbiIsImEiOiJPRTJiMzV3In0.GjD_YP84NU33OEKXHcGUnQ'),
+    geocoder: L.Control.Geocoder.mapbox(LRM.apiToken),
     waypointNameFallback: function(latLng) {
         function zeroPad(n) {
             n = Math.round(n);
