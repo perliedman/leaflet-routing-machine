@@ -57,3 +57,7 @@ pre > code {
     margin: 0;
     font-size: 100%;
 }
+
+.leaflet-routing-error h3 {
+    font-size: 16px;
+}

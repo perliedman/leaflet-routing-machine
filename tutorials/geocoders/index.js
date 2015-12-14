@@ -6,7 +6,7 @@ L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map1);
 
-L.Routing.control({
+var control1 = L.Routing.control({
     waypoints: [
         L.latLng(57.74, 11.94),
         L.latLng(57.6792, 11.949)
@@ -23,7 +23,7 @@ L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map2);
 
-L.Routing.control({
+var control2 = L.Routing.control({
     waypoints: [
         L.latLng(37.76, -122.45),
         L.latLng(38.12, -122.22)
@@ -48,3 +48,5 @@ L.Routing.control({
     }
 }).addTo(map2);
 
+L.Routing.errorControl(control1).addTo(map1);
+L.Routing.errorControl(control2).addTo(map2);
