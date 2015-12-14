@@ -1,8 +1,9 @@
-.leaflet-routing-container {
+.leaflet-routing-container, .leaflet-routing-error {
     width: 320px;
     background-color: white;
     padding-top: 4px;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .leaflet-control-container .leaflet-routing-container-hide {
@@ -23,7 +24,7 @@
     margin-top: 20px;
 }
 
-.leaflet-routing-alt, .leaflet-routing-geocoders {
+.leaflet-routing-alt, .leaflet-routing-geocoders, .leaflet-routing-error {
     padding: 6px;
     margin-top: 2px;
     margin-bottom: 6px;
