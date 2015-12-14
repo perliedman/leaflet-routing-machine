@@ -65,16 +65,15 @@
 					if (!err) {
 						try {
 							data = JSON.parse(resp.responseText);
+							try {
+								return this._routeDone(data, wps, callback, context);
+							} catch (ex) {
+								statusCode = -3;
+								errorMessage = ex.toString();
+							}
 						} catch (ex) {
 							statusCode = -2;
 							errorMessage = 'Error parsing OSRM response: ' + ex.toString();
-						}
-						
-						try {
-							return this._routeDone(data, wps, callback, context);
-						} catch (ex) {
-							statusCode = -3;
-							errorMessage = ex.toString();
 						}
 					}
 
