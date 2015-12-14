@@ -53,19 +53,35 @@
 			}
 
 			corslite(url, L.bind(function(err, resp) {
-				var data;
+				var data,
+					errorMessage,
+					statusCode;
 
 				clearTimeout(timer);
 				if (!timedOut) {
+					errorMessage = 'HTTP request failed: ' + err;
+					statusCode = -1;
+
 					if (!err) {
-						data = JSON.parse(resp.responseText);
-						this._routeDone(data, wps, callback, context);
-					} else {
-						callback.call(context || callback, {
-							status: -1,
-							message: 'HTTP request failed: ' + err
-						});
+						try {
+							data = JSON.parse(resp.responseText);
+						} catch (ex) {
+							statusCode = -2;
+							errorMessage = 'Error parsing OSRM response: ' + ex.toString();
+						}
+						
+						try {
+							return this._routeDone(data, wps, callback, context);
+						} catch (ex) {
+							statusCode = -3;
+							errorMessage = ex.toString();
+						}
 					}
+
+					callback.call(context || callback, {
+						status: statusCode,
+						message: errorMessage
+					});
 				}
 			}, this));
 
