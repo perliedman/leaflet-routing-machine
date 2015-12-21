@@ -18,14 +18,7 @@ git fetch origin gh-pages
 git rebase origin/gh-pages
 
 mkdir -p dist
-mkdir -p _data
-cd $CWD/dist
-zip -r $TMP/dist/leaflet-routing-machine-$VERSION.zip leaflet-routing-machine* leaflet.routing.icons.png
-cp leaflet-routing-machine* leaflet.routing.icons.png $TMP/dist
-cd $TMP
-echo -e "- version: $VERSION\n" >>_data/versions.yml
-
-git add -f dist/ _data/
+git add -f dist/
 git commit -m "Dist files $VERSION"
 git push origin gh-pages
 cd $CWD
