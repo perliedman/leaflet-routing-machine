@@ -17,7 +17,7 @@
 			serviceUrl: '//router.project-osrm.org/viaroute',
 			timeout: 30 * 1000,
 			routingOptions: {},
-			precision: 6
+			polylinePrecision: 6
 		},
 
 		initialize: function(options) {
@@ -143,7 +143,7 @@
 		},
 
 		_decodePolyline: function(routeGeometry) {
-			var cs = polyline.decode(routeGeometry, this.options.precision),
+			var cs = polyline.decode(routeGeometry, this.options.polylinePrecision),
 				result = new Array(cs.length),
 				i;
 			for (i = cs.length - 1; i >= 0; i--) {
