@@ -395,7 +395,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Itinerary'));
@@ -771,7 +771,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 
@@ -919,7 +919,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
 
@@ -1075,7 +1075,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Formatter'));
@@ -1312,7 +1312,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.ItineraryBuilder = L.Class.extend({
@@ -1363,7 +1363,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 
@@ -1673,13 +1673,13 @@ if (typeof module !== undefined) module.exports = polyline;
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Derecho {dir}', ' sobre {road}'],
+					['Seguir derecho {dir}', ' sobre {road}'],
 				'Continue':
 					['Continuar {dir}', ' en {road}'],
 				'SlightRight':
 					['Leve giro a la derecha', ' sobre {road}'],
 				'Right':
-					['Derecha', ' sobre {road}'],
+					['Hacia la derecha', ' sobre {road}'],
 				'SharpRight':
 					['Giro pronunciado a la derecha', ' sobre {road}'],
 				'TurnAround':
@@ -1687,7 +1687,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				'SharpLeft':
 					['Giro pronunciado a la izquierda', ' sobre {road}'],
 				'Left':
-					['Izquierda', ' en {road}'],
+					['Hacia la izquierda', ' en {road}'],
 				'SlightLeft':
 					['Leve giro a la izquierda', ' en {road}'],
 				'WaypointReached':
@@ -1908,7 +1908,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null),
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
 		corslite = require('corslite'),
 		polyline = require('polyline');
 
@@ -1923,7 +1923,8 @@ if (typeof module !== undefined) module.exports = polyline;
 		options: {
 			serviceUrl: '//router.project-osrm.org/viaroute',
 			timeout: 30 * 1000,
-			routingOptions: {}
+			routingOptions: {},
+			polylinePrecision: 6
 		},
 
 		initialize: function(options) {
@@ -2049,7 +2050,7 @@ if (typeof module !== undefined) module.exports = polyline;
 		},
 
 		_decodePolyline: function(routeGeometry) {
-			var cs = polyline.decode(routeGeometry, 6),
+			var cs = polyline.decode(routeGeometry, this.options.polylinePrecision),
 				result = new Array(cs.length),
 				i;
 			for (i = cs.length - 1; i >= 0; i--) {
@@ -2230,7 +2231,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
@@ -2360,8 +2361,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				}, this);
 			}
 
-			this._updateGeocoders();
-			this.on('waypointsspliced', this._updateGeocoders);
+			this._updateGeocoders();			this.on('waypointsspliced', this._updateGeocoders);
 
 			return container;
 		},
@@ -2582,7 +2582,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.Waypoint = L.Class.extend({
