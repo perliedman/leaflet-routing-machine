@@ -3,7 +3,7 @@ module.exports = function(grunt) {
 		pkg: grunt.file.readJSON('package.json'),
 		browserify: {
 			control: {
-				src: ['src/L.Routing.Control.js'],
+				src: ['src/index.js'],
 				dest: 'dist/leaflet-routing-machine.js',
 				options: {
 					browserifyOptions: {
