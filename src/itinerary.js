@@ -2,7 +2,7 @@
 
 var L = require('leaflet'),
 	Formatter = require('./formatter'),
-	ItineraryBuilder = require('./itinerary-builder');
+	InstructionElement = require('./instruction-element');
 
 module.exports = L.Control.extend({
 	includes: L.Mixin.Events,
@@ -35,7 +35,7 @@ module.exports = L.Control.extend({
 	initialize: function(options) {
 		L.setOptions(this, options);
 		this._formatter = this.options.formatter || new Formatter(this.options);
-		this._itineraryBuilder = this.options.itineraryBuilder || new ItineraryBuilder({
+		this._instructionElement = this.options.instructionElement || new InstructionElement({
 			containerClassName: this.options.itineraryClassName
 		});
 	},
@@ -132,8 +132,8 @@ module.exports = L.Control.extend({
 	},
 
 	_createItineraryContainer: function(r) {
-		var container = this._itineraryBuilder.createContainer(),
-		    steps = this._itineraryBuilder.createStepsContainer(),
+		var container = this._instructionElement.createContainer(),
+		    steps = this._instructionElement.createStepsContainer(),
 		    i,
 		    instr,
 		    step,
@@ -148,7 +148,7 @@ module.exports = L.Control.extend({
 			text = this._formatter.formatInstruction(instr, i);
 			distance = this._formatter.formatDistance(instr.distance);
 			icon = this._formatter.getIconName(instr, i);
-			step = this._itineraryBuilder.createStep(text, distance, icon, steps);
+			step = this._instructionElement.createStep(text, distance, icon, steps);
 
 			this._addRowListeners(step, r.coordinates[instr.index]);
 		}
