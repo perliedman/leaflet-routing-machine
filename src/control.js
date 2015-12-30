@@ -6,7 +6,9 @@ var L = require('leaflet'),
 	Plan = require('./plan'),
 	OSRM = require('./osrm');
 
-module.exports = Itinerary.extend({
+module.exports = L.Control.extend({
+	includes: L.Mixin.Events,
+
 	options: {
 		fitSelectedRoutes: 'smart',
 		routeLine: function(route, options) { return new Line(route, options); },
@@ -15,19 +17,33 @@ module.exports = Itinerary.extend({
 		routeDragInterval: 500,
 		waypointMode: 'connect',
 		useZoomParameter: false,
-		showAlternatives: false
+		showAlternatives: false,
+		containerClassName: '',
+		minimizedClassName: '',
+		show: true,
+		collapsible: undefined,
+		collapseBtn: function(itinerary) {
+			var collapseBtn = L.DomUtil.create('span', itinerary.options.collapseBtnClass);
+			L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
+			itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
+		},
+		collapseBtnClass: 'leaflet-routing-collapse-btn'
 	},
 
 	initialize: function(options) {
 		L.Util.setOptions(this, options);
 
 		this._router = this.options.router || new OSRM(options);
+		this._itinerary = this.options.itinerary || new Itinerary(options);
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
 		this._requestCount = 0;
 
-		Itinerary.prototype.initialize.call(this, options);
+		L.Control.prototype.initialize.call(this, options);
 
 		this.on('routeselected', this._routeSelected, this);
+		if (this._itinerary) {
+			this._itinerary.on('routeselected', this._routeSelected, this);
+		}
 		this._plan.on('waypointschanged', this._onWaypointsChanged, this);
 		if (options.routeWhileDragging) {
 			this._setupRouteDragging();
@@ -39,7 +55,21 @@ module.exports = Itinerary.extend({
 	},
 
 	onAdd: function(map) {
-		var container = Itinerary.prototype.onAdd.call(this, map);
+		var collapsible = this.options.collapsible;
+		collapsible = collapsible || (collapsible === undefined && map.getSize().x <= 640);
+
+		var container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
+			(!this.options.show ? 'leaflet-routing-container-hide ' : '') +
+			(collapsible ? 'leaflet-routing-collapsible ' : '') +
+			this.options.containerClassName);
+		L.DomEvent.addListener(container, 'mousewheel', function(e) {
+			L.DomEvent.stopPropagation(e);
+		});
+
+		L.DomEvent.disableClickPropagation(container);
+		if (collapsible) {
+			this.options.collapseBtn(this);
+		}
 
 		this._map = map;
 		this._map.addLayer(this._plan);
@@ -53,8 +83,14 @@ module.exports = Itinerary.extend({
 		}
 
 		if (this._plan.options.geocoder) {
-			container.insertBefore(this._plan.createGeocoders(), container.firstChild);
+			container.appendChild(this._plan.createGeocoders());
 		}
+
+		if (this._itinerary) {
+			container.appendChild(this._itinerary.onAdd(map));
+		}
+
+		this._container = container;
 
 		return container;
 	},
@@ -65,6 +101,19 @@ module.exports = Itinerary.extend({
 		}
 		map.removeLayer(this._plan);
 		return Itinerary.prototype.onRemove.call(this, map);
+	},
+
+	show: function() {
+		L.DomUtil.removeClass(this._container, 'leaflet-routing-container-hide');
+	},
+
+	hide: function() {
+		L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
+	},
+
+	_toggle: function() {
+		var collapsed = L.DomUtil.hasClass(this._container, 'leaflet-routing-container-hide');
+		this[collapsed ? 'show' : 'hide']();
 	},
 
 	getWaypoints: function() {
@@ -265,7 +314,10 @@ module.exports = Itinerary.extend({
 				// this isn't the latest request.
 				if (ts === this._requestCount) {
 					this._clearLines();
-					this._clearAlts();
+					if (this._itinerary) {
+						this._itinerary.clearAlternatives();
+						this._routes = [];
+					}
 					if (err) {
 						this.fire('routingerror', {error: err});
 						return;
@@ -275,7 +327,10 @@ module.exports = Itinerary.extend({
 
 					if (!options.geometryOnly) {
 						this.fire('routesfound', {waypoints: wps, routes: routes});
-						this.setAlternatives(routes);
+						if (this._itinerary) {
+							this._itinerary.setAlternatives(routes);
+						}
+						this._routes = routes;
 					} else {
 						var selectedRoute = routes.splice(0,1)[0];
 						this._routeSelected({route: selectedRoute, alternatives: routes});

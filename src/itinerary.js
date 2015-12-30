@@ -4,7 +4,7 @@ var L = require('leaflet'),
 	Formatter = require('./formatter'),
 	InstructionElement = require('./instruction-element');
 
-module.exports = L.Control.extend({
+module.exports = L.Class.extend({
 	includes: L.Mixin.Events,
 
 	options: {
@@ -17,19 +17,9 @@ module.exports = L.Control.extend({
 		},
 		summaryTemplate: '<h2>{name}</h2><h3>{distance}, {time}</h3>',
 		timeTemplate: '{time}',
-		containerClassName: '',
 		alternativeClassName: '',
-		minimizedClassName: '',
 		itineraryClassName: '',
-		totalDistanceRoundingSensitivity: -1,
-		show: true,
-		collapsible: undefined,
-		collapseBtn: function(itinerary) {
-			var collapseBtn = L.DomUtil.create('span', itinerary.options.collapseBtnClass);
-			L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
-			itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
-		},
-		collapseBtnClass: 'leaflet-routing-collapse-btn'
+		totalDistanceRoundingSensitivity: -1
 	},
 
 	initialize: function(options) {
@@ -41,29 +31,9 @@ module.exports = L.Control.extend({
 	},
 
 	onAdd: function(map) {
-		var collapsible = this.options.collapsible;
-
-		collapsible = collapsible || (collapsible === undefined && map.getSize().x <= 640);
-
-		this._container = L.DomUtil.create('div', 'leaflet-routing-container leaflet-bar ' +
-			(!this.options.show ? 'leaflet-routing-container-hide ' : '') +
-			(collapsible ? 'leaflet-routing-collapsible ' : '') +
-			this.options.containerClassName);
 		this._altContainer = this.createAlternativesContainer();
-		this._container.appendChild(this._altContainer);
-		L.DomEvent.disableClickPropagation(this._container);
-		L.DomEvent.addListener(this._container, 'mousewheel', function(e) {
-			L.DomEvent.stopPropagation(e);
-		});
-
-		if (collapsible) {
-			this.options.collapseBtn(this);
-		}
-
-		return this._container;
-	},
-
-	onRemove: function() {
+		this._map = map;
+		return this._altContainer;
 	},
 
 	createAlternativesContainer: function() {
@@ -75,7 +45,7 @@ module.exports = L.Control.extend({
 		    alt,
 		    altDiv;
 
-		this._clearAlts();
+		this.clearAlternatives();
 
 		this._routes = routes;
 
@@ -91,17 +61,13 @@ module.exports = L.Control.extend({
 		return this;
 	},
 
-	show: function() {
-		L.DomUtil.removeClass(this._container, 'leaflet-routing-container-hide');
-	},
+	clearAlternatives: function() {
+		var el = this._altContainer;
+		while (el && el.firstChild) {
+			el.removeChild(el.firstChild);
+		}
 
-	hide: function() {
-		L.DomUtil.addClass(this._container, 'leaflet-routing-container-hide');
-	},
-
-	_toggle: function() {
-		var collapsed = L.DomUtil.hasClass(this._container, 'leaflet-routing-container-hide');
-		this[collapsed ? 'show' : 'hide']();
+		this._altElements = [];
 	},
 
 	_createAlternative: function(alt, i) {
@@ -120,15 +86,6 @@ module.exports = L.Control.extend({
 
 		altDiv.appendChild(this._createItineraryContainer(alt));
 		return altDiv;
-	},
-
-	_clearAlts: function() {
-		var el = this._altContainer;
-		while (el && el.firstChild) {
-			el.removeChild(el.firstChild);
-		}
-
-		this._altElements = [];
 	},
 
 	_createItineraryContainer: function(r) {
