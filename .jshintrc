@@ -10,7 +10,7 @@
   // Define globals exposed by Node.js.
   "node": true,
 
-  "globals": {"L": false},
+  "globals": {},
 
   /*
    * ENFORCING OPTIONS
