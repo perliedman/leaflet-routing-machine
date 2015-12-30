@@ -132,7 +132,20 @@ module.exports = L.Control.extend({
 	},
 
 	_createItineraryContainer: function(r) {
-		var container = this._instructionElement.createContainer(),
+		var findInstruction = function(el) {
+				while (el != null && el.getAttribute('data-coord-index') == null) {
+					el = el.parentElement;
+				}
+
+				return el;
+			},
+			removeMarker = L.bind(function() {
+				if (this._marker) {
+					this._map.removeLayer(this._marker);
+					delete this._marker;
+				}
+			}, this),
+			container = this._instructionElement.createContainer(),
 		    steps = this._instructionElement.createStepsContainer(),
 		    i,
 		    instr,
@@ -149,28 +162,37 @@ module.exports = L.Control.extend({
 			distance = this._formatter.formatDistance(instr.distance);
 			icon = this._formatter.getIconName(instr, i);
 			step = this._instructionElement.createStep(text, distance, icon, steps);
-
-			this._addRowListeners(step, r.coordinates[instr.index]);
+			step.setAttribute('data-coord-index', instr.index);
 		}
 
-		return container;
-	},
-
-	_addRowListeners: function(row, coordinate) {
-		L.DomEvent.addListener(row, 'mouseover', function() {
-			this._marker = L.circleMarker(coordinate,
-				this.options.pointMarkerStyle).addTo(this._map);
-		}, this);
-		L.DomEvent.addListener(row, 'mouseout', function() {
-			if (this._marker) {
-				this._map.removeLayer(this._marker);
-				delete this._marker;
+		L.DomEvent.addListener(steps, 'mousemove', function(e) {
+			var el = findInstruction(e.target),
+				index;
+			if (el) {
+				index = parseInt(el.getAttribute('data-coord-index'));
+				if (!this._marker || this._marker.index !== index) {
+					removeMarker();
+					this._marker = L.circleMarker(r.coordinates[index],
+						this.options.pointMarkerStyle).addTo(this._map);
+					this._marker.index = index;
+				}
 			}
 		}, this);
-		L.DomEvent.addListener(row, 'click', function(e) {
-			this._map.panTo(coordinate);
-			L.DomEvent.stopPropagation(e);
+		L.DomEvent.addListener(steps, 'mouseout', function() {
+			removeMarker();
 		}, this);
+		L.DomEvent.addListener(steps, 'click', function(e) {
+			var el = findInstruction(e.target),
+				index;
+			if (el) {
+				index = parseInt(el.getAttribute('data-coord-index'));
+				this._map.panTo(r.coordinates[index]);
+				L.DomEvent.stopPropagation(e);
+			}
+			console.log(e);
+		}, this);
+
+		return container;
 	},
 
 	_onAltClicked: function(e) {
