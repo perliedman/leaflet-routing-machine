@@ -15,11 +15,6 @@ module.exports = L.Layer.extend({
 		],
 		draggableWaypoints: true,
 		routeWhileDragging: false,
-		addWaypoints: true,
-		reverseWaypoints: false,
-		addButtonClassName: '',
-		language: 'en',
-		createGeocoderElement: function(wp, i, nWps, options) { return new GeocoderElement(wp, i, nWps, options); },
 		createMarker: function(i, wp) {
 			var options = {
 					draggable: this.draggableWaypoints
@@ -100,86 +95,6 @@ module.exports = L.Layer.extend({
 		}
 
 		delete this._map;
-	},
-
-	createGeocoders: function() {
-		var container = L.DomUtil.create('div', 'leaflet-routing-geocoders ' + this.options.geocodersClassName),
-			waypoints = this._waypoints,
-		    addWpBtn,
-		    reverseBtn;
-
-		this._geocoderContainer = container;
-		this._geocoderElems = [];
-
-
-		if (this.options.addWaypoints) {
-			addWpBtn = L.DomUtil.create('button', 'leaflet-routing-add-waypoint ' + this.options.addButtonClassName, container);
-			addWpBtn.setAttribute('type', 'button');
-			L.DomEvent.addListener(addWpBtn, 'click', function() {
-				this.spliceWaypoints(waypoints.length, 0, null);
-			}, this);
-		}
-
-		if (this.options.reverseWaypoints) {
-			reverseBtn = L.DomUtil.create('button', 'leaflet-routing-reverse-waypoints', container);
-			reverseBtn.setAttribute('type', 'button');
-			L.DomEvent.addListener(reverseBtn, 'click', function() {
-				this._waypoints.reverse();
-				this.setWaypoints(this._waypoints);
-			}, this);
-		}
-
-		this._updateGeocoders();
-		this.on('waypointsspliced', this._updateGeocoders);
-
-		return container;
-	},
-
-	_createGeocoder: function(i) {
-		var geocoder = this.options.createGeocoderElement(this._waypoints[i], i, this._waypoints.length, this.options);
-		geocoder
-		.on('delete', function() {
-			if (i > 0 || this._waypoints.length > 2) {
-				this.spliceWaypoints(i, 1);
-			} else {
-				this.spliceWaypoints(i, 1, new Waypoint());
-			}
-		}, this)
-		.on('geocoded', function(e) {
-			this._updateMarkers();
-			this._fireChanged();
-			this._focusGeocoder(i + 1);
-			this.fire('waypointgeocoded', {
-				waypointIndex: i,
-				waypoint: e.waypoint
-			});
-		}, this)
-		.on('reversegeocoded', function(e) {
-			this.fire('waypointgeocoded', {
-				waypointIndex: i,
-				waypoint: e.waypoint
-			});
-		}, this);
-
-		return geocoder;
-	},
-
-	_updateGeocoders: function() {
-		var elems = [],
-			i,
-		    geocoderElem;
-
-		for (i = 0; i < this._geocoderElems.length; i++) {
-			this._geocoderContainer.removeChild(this._geocoderElems[i].getContainer());
-		}
-
-		for (i = this._waypoints.length - 1; i >= 0; i--) {
-			geocoderElem = this._createGeocoder(i);
-			this._geocoderContainer.insertBefore(geocoderElem.getContainer(), this._geocoderContainer.firstChild);
-			elems.push(geocoderElem);
-		}
-
-		this._geocoderElems = elems.reverse();
 	},
 
 	_removeMarkers: function() {
@@ -327,13 +242,5 @@ module.exports = L.Layer.extend({
 
 		this._map.on('mousemove', mouseMove);
 		this._map.on('mouseup', mouseUp);
-	},
-
-	_focusGeocoder: function(i) {
-		if (this._geocoderElems[i]) {
-			this._geocoderElems[i].focus();
-		} else {
-			document.activeElement.blur();
-		}
 	}
 });

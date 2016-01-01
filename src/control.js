@@ -2,9 +2,11 @@
 
 var L = require('leaflet'),
 	Itinerary = require('./itinerary'),
+	GeocoderControl = require('./geocoder-control'),
 	Line = require('./line'),
 	Plan = require('./plan'),
-	OSRM = require('./osrm');
+	OSRM = require('./osrm'),
+	Waypoint = require('./waypoint');
 
 module.exports = L.Control.extend({
 	includes: L.Mixin.Events,
@@ -36,6 +38,7 @@ module.exports = L.Control.extend({
 		this._router = this.options.router || new OSRM(options);
 		this._itinerary = this.options.itinerary || new Itinerary(options);
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
+		this._geocoderControl = this.options.geocoderControl || new GeocoderControl(this._plan, options);
 		this._requestCount = 0;
 
 		L.Control.prototype.initialize.call(this, options);
@@ -82,8 +85,8 @@ module.exports = L.Control.extend({
 			}, this);
 		}
 
-		if (this._plan.options.geocoder) {
-			container.appendChild(this._plan.createGeocoders());
+		if (this._geocoderControl) {
+			container.appendChild(this._geocoderControl.onAdd());
 		}
 
 		if (this._itinerary) {
@@ -254,7 +257,7 @@ module.exports = L.Control.extend({
 		}
 		if (!this._plan.isReady()) {
 			this._clearLines();
-			this._clearAlts();
+			this._itinerary.clearAlternatives();
 		}
 		this.fire('waypointschanged', {waypoints: e.waypoints});
 	},
