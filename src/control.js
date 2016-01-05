@@ -6,8 +6,26 @@ var L = require('leaflet'),
 	Line = require('./line'),
 	Plan = require('./plan'),
 	OSRM = require('./osrm'),
-	Waypoint = require('./waypoint');
+	Waypoint = require('./waypoint'),
+	WaypointsLayer = require('./waypoints-layer');
 
+/**
+ * Main control
+ * @class L.Routing.Control
+ * @inherits L.Control
+ *
+ * @param {Object} options The control's options; note that these options are also passed
+ * on to any other classes implicitly created by the control, like the control's plan, 
+ * geocoder control, etc.
+ * @param {Object} [options.fitSelectedRoutes="smart"] Mode for fitting the route into the map:
+ * if <code>false</code>, route will not be fitted. If <code>true</code>, route will
+ * always be fitted when changed. If set to the string <code>"smart"</code>, the route
+ * will be fitted when no waypoint is visible, or if the route covers a very small part
+ * of the viewport.
+ * @param {Function} options.routeLine Factory function to create the map layer used for
+ * reperesenting a route on the map; default is a factory that creates a {@link L.Routing.Line}.
+ * The function should accept an {@link L.Routing.IRoute} and options as arguments.
+ */
 module.exports = L.Control.extend({
 	includes: L.Mixin.Events,
 
@@ -29,7 +47,7 @@ module.exports = L.Control.extend({
 			L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
 			itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
 		},
-		collapseBtnClass: 'leaflet-routing-collapse-btn'
+			collapseBtnClass: 'leaflet-routing-collapse-btn',
 	},
 
 	initialize: function(options) {
@@ -39,6 +57,7 @@ module.exports = L.Control.extend({
 		this._itinerary = this.options.itinerary || new Itinerary(options);
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
 		this._geocoderControl = this.options.geocoderControl || new GeocoderControl(this._plan, options);
+		this._waypointsLayer = new WaypointsLayer(this._plan);
 		this._requestCount = 0;
 
 		L.Control.prototype.initialize.call(this, options);
@@ -75,7 +94,7 @@ module.exports = L.Control.extend({
 		}
 
 		this._map = map;
-		this._map.addLayer(this._plan);
+		this._map.addLayer(this._waypointsLayer);
 
 		if (this.options.useZoomParameter) {
 			this._map.on('zoomend', function() {
@@ -102,7 +121,7 @@ module.exports = L.Control.extend({
 		if (this._line) {
 			map.removeLayer(this._line);
 		}
-		map.removeLayer(this._plan);
+		map.removeLayer(this._waypointsLayer);
 		return Itinerary.prototype.onRemove.call(this, map);
 	},
 
@@ -266,7 +285,7 @@ module.exports = L.Control.extend({
 		var timer = 0,
 			waypoints;
 
-		this._plan.on('waypointdrag', L.bind(function(e) {
+		this._waypointsLayer.on('waypointdrag', L.bind(function(e) {
 			waypoints = e.waypoints;
 
 			if (!timer) {
@@ -280,7 +299,7 @@ module.exports = L.Control.extend({
 				}, this), this.options.routeDragInterval);
 			}
 		}, this));
-		this._plan.on('waypointdragend', function() {
+		this._waypointsLayer.on('waypointdragend', function() {
 			if (timer) {
 				clearTimeout(timer);
 				timer = undefined;
