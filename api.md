@@ -292,7 +292,7 @@ Option                 | Type     | Default             | Description
 
 Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
-`formatDistance(<Number> d)` | `String`  | Formats a distance given in meters to a string with suitable precision and unit
+`formatDistance(<Number> d, <Number> precision?)` | `String`  | Formats a distance given in meters to a string with the given (or suitable if not provided) precision and unit
 `formatTime(<Number> t)` | `String`       | Formats a time duration, given in seconds, to a string with suitable precision and unit
 `formatInstruction(<`[`IInstruction`](#iinstruction)`> instr)` | String | Formats an instruction to a human readable text
 
