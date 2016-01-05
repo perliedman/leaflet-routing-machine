@@ -10,7 +10,8 @@ module.exports = L.Class.extend({
 		reverseWaypoints: true,
 		addButtonClassName: '',
 		language: 'en',
-		createGeocoderElement: function(wp, i, nWps, options) { return new GeocoderElement(wp, i, nWps, options); }
+		createGeocoderElement: function(wp, i, nWps, options) { return new GeocoderElement(wp, i, nWps, options); },
+		geocodersClassName: ''
 	},
 
 	initialize: function(plan, options) {
