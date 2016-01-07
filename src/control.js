@@ -273,6 +273,11 @@ module.exports = L.Control.extend({
 		l.on('linetouched', function(e) {
 			var alts = this._routes.slice();
 			var selected = alts.splice(e.target._route.routesIndex, 1)[0];
+
+			if (this._itinerary) {
+				this._itinerary.selectAlternative(selected);
+			}
+
 			this.fire('routeselected', {route: selected, alternatives: alts});
 		}, this);
 	},

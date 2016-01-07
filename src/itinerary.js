@@ -70,6 +70,29 @@ module.exports = L.Class.extend({
 		this._altElements = [];
 	},
 
+	selectAlternative: function(route) {
+		var routeIndex = route.routesIndex,
+			altElem,
+		    j,
+		    n,
+		    classFn;
+
+		altElem = this._altElements[route.routesIndex];
+
+		if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
+			for (j = 0; j < this._altElements.length; j++) {
+				n = this._altElements[j];
+				classFn = j === routeIndex ? 'removeClass' : 'addClass';
+				L.DomUtil[classFn](n, 'leaflet-routing-alt-minimized');
+				if (this.options.minimizedClassName) {
+					L.DomUtil[classFn](n, this.options.minimizedClassName);
+				}
+
+				if (j !== routeIndex) n.scrollTop = 0;
+			}
+		}
+	},
+
 	_createAlternative: function(alt, i) {
 		var altDiv = L.DomUtil.create('div', 'leaflet-routing-alt ' +
 			this.options.alternativeClassName +
@@ -169,26 +192,7 @@ module.exports = L.Class.extend({
 	},
 
 	_selectAlt: function(e) {
-		var altElem,
-		    j,
-		    n,
-		    classFn;
-
-		altElem = this._altElements[e.route.routesIndex];
-
-		if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
-			for (j = 0; j < this._altElements.length; j++) {
-				n = this._altElements[j];
-				classFn = j === e.route.routesIndex ? 'removeClass' : 'addClass';
-				L.DomUtil[classFn](n, 'leaflet-routing-alt-minimized');
-				if (this.options.minimizedClassName) {
-					L.DomUtil[classFn](n, this.options.minimizedClassName);
-				}
-
-				if (j !== e.route.routesIndex) n.scrollTop = 0;
-			}
-		}
-
+		this.selectAlternative(e.route);
 		L.DomEvent.stop(e);
 	},
 
