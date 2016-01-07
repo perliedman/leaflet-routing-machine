@@ -57,7 +57,7 @@ module.exports = L.Control.extend({
 		this._itinerary = this.options.itinerary || new Itinerary(options);
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
 		this._geocoderControl = this.options.geocoderControl || new GeocoderControl(this._plan, options);
-		this._waypointsLayer = new WaypointsLayer(this._plan);
+		this._waypointsLayer = this.options.waypointsLayer || new WaypointsLayer(this._plan);
 		this._requestCount = 0;
 
 		L.Control.prototype.initialize.call(this, options);
@@ -94,7 +94,6 @@ module.exports = L.Control.extend({
 		}
 
 		this._map = map;
-		this._map.addLayer(this._waypointsLayer);
 
 		if (this.options.useZoomParameter) {
 			this._map.on('zoomend', function() {
@@ -112,6 +111,10 @@ module.exports = L.Control.extend({
 			container.appendChild(this._itinerary.onAdd(map));
 		}
 
+		if (this._waypointsLayer) {
+			this._map.addLayer(this._waypointsLayer);
+		}
+
 		this._container = container;
 
 		return container;
@@ -121,7 +124,11 @@ module.exports = L.Control.extend({
 		if (this._line) {
 			map.removeLayer(this._line);
 		}
-		map.removeLayer(this._waypointsLayer);
+
+		if (this._waypointsLayer) {
+			map.removeLayer(this._waypointsLayer);
+		}
+
 		return Itinerary.prototype.onRemove.call(this, map);
 	},
 
@@ -285,27 +292,29 @@ module.exports = L.Control.extend({
 		var timer = 0,
 			waypoints;
 
-		this._waypointsLayer.on('waypointdrag', L.bind(function(e) {
-			waypoints = e.waypoints;
+		if (this._waypointsLayer) {
+			this._waypointsLayer.on('waypointdrag', L.bind(function(e) {
+				waypoints = e.waypoints;
 
-			if (!timer) {
-				timer = setTimeout(L.bind(function() {
-					this.route({
-						waypoints: waypoints,
-						geometryOnly: true,
-						callback: L.bind(this._updateLineCallback, this)
-					});
+				if (!timer) {
+					timer = setTimeout(L.bind(function() {
+						this.route({
+							waypoints: waypoints,
+							geometryOnly: true,
+							callback: L.bind(this._updateLineCallback, this)
+						});
+						timer = undefined;
+					}, this), this.options.routeDragInterval);
+				}
+			}, this));
+			this._waypointsLayer.on('waypointdragend', function() {
+				if (timer) {
+					clearTimeout(timer);
 					timer = undefined;
-				}, this), this.options.routeDragInterval);
-			}
-		}, this));
-		this._waypointsLayer.on('waypointdragend', function() {
-			if (timer) {
-				clearTimeout(timer);
-				timer = undefined;
-			}
-			this.route();
-		}, this);
+				}
+				this.route();
+			}, this);
+		}
 	},
 
 	_updateLineCallback: function(err, routes) {
