@@ -2,7 +2,7 @@ var L = require('leaflet');
 
 module.exports = L.LayerGroup.extend({
 	options: {
-		draggableWaypoints: true,
+		modifyWaypoints: true,
 		createMarker: function(i, wp) {
 			var options = {
 					draggable: this.draggableWaypoints
