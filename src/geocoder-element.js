@@ -21,9 +21,9 @@ module.exports = L.Class.extend({
 		createGeocoder: function(i, nWps, options) {
 			var container = L.DomUtil.create('div', 'leaflet-routing-geocoder'),
 				input = L.DomUtil.create('input', '', container),
-				remove = options.addWaypoints ? L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container) : undefined;
+				remove = options.removeWaypoints ? L.DomUtil.create('span', 'leaflet-routing-remove-waypoint', container) : undefined;
 
-			input.disabled = !options.addWaypoints;
+			input.disabled = !options.modifyWaypoints;
 
 			return {
 				container: container,

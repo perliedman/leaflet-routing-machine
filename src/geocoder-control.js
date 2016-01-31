@@ -7,6 +7,8 @@ module.exports = L.Class.extend({
 
 	options: {
 		addWaypoints: true,
+		modifyWaypoints: true,
+		removeWaypoints: true,
 		reverseWaypoints: true,
 		addButtonClassName: '',
 		language: 'en',

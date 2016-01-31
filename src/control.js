@@ -6,7 +6,6 @@ var L = require('leaflet'),
 	Line = require('./line'),
 	Plan = require('./plan'),
 	OSRM = require('./osrm'),
-	Waypoint = require('./waypoint'),
 	WaypointsLayer = require('./waypoints-layer');
 
 /**
@@ -25,7 +24,7 @@ var L = require('leaflet'),
  * @param {Function} options.routeLine Factory function to create the map layer used for
  * reperesenting a route on the map; default is a factory that creates a {@link L.Routing.Line}.
  * The function should accept an {@link L.Routing.IRoute} and options as arguments.
- */
+s */
 module.exports = L.Control.extend({
 	includes: L.Mixin.Events,
 
