@@ -61,7 +61,6 @@ module.exports = L.Control.extend({
 
 		L.Control.prototype.initialize.call(this, options);
 
-		this.on('routeselected', this._routeSelected, this);
 		if (this._itinerary) {
 			this._itinerary.on('routeselected', this._routeSelected, this);
 		}
@@ -97,6 +96,7 @@ module.exports = L.Control.extend({
 		if (this.options.useZoomParameter) {
 			this._map.on('zoomend', function() {
 				this.route({
+					geometryOnly: true,
 					callback: L.bind(this._updateLineCallback, this)
 				});
 			}, this);
@@ -115,6 +115,9 @@ module.exports = L.Control.extend({
 		}
 
 		this._container = container;
+		if (container.children.length === 0) {
+			container.style.display = 'none';
+		}
 
 		return container;
 	},
@@ -166,13 +169,33 @@ module.exports = L.Control.extend({
 		return this._router;
 	},
 
+	selectRoute: function(route) {
+		if (this._itinerary) {
+			this._itinerary.selectRoute(route);
+		} else {
+			this._selectRoute(route);
+		}
+	},
+
 	_routeSelected: function(e) {
-		var route = e.route,
-			alternatives = this.options.showAlternatives && e.alternatives,
-			fitMode = this.options.fitSelectedRoutes,
+		this._selectRoute(e.route);
+	},
+
+	_selectRoute: function(route, alternatives, preliminary) {
+		var fitMode = this.options.fitSelectedRoutes,
 			fitBounds =
 				(fitMode === 'smart' && !this._waypointsVisible()) ||
-				(fitMode !== 'smart' && fitMode);
+				(fitMode !== 'smart' && fitMode),
+			i;
+
+		if (this.options.showAlternatives && !alternatives) {
+			alternatives = [];
+			for (i = 0; i < this._routes.length; i++) {
+				if (this._routes[i] !== route) {
+					alternatives.push(this._routes[i]);
+				}
+			}
+		}
 
 		this._updateLines({route: route, alternatives: alternatives});
 
@@ -184,6 +207,10 @@ module.exports = L.Control.extend({
 			this._plan.off('waypointschanged', this._onWaypointsChanged, this);
 			this.setWaypoints(route.waypoints);
 			this._plan.on('waypointschanged', this._onWaypointsChanged, this);
+		}
+
+		if (!preliminary) {
+			this.fire('routeselected', {route: route});
 		}
 	},
 
@@ -244,14 +271,16 @@ module.exports = L.Control.extend({
 
 		// add alternatives first so they lie below the main route
 		this._alternatives = [];
-		if (routes.alternatives) routes.alternatives.forEach(function(alt, i) {
-			this._alternatives[i] = this.options.routeLine(alt,
-				L.extend({
-					isAlternative: true
-				}, this.options.altLineOptions || this.options.lineOptions));
-			this._alternatives[i].addTo(this._map);
-			this._hookAltEvents(this._alternatives[i]);
-		}, this);
+		if (routes.alternatives) {
+			routes.alternatives.forEach(function(alt, i) {
+				this._alternatives[i] = this.options.routeLine(alt,
+					L.extend({
+						isAlternative: true
+					}, this.options.altLineOptions || this.options.lineOptions));
+				this._alternatives[i].addTo(this._map);
+				this._hookAltEvents(this._alternatives[i]);
+			}, this);
+		}
 
 		this._line = this.options.routeLine(routes.route,
 			L.extend({
@@ -270,14 +299,14 @@ module.exports = L.Control.extend({
 
 	_hookAltEvents: function(l) {
 		l.on('linetouched', function(e) {
-			var alts = this._routes.slice();
-			var selected = alts.splice(e.target._route.routesIndex, 1)[0];
+			var selected = e.target._route;
 
+			this._selectRoute(selected);
 			if (this._itinerary) {
 				this._itinerary.selectAlternative(selected);
+			} else {
+				this._selectRoute(selected);
 			}
-
-			this.fire('routeselected', {route: selected, alternatives: alts});
 		}, this);
 	},
 
@@ -349,8 +378,10 @@ module.exports = L.Control.extend({
 				// this isn't the latest request.
 				if (ts === this._requestCount) {
 					this._clearLines();
-					if (this._itinerary) {
-						this._itinerary.clearAlternatives();
+					if (!options.geometryOnly) {
+						if (this._itinerary) {
+							this._itinerary.clearAlternatives();
+						}
 						this._routes = [];
 					}
 					if (err) {
@@ -358,17 +389,17 @@ module.exports = L.Control.extend({
 						return;
 					}
 
-					routes.forEach(function(route, i) { route.routesIndex = i; });
-
 					if (!options.geometryOnly) {
 						this.fire('routesfound', {waypoints: wps, routes: routes});
+						this._routes = routes;
 						if (this._itinerary) {
 							this._itinerary.setAlternatives(routes);
+						} else {
+							this._selectRoute(routes[0]);
 						}
-						this._routes = routes;
 					} else {
-						var selectedRoute = routes.splice(0,1)[0];
-						this._routeSelected({route: selectedRoute, alternatives: routes});
+						var selectedRoute = routes.splice(0, 1)[0];
+						this.selectRoute(selectedRoute, routes);
 					}
 				}
 			}, this, options);

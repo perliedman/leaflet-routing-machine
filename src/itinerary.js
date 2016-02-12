@@ -53,7 +53,7 @@ module.exports = L.Class.extend({
 			alt = this._routes[i];
 			altDiv = this._createAlternative(alt, i);
 			this._altContainer.appendChild(altDiv);
-			this._altElements.push(altDiv);
+			this._altElements[L.stamp(alt)] = altDiv;
 		}
 
 		this._selectRoute({route: this._routes[0], alternatives: this._routes.slice(1)});
@@ -67,7 +67,7 @@ module.exports = L.Class.extend({
 			el.removeChild(el.firstChild);
 		}
 
-		this._altElements = [];
+		this._altElements = {};
 	},
 
 	selectAlternative: function(route) {
@@ -77,7 +77,7 @@ module.exports = L.Class.extend({
 		    n,
 		    classFn;
 
-		altElem = this._altElements[route.routesIndex];
+		altElem = this._altElements[L.stamp(route)];
 
 		if (L.DomUtil.hasClass(altElem, 'leaflet-routing-alt-minimized')) {
 			for (j = 0; j < this._altElements.length; j++) {
@@ -88,7 +88,9 @@ module.exports = L.Class.extend({
 					L.DomUtil[classFn](n, this.options.minimizedClassName);
 				}
 
-				if (j !== routeIndex) n.scrollTop = 0;
+				if (j !== routeIndex) {
+					n.scrollTop = 0;
+				}
 			}
 		}
 	},
