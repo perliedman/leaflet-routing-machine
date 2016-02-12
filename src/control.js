@@ -46,17 +46,17 @@ module.exports = L.Control.extend({
 			L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
 			itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
 		},
-			collapseBtnClass: 'leaflet-routing-collapse-btn',
+		collapseBtnClass: 'leaflet-routing-collapse-btn'
 	},
 
 	initialize: function(options) {
 		L.Util.setOptions(this, options);
 
 		this._router = this.options.router || new OSRM(options);
-		this._itinerary = this.options.itinerary || new Itinerary(options);
+		this._itinerary = this.options.itinerary === undefined ? new Itinerary(options) : this.options.itinerary;
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
-		this._geocoderControl = this.options.geocoderControl || new GeocoderControl(this._plan, options);
-		this._waypointsLayer = this.options.waypointsLayer || new WaypointsLayer(this._plan);
+		this._geocoderControl = this.options.geocoderControl === undefined ? new GeocoderControl(this._plan, options) : this.options.geocoderControl;
+		this._waypointsLayer = this.options.waypointsLayer === undefined ? new WaypointsLayer(this._plan, options) : this.options.waypointsLayer;
 		this._requestCount = 0;
 
 		L.Control.prototype.initialize.call(this, options);

@@ -5,7 +5,7 @@ module.exports = L.LayerGroup.extend({
 		modifyWaypoints: true,
 		createMarker: function(i, wp) {
 			var options = {
-					draggable: this.draggableWaypoints
+					draggable: this.modifyWaypoints
 				},
 			    marker = L.marker(wp.latLng, options);
 
@@ -28,6 +28,7 @@ module.exports = L.LayerGroup.extend({
 	},
 
 	onRemove: function(map) {
+		var i;
 		L.LayerGroup.prototype.onRemove.call(this, map);
 
 		if (this._newWp) {
