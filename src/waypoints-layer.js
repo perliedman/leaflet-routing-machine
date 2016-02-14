@@ -1,4 +1,5 @@
-var L = require('leaflet');
+var L = require('leaflet'),
+	Waypoint = require('./waypoint');
 
 module.exports = L.LayerGroup.extend({
 	options: {
@@ -102,10 +103,12 @@ module.exports = L.LayerGroup.extend({
 	},
 
 	dragNewWaypoint: function(e) {
-		var newWpIndex = e.afterIndex + 1;
+		var newWpIndex = e.afterIndex + 1,
+			newWp;
 		if (this.options.routeWhileDragging) {
-			this._plan.spliceWaypoints(newWpIndex, 0, e.latlng);
-			this._hookWaypointEvents(this._markers[newWpIndex], newWpIndex, true);
+			newWp = new Waypoint(e.latlng);
+			this._plan.spliceWaypoints(newWpIndex, 0, newWp);
+			this._hookWaypointEvents(newWp, this._markers[newWpIndex], newWpIndex, true);
 		} else {
 			this._dragNewWaypoint(newWpIndex, e.latlng);
 		}
