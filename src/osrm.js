@@ -31,7 +31,13 @@ module.exports = L.Class.extend({
 			wp,
 			i;
 
-		url = this.buildRouteUrl(waypoints, L.extend({}, this.options.routingOptions, options));
+		options = L.extend({
+			geometryOnly: false,
+			computeAlternative: true,
+			allowUTurns: false
+		}, this.options.routingOptions, options);
+
+		url = this.buildRouteUrl(waypoints, options);
 
 		timer = setTimeout(function() {
 			timedOut = true;
@@ -102,7 +108,8 @@ module.exports = L.Class.extend({
 				alts.push({
 					name: this._createName(response.alternative_names[i]),
 					coordinates: coordinates,
-					instructions: response.alternative_instructions[i] ? this._convertInstructions(response.alternative_instructions[i]) : [],
+					instructions: (response.alternative_instructions && response.alternative_instructions[i]) ?
+						this._convertInstructions(response.alternative_instructions[i]) : [],
 					summary: response.alternative_summaries[i] ? this._convertSummary(response.alternative_summaries[i]) : [],
 					inputWaypoints: inputWaypoints,
 					waypoints: actualWaypoints,
@@ -165,8 +172,6 @@ module.exports = L.Class.extend({
 	buildRouteUrl: function(waypoints, options) {
 		var locs = [],
 			wp,
-		    computeInstructions,
-		    computeAlternative,
 		    locationKey,
 		    hint;
 
@@ -185,12 +190,9 @@ module.exports = L.Class.extend({
 			}
 		}
 
-		computeAlternative = computeInstructions =
-			!(options && options.geometryOnly);
-
 		return this.options.serviceUrl + '?' +
-			'instructions=' + computeInstructions.toString() + '&' +
-			'alt=' + computeAlternative.toString() + '&' +
+			'instructions=' + (!options.geometryOnly).toString() + '&' +
+			'alt=' + options.computeAlternative.toString() + '&' +
 			(options.z ? 'z=' + options.z + '&' : '') +
 			locs.join('&') +
 			(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '') +

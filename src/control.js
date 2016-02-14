@@ -95,10 +95,12 @@ module.exports = L.Control.extend({
 
 		if (this.options.useZoomParameter) {
 			this._map.on('zoomend', function() {
-				this.route({
-					geometryOnly: true,
-					callback: L.bind(this._updateLineCallback, this)
-				});
+				if (this._routeZoom !== this._map.getZoom()) {
+					this.route({
+						geometryOnly: true,
+						callback: L.bind(this._updateRouteCoordinates, this)
+					});
+				}
 			}, this);
 		}
 
@@ -292,9 +294,11 @@ module.exports = L.Control.extend({
 	},
 
 	_hookEvents: function(l) {
-		l.on('linetouched', function(e) {
-			this._plan.dragNewWaypoint(e);
-		}, this);
+		if (this._waypointsLayer) {
+			l.on('linetouched', function(e) {
+				this._waypointsLayer.dragNewWaypoint(e);
+			}, this);
+		}
 	},
 
 	_hookAltEvents: function(l) {
@@ -334,7 +338,7 @@ module.exports = L.Control.extend({
 						this.route({
 							waypoints: waypoints,
 							geometryOnly: true,
-							callback: L.bind(this._updateLineCallback, this)
+							callback: L.bind(this._updateRouteCoordinates, this)
 						});
 						timer = undefined;
 					}, this), this.options.routeDragInterval);
@@ -350,9 +354,25 @@ module.exports = L.Control.extend({
 		}
 	},
 
-	_updateLineCallback: function(err, routes) {
+	_updateRouteCoordinates: function(err, routes) {
+		var i,
+			oldRoute,
+			newRoute;
+
 		if (!err) {
-			this._updateLines({route: routes[0], alternatives: routes.slice(1) });
+			for (i = 0; i < routes.length; i++) {
+				oldRoute = this._routes[i];
+				newRoute = routes[i];
+
+				if (oldRoute) {
+					this._routes[i].inputWaypoints = routes[i].inputWaypoints;
+					this._routes[i].coordinates = routes[i].coordinates;
+					this._routes[i].waypointIndices = routes[i].waypointIndices;
+				} else {
+					this._routes[i] = newRoute;
+				}
+			}
+			this._updateLines({route: this._routes[0], alternatives: routes.length > 1 ? this._routes.slice(1) : [] });
 		} else {
 			this._clearLines();
 		}
@@ -378,29 +398,25 @@ module.exports = L.Control.extend({
 				// this isn't the latest request.
 				if (ts === this._requestCount) {
 					this._clearLines();
-					if (!options.geometryOnly) {
-						if (this._itinerary) {
-							this._itinerary.clearAlternatives();
-						}
-						this._routes = [];
+					if (this._itinerary) {
+						this._itinerary.clearAlternatives();
 					}
+					this._routes = [];
+
 					if (err) {
 						this.fire('routingerror', {error: err});
 						return;
 					}
 
-					if (!options.geometryOnly) {
-						this.fire('routesfound', {waypoints: wps, routes: routes});
-						this._routes = routes;
-						if (this._itinerary) {
-							this._itinerary.setAlternatives(routes);
-						} else {
-							this._selectRoute(routes[0]);
-						}
+					this.fire('routesfound', {waypoints: wps, routes: routes});
+					this._routes = routes;
+					if (this._itinerary) {
+						this._itinerary.setAlternatives(routes);
 					} else {
-						var selectedRoute = routes.splice(0, 1)[0];
-						this.selectRoute(selectedRoute, routes);
+						this._selectRoute(routes[0]);
 					}
+
+					this._routeZoom = options.z;
 				}
 			}, this, options);
 		}
