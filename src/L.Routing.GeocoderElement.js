@@ -64,7 +64,7 @@
 				closeButton = g.closeButton,
 				geocoderInput = g.input;
 			geocoderInput.setAttribute('placeholder', this.options.geocoderPlaceholder(i, nWps, this));
-			geocoderInput.className = this.options.geocoderClass(i, nWps);
+			geocoderInput.className = this.options.geocoderClass;
 
 			this._element = g;
 			this._waypoint = wp;
