@@ -4,22 +4,12 @@
 
 	L.Routing.Localization = {
 		'en': {
-			directions: {
-				N: 'north',
-				NE: 'northeast',
-				E: 'east',
-				SE: 'southeast',
-				S: 'south',
-				SW: 'southwest',
-				W: 'west',
-				NW: 'northwest'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Head {dir}', ' on {road}'],
+					['Head', ' down {road}'],
 				'Continue':
-					['Continue {dir}', ' on {road}'],
+					['Continue', ' on {road}'],
 				'SlightRight':
 					['Slight right', ' onto {road}'],
 				'Right':
@@ -37,9 +27,21 @@
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
-					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
+					['Take the {exit} exit in the roundabout', ' onto {road}'],
 				'DestinationReached':
 					['Destination reached'],
+        'ForkStraight':
+          ['At the fork go straight', ' onto {road}'],
+        'ForkRight':
+          ['At the fork take the right', ' onto {road}'],
+        'ForkLeft':
+          ['At the fork take the left', ' onto {road}'],
+        'EndOfStreetStraight':
+          ['At the end of the street go straight', ' onto {road}'],
+        'EndOfStreetRight':
+          ['At the end of the street take the right', ' onto {road}'],
+        'EndOfStreetLeft':
+          ['At the end of the street take the left', ' onto {road}'],
 			},
 			formatOrder: function(n) {
 				var i = n % 10 - 1,
@@ -55,22 +57,12 @@
 		},
 
 		'de': {
-			directions: {
-				N: 'Norden',
-				NE: 'Nordosten',
-				E: 'Osten',
-				SE: 'Südosten',
-				S: 'Süden',
-				SW: 'Südwesten',
-				W: 'Westen',
-				NW: 'Nordwesten'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Richtung {dir}', ' auf {road}'],
+					['Starte', ' auf {road}'],
 				'Continue':
-					['Geradeaus Richtung {dir}', ' auf {road}'],
+					['Geradeaus', ' auf {road}'],
 				'SlightRight':
 					['Leicht rechts abbiegen', ' auf {road}'],
 				'Right':
@@ -88,7 +80,7 @@
 				'WaypointReached':
 					['Zwischenhalt erreicht'],
 				'Roundabout':
-					['Nehmen Sie die {exitStr} Ausfahrt im Kreisverkehr', ' auf {road}'],
+					['Nehmen Sie die {exit} Ausfahrt im Kreisverkehr', ' auf {road}'],
 				'DestinationReached':
 					['Sie haben ihr Ziel erreicht'],
 			},
@@ -103,22 +95,12 @@
 		},
 
 		'sv': {
-			directions: {
-				N: 'norr',
-				NE: 'nordost',
-				E: 'öst',
-				SE: 'sydost',
-				S: 'syd',
-				SW: 'sydväst',
-				W: 'väst',
-				NW: 'nordväst'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Åk åt {dir}', ' på {road}'],
+					['Åk', ' på {road}'],
 				'Continue':
-					['Fortsätt {dir}', ' på {road}'],
+					['Fortsätt', ' på {road}'],
 				'SlightRight':
 					['Svagt höger', ' på {road}'],
 				'Right':
@@ -136,7 +118,7 @@
 				'WaypointReached':
 					['Viapunkt nådd'],
 				'Roundabout':
-					['Tag {exitStr} avfarten i rondellen', ' till {road}'],
+					['Tag {exit} avfarten i rondellen', ' till {road}'],
 				'DestinationReached':
 					['Framme vid resans mål'],
 			},
@@ -153,22 +135,12 @@
 		},
 
 		'sp': {
-			directions: {
-				N: 'norte',
-				NE: 'noreste',
-				E: 'este',
-				SE: 'sureste',
-				S: 'sur',
-				SW: 'suroeste',
-				W: 'oeste',
-				NW: 'noroeste'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Derecho {dir}', ' sobre {road}'],
+					['Derecho', ' sobre {road}'],
 				'Continue':
-					['Continuar {dir}', ' en {road}'],
+					['Continuar', ' en {road}'],
 				'SlightRight':
 					['Leve giro a la derecha', ' sobre {road}'],
 				'Right':
@@ -186,7 +158,7 @@
 				'WaypointReached':
 					['Llegó a un punto del camino'],
 				'Roundabout':
-					['Tomar {exitStr} salida en la rotonda', ' en {road}'],
+					['Tomar {exit} salida en la rotonda', ' en {road}'],
 				'DestinationReached':
 					['Llegada a destino'],
 			},
@@ -200,22 +172,12 @@
 			}
 		},
 		'nl': {
-			directions: {
-				N: 'noordelijke',
-				NE: 'noordoostelijke',
-				E: 'oostelijke',
-				SE: 'zuidoostelijke',
-				S: 'zuidelijke',
-				SW: 'zuidewestelijke',
-				W: 'westelijke',
-				NW: 'noordwestelijke'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Vertrek in {dir} richting', ' de {road} op'],
+					['Vertrek', ' de {road} op'],
 				'Continue':
-					['Ga in {dir} richting', ' de {road} op'],
+					['Ga', ' de {road} op'],
 				'SlightRight':
 					['Volg de weg naar rechts', ' de {road} op'],
 				'Right':
@@ -233,7 +195,7 @@
 				'WaypointReached':
 					['Aangekomen bij tussenpunt'],
 				'Roundabout':
-					['Neem de {exitStr} afslag op de rotonde', ' de {road} op'],
+					['Neem de {exit} afslag op de rotonde', ' de {road} op'],
 				'DestinationReached':
 					['Aangekomen op eindpunt'],
 			},
@@ -251,22 +213,12 @@
 			}
 		},
 		'fr': {
-			directions: {
-				N: 'nord',
-				NE: 'nord-est',
-				E: 'est',
-				SE: 'sud-est',
-				S: 'sud',
-				SW: 'sud-ouest',
-				W: 'ouest',
-				NW: 'nord-ouest'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Tout droit au {dir}', ' sur {road}'],
+					['Tout droit', ' sur {road}'],
 				'Continue':
-					['Continuer au {dir}', ' sur {road}'],
+					['Continuer', ' sur {road}'],
 				'SlightRight':
 					['Légèrement à droite', ' sur {road}'],
 				'Right':
@@ -284,7 +236,7 @@
 				'WaypointReached':
 					['Point d\'étape atteint'],
 				'Roundabout':
-					['Au rond-point, prenez la {exitStr} sortie', ' sur {road}'],
+					['Au rond-point, prenez la {exit} sortie', ' sur {road}'],
 				'DestinationReached':
 					['Destination atteinte'],
 			},
@@ -298,22 +250,12 @@
 			}
 		},
 		'it': {
-			directions: {
-				N: 'nord',
-				NE: 'nord-est',
-				E: 'est',
-				SE: 'sud-est',
-				S: 'sud',
-				SW: 'sud-ovest',
-				W: 'ovest',
-				NW: 'nord-ovest'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Dritto verso {dir}', ' su {road}'],
+					['Dritto', ' su {road}'],
 				'Continue':
-					['Continuare verso {dir}', ' su {road}'],
+					['Continuare', ' su {road}'],
 				'SlightRight':
 					['Mantenere la destra', ' su {road}'],
 				'Right':
@@ -331,7 +273,7 @@
 				'WaypointReached':
 					['Punto di passaggio raggiunto'],
 				'Roundabout':
-					['Alla rotonda, prendere la {exitStr} uscita'],
+					['Alla rotonda, prendere la {exit} uscita'],
 				'DestinationReached':
 					['Destinazione raggiunta'],
 			},
@@ -345,22 +287,12 @@
 			}
 		},
 		'pt': {
-			directions: {
-				N: 'norte',
-				NE: 'nordeste',
-				E: 'leste',
-				SE: 'sudeste',
-				S: 'sul',
-				SW: 'sudoeste',
-				W: 'oeste',
-				NW: 'noroeste'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Siga {dir}', ' na {road}'],
+					['Siga', ' na {road}'],
 				'Continue':
-					['Continue {dir}', ' na {road}'],
+					['Continue', ' na {road}'],
 				'SlightRight':
 					['Curva ligeira a direita', ' na {road}'],
 				'Right':
@@ -378,7 +310,7 @@
 				'WaypointReached':
 					['Ponto de interesse atingido'],
 				'Roundabout':
-					['Pegue a {exitStr} saída na rotatória', ' na {road}'],
+					['Pegue a {exit} saída na rotatória', ' na {road}'],
 				'DestinationReached':
 					['Destino atingido'],
 			},
@@ -392,22 +324,12 @@
 			}
 		},
 		'sk': {
-			directions: {
-				N: 'sever',
-				NE: 'serverovýchod',
-				E: 'východ',
-				SE: 'juhovýchod',
-				S: 'juh',
-				SW: 'juhozápad',
-				W: 'západ',
-				NW: 'serverozápad'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Mierte na {dir}', ' na {road}'],
+					['Mierte', ' na {road}'],
 				'Continue':
-					['Pokračujte na {dir}', ' na {road}'],
+					['Pokračujte', ' na {road}'],
 				'SlightRight':
 					['Mierne doprava', ' na {road}'],
 				'Right':
@@ -425,7 +347,7 @@
 				'WaypointReached':
 					['Ste v prejazdovom bode.'],
 				'Roundabout':
-					['Odbočte na {exitStr} výjazde', ' na {road}'],
+					['Odbočte na {exit} výjazde', ' na {road}'],
 				'DestinationReached':
 					['Prišli ste do cieľa.'],
 			},
@@ -442,22 +364,12 @@
 			}
 		},
 		'el': {
-			directions: {
-				N: 'βόρεια',
-				NE: 'βορειοανατολικά',
-				E: 'ανατολικά',
-				SE: 'νοτιοανατολικά',
-				S: 'νότια',
-				SW: 'νοτιοδυτικά',
-				W: 'δυτικά',
-				NW: 'βορειοδυτικά'
-			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Κατευθυνθείτε {dir}', ' στην {road}'],
+					['Κατευθυνθείτε', ' στην {road}'],
 				'Continue':
-					['Συνεχίστε {dir}', ' στην {road}'],
+					['Συνεχίστε', ' στην {road}'],
 				'SlightRight':
 					['Ελαφρώς δεξιά', ' στην {road}'],
 				'Right':
@@ -475,7 +387,7 @@
 				'WaypointReached':
 					['Φτάσατε στο σημείο αναφοράς'],
 				'Roundabout':
-					['Ακολουθήστε την {exitStr} έξοδο στο κυκλικό κόμβο', ' στην {road}'],
+					['Ακολουθήστε την {exit} έξοδο στο κυκλικό κόμβο', ' στην {road}'],
 				'DestinationReached':
 					['Φτάσατε στον προορισμό σας'],
 			},

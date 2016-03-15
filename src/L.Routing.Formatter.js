@@ -91,23 +91,20 @@
 			}
 		},
 
-		formatInstruction: function(instr, i) {
+		formatInstruction: function(instr) {
 			if (instr.text === undefined) {
-				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({
-						exitStr: instr.exit ? L.Routing.Localization[this.options.language].formatOrder(instr.exit) : '',
-						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
-					},
-					instr));
+				return L.Util.template(this._getInstructionTemplate(instr), instr));
 			} else {
 				return instr.text;
 			}
 		},
 
-		getIconName: function(instr, i) {
+		getIconName: function(instr) {
 			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'depart' : 'continue');
+			case 'Depart':
+				return 'depart';
+      case 'Continue':
+        return 'Continue';
 			case 'SlightRight':
 				return 'bear-right';
 			case 'Right':
@@ -132,8 +129,7 @@
 		},
 
 		_getInstructionTemplate: function(instr, i) {
-			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
-				strings = L.Routing.Localization[this.options.language].instructions[type];
+			var strings = L.Routing.Localization[this.options.language].instructions[instr.type] || [""];
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}

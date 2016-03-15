@@ -113,9 +113,9 @@
 				(i > 0 ? ' leaflet-routing-alt-minimized ' + this.options.minimizedClassName : '')),
 				template = this.options.summaryTemplate,
 				data = L.extend({
-					name: alt.name,
-					distance: this._formatter.formatDistance(alt.summary.totalDistance, this.options.totalDistanceRoundingSensitivity),
-					time: this._formatter.formatTime(alt.summary.totalTime)
+					name: alt.summary,
+					distance: this._formatter.formatDistance(alt.distance, this.options.totalDistanceRoundingSensitivity),
+					time: this._formatter.formatTime(alt.duration)
 				}, alt);
 			altDiv.innerHTML = typeof(template) === 'function' ? template(data) : L.Util.template(template, data);
 			L.DomEvent.addListener(altDiv, 'click', this._onAltClicked, this);
@@ -134,8 +134,17 @@
 			this._altElements = [];
 		},
 
-		_createItineraryContainer: function(r) {
+    _createItineraryContainer: function(route) {
 			var container = this._itineraryBuilder.createContainer(),
+          legContainers = route.legs.map(this._createItineraryContainer, this);
+
+      legContainers.forEach(function (legContainer) {
+        container.appendChild(legContainer);
+      });
+    },
+
+		_createLegContainer: function(leg) {
+			var container = this._itineraryBuilder.createLegContainer(),
 			    steps = this._itineraryBuilder.createStepsContainer(),
 			    i,
 			    instr,
@@ -148,12 +157,12 @@
 
 			for (i = 0; i < r.instructions.length; i++) {
 				instr = r.instructions[i];
-				text = this._formatter.formatInstruction(instr, i);
+				text = this._formatter.formatInstruction(instr);
 				distance = this._formatter.formatDistance(instr.distance);
-				icon = this._formatter.getIconName(instr, i);
+				icon = this._formatter.getIconName(instr);
 				step = this._itineraryBuilder.createStep(text, distance, icon, steps);
 
-				this._addRowListeners(step, r.coordinates[instr.index]);
+				this._addRowListeners(step, instr.location);
 			}
 
 			return container;
