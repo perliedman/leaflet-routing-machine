@@ -12,6 +12,10 @@
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
+	/**
+	 * This class works against OSRM version 4 and lower,
+	 * for version 5, use the L.Routing.OSRMv1 class.
+	 */
 	L.Routing.OSRM = L.Class.extend({
 		options: {
 			serviceUrl: 'https://router.project-osrm.org/viaroute',

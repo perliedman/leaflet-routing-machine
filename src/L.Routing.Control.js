@@ -7,7 +7,7 @@
 	L.extend(L.Routing, require('./L.Routing.Itinerary'));
 	L.extend(L.Routing, require('./L.Routing.Line'));
 	L.extend(L.Routing, require('./L.Routing.Plan'));
-	L.extend(L.Routing, require('./L.Routing.OSRM'));
+	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
 	L.extend(L.Routing, require('./L.Routing.ErrorControl'));
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
@@ -25,7 +25,7 @@
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
 
-			this._router = this.options.router || new L.Routing.OSRM(options);
+			this._router = this.options.router || new L.Routing.OSRMv1(options);
 			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
 			this._requestCount = 0;
 
