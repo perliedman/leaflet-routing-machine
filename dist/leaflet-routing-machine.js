@@ -1,4 +1,4 @@
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.L||(f.L={})).Routing=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -401,7 +401,7 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.extend(L.Routing, require('./L.Routing.Itinerary'));
 	L.extend(L.Routing, require('./L.Routing.Line'));
 	L.extend(L.Routing, require('./L.Routing.Plan'));
-	L.extend(L.Routing, require('./L.Routing.OSRM'));
+	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
 	L.extend(L.Routing, require('./L.Routing.ErrorControl'));
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
@@ -419,7 +419,7 @@ if (typeof module !== undefined) module.exports = polyline;
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
 
-			this._router = this.options.router || new L.Routing.OSRM(options);
+			this._router = this.options.router || new L.Routing.OSRMv1(options);
 			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
 			this._requestCount = 0;
 
@@ -705,7 +705,7 @@ if (typeof module !== undefined) module.exports = polyline;
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.OSRM":12,"./L.Routing.Plan":13}],5:[function(require,module,exports){
+},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.OSRMv1":12,"./L.Routing.Plan":13}],5:[function(require,module,exports){
 (function() {
 	'use strict';
 
@@ -2016,12 +2016,20 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
-	L.Routing.OSRM = L.Class.extend({
+	/**
+	 * Works against OSRM's new API in version 5.0; this has
+	 * the API version v1.
+	 */
+	L.Routing.OSRMv1 = L.Class.extend({
 		options: {
-			serviceUrl: 'https://router.project-osrm.org/viaroute',
+			serviceUrl: 'http://router.project-osrm.org/route/v1',
+			profile: 'driving',
 			timeout: 30 * 1000,
-			routingOptions: {},
-			polylinePrecision: 6
+			routingOptions: {
+				alternatives: true,
+				steps: true
+			},
+			polylinePrecision: 5
 		},
 
 		initialize: function(options) {
@@ -2071,7 +2079,7 @@ if (typeof module !== undefined) module.exports = polyline;
 						try {
 							data = JSON.parse(resp.responseText);
 							try {
-								return this._routeDone(data, wps, callback, context);
+								return this._routeDone(data, wps, options, callback, context);
 							} catch (ex) {
 								statusCode = -3;
 								errorMessage = ex.toString();
@@ -2092,58 +2100,130 @@ if (typeof module !== undefined) module.exports = polyline;
 			return this;
 		},
 
-		_routeDone: function(response, inputWaypoints, callback, context) {
-			var coordinates,
-			    alts,
+		_routeDone: function(response, inputWaypoints, options, callback, context) {
+			var alts = [],
 			    actualWaypoints,
-			    i;
+			    i,
+			    route;
 
 			context = context || callback;
-			if (response.status !== 0 && response.status !== 200) {
+			if (response.code !== 'Ok') {
 				callback.call(context, {
-					status: response.status,
-					message: response.status_message
+					status: response.code
 				});
 				return;
 			}
 
-			coordinates = this._decodePolyline(response.route_geometry);
-			actualWaypoints = this._toWaypoints(inputWaypoints, response.via_points);
-			alts = [{
-				name: this._createName(response.route_name),
-				coordinates: coordinates,
-				instructions: response.route_instructions ? this._convertInstructions(response.route_instructions) : [],
-				summary: response.route_summary ? this._convertSummary(response.route_summary) : [],
-				inputWaypoints: inputWaypoints,
-				waypoints: actualWaypoints,
-				waypointIndices: this._clampIndices(response.via_indices, coordinates)
-			}];
+			actualWaypoints = this._toWaypoints(inputWaypoints, response.waypoints);
 
-			if (response.alternative_geometries) {
-				for (i = 0; i < response.alternative_geometries.length; i++) {
-					coordinates = this._decodePolyline(response.alternative_geometries[i]);
-					alts.push({
-						name: this._createName(response.alternative_names[i]),
-						coordinates: coordinates,
-						instructions: response.alternative_instructions[i] ? this._convertInstructions(response.alternative_instructions[i]) : [],
-						summary: response.alternative_summaries[i] ? this._convertSummary(response.alternative_summaries[i]) : [],
-						inputWaypoints: inputWaypoints,
-						waypoints: actualWaypoints,
-						waypointIndices: this._clampIndices(response.alternative_geometries.length === 1 ?
-							// Unsure if this is a bug in OSRM or not, but alternative_indices
-							// does not appear to be an array of arrays, at least not when there is
-							// a single alternative route.
-							response.alternative_indices : response.alternative_indices[i],
-							coordinates)
-					});
+			for (i = 0; i < response.routes.length; i++) {
+				route = this._convertRoute(response.routes[i], options.geometryOnly);
+				route.inputWaypoints = inputWaypoints;
+				route.waypoints = actualWaypoints;
+				alts.push(route);
+			}
+
+			this._saveHintData(response.waypoints, inputWaypoints);
+
+			callback.call(context, null, alts);
+		},
+
+		_convertRoute: function(responseRoute, geometryOnly) {
+			var result = {
+					name: '', // TODO
+					summary: {
+						totalDistance: responseRoute.distance,
+						totalTime: responseRoute.duration
+					}
+				},
+				coordinates = [],
+				instructions = [],
+				index = 0,
+				legCount = responseRoute.legs.length,
+				i,
+				j,
+				leg,
+				step,
+				geometry,
+				type;
+
+			if (geometryOnly) {
+				result.coordinates = this._decodePolyline(responseRoute.geometry);
+				return result;
+			}
+
+			for (i = 0; i < legCount; i++) {
+				leg = responseRoute.legs[i];
+				for (j = 0; j < leg.steps.length; j++) {
+					step = leg.steps[j];
+					geometry = this._decodePolyline(step.geometry);
+					coordinates.push(geometry);
+					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
+					if (type) {
+						instructions.push({
+							type: type,
+							distance: step.distance,
+							time: step.duration,
+							road: step.name,
+							direction: this._bearingToDirection(step.maneuver.bearing_after),
+							exit: step.maneuver.exit,
+							index: index
+						});
+					}
+
+					index += geometry.length;
 				}
 			}
 
-			// only versions <4.5.0 will support this flag
-			if (response.hint_data) {
-				this._saveHintData(response.hint_data, inputWaypoints);
+			result.coordinates = Array.prototype.concat.apply([], coordinates);
+			result.instructions = instructions;
+
+			return result;
+		},
+
+		_bearingToDirection: function(bearing) {
+			var oct = Math.round(bearing / 45) % 8;
+			return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][oct];
+		},
+
+		_maneuverToInstructionType: function(maneuver, lastLeg) {
+			switch (maneuver.type) {
+			case 'turn':
+			case 'end of road':
+				switch (maneuver.modifier) {
+				case 'straight':
+					return 'Straight';
+				case 'slight right':
+					return 'SlightRight';
+				case 'right':
+					return 'Right';
+				case 'sharp right':
+					return 'SharpRight';
+				case 'sharp left':
+					return 'SharpLeft';
+				case 'left':
+					return 'Left';
+				case 'slight left':
+					return 'SlightLeft';
+				case 'uturn':
+					return 'TurnAround';
+				default:
+					return null;
+				}
+				break;
+			case 'new name':
+			case 'merge':
+			case 'ramp':
+			case 'fork':
+				return 'Continue';
+			case 'arrive':
+				return lastLeg ? 'DestinationReached' : 'WaypointReached';
+			case 'roundabout':
+			case 'rotary':
+				return 'Roundabout';
+			default:
+				return null;
 			}
-			callback.call(context, null, alts);
 		},
 
 		_decodePolyline: function(routeGeometry) {
@@ -2187,53 +2267,43 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		buildRouteUrl: function(waypoints, options) {
 			var locs = [],
+				hints = [],
 				wp,
+				latLng,
 			    computeInstructions,
-			    computeAlternative,
-			    locationKey,
-			    hint;
+			    computeAlternative;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
-				locationKey = this._locationKey(wp.latLng);
-				locs.push('loc=' + locationKey);
-
-				hint = this._hints.locations[locationKey];
-				if (hint) {
-					locs.push('hint=' + hint);
-				}
-
-				if (wp.options && wp.options.allowUTurn) {
-					locs.push('u=true');
-				}
+				latLng = wp.latLng;
+				locs.push(latLng.lng + ',' + latLng.lat);
+				hints.push(this._hints[this._locationKey(latLng)] || '');
 			}
 
 			computeAlternative = computeInstructions =
 				!(options && options.geometryOnly);
 
-			return this.options.serviceUrl + '?' +
-				'instructions=' + computeInstructions.toString() + '&' +
-				'alt=' + computeAlternative.toString() + '&' +
-				(options.z ? 'z=' + options.z + '&' : '') +
-				locs.join('&') +
-				(this._hints.checksum !== undefined ? '&checksum=' + this._hints.checksum : '') +
-				(options.fileformat ? '&output=' + options.fileformat : '') +
-				(options.allowUTurns ? '&uturns=' + options.allowUTurns : '');
+			return this.options.serviceUrl + '/' + this.options.profile + '/' +
+				locs.join(';') + '?' +
+				(options.z ? 'z=' + options.z + '&' : (options.geometryOnly ? 'overview=full&' : '')) +
+				//'hints=' + hints.join(';') + '&' +
+				'alternatives=' + computeAlternative.toString() + '&' +
+				'steps=' + computeInstructions.toString() +
+				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
 
 		_locationKey: function(location) {
 			return location.lat + ',' + location.lng;
 		},
 
-		_saveHintData: function(hintData, waypoints) {
+		_saveHintData: function(actualWaypoints, waypoints) {
 			var loc;
 			this._hints = {
-				checksum: hintData.checksum,
 				locations: {}
 			};
-			for (var i = hintData.locations.length - 1; i >= 0; i--) {
+			for (var i = actualWaypoints.length - 1; i >= 0; i--) {
 				loc = waypoints[i].latLng;
-				this._hints.locations[this._locationKey(loc)] = hintData.locations[i];
+				this._hints.locations[this._locationKey(loc)] = actualWaypoints[i].hint;
 			}
 		},
 
@@ -2270,52 +2340,9 @@ if (typeof module !== undefined) module.exports = polyline;
 
 			return result;
 		},
-
-		_drivingDirectionType: function(d) {
-			switch (parseInt(d, 10)) {
-			case 1:
-				return 'Straight';
-			case 2:
-				return 'SlightRight';
-			case 3:
-				return 'Right';
-			case 4:
-				return 'SharpRight';
-			case 5:
-				return 'TurnAround';
-			case 6:
-				return 'SharpLeft';
-			case 7:
-				return 'Left';
-			case 8:
-				return 'SlightLeft';
-			case 9:
-				return 'WaypointReached';
-			case 10:
-				// TODO: "Head on"
-				// https://github.com/DennisOSRM/Project-OSRM/blob/master/DataStructures/TurnInstructions.h#L48
-				return 'Straight';
-			case 11:
-			case 12:
-				return 'Roundabout';
-			case 15:
-				return 'DestinationReached';
-			default:
-				return null;
-			}
-		},
-
-		_clampIndices: function(indices, coords) {
-			var maxCoordIndex = coords.length - 1,
-				i;
-			for (i = 0; i < indices.length; i++) {
-				indices[i] = Math.min(maxCoordIndex, Math.max(indices[i], 0));
-			}
-			return indices;
-		}
 	});
 
-	L.Routing.osrm = function(options) {
+	L.Routing.osrmv1 = function(options) {
 		return new L.Routing.OSRM(options);
 	};
 
