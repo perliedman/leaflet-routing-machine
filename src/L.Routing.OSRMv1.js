@@ -185,8 +185,22 @@
 
 		_maneuverToInstructionType: function(maneuver, lastLeg) {
 			switch (maneuver.type) {
-			case 'turn':
-			case 'end of road':
+			case 'new name':
+				return 'Continue';
+			case 'arrive':
+				return lastLeg ? 'DestinationReached' : 'WaypointReached';
+			case 'roundabout':
+			case 'rotary':
+				return 'Roundabout';
+			// These are all reduced to the same instruction in the current model
+			//case 'turn':
+			//case 'end of road':
+			//case 'merge':
+			//case 'on ramp': // new in v5.1
+			//case 'off ramp': // new in v5.1
+			//case 'ramp': // deprecated in v5.1
+			//case 'fork':
+			default:
 				switch (maneuver.modifier) {
 				case 'straight':
 					return 'Straight';
@@ -207,18 +221,6 @@
 				default:
 					return null;
 				}
-				break;
-			case 'new name':
-			case 'merge':
-			case 'ramp':
-			case 'fork':
-				return 'Continue';
-			case 'arrive':
-				return lastLeg ? 'DestinationReached' : 'WaypointReached';
-			case 'roundabout':
-			case 'rotary':
-				return 'Roundabout';
-			default:
 				return null;
 			}
 		},
