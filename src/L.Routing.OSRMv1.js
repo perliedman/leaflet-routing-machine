@@ -240,7 +240,7 @@
 			var wps = [],
 			    i;
 			for (i = 0; i < vias.length; i++) {
-				wps.push(L.Routing.waypoint(L.latLng(vias[i]),
+				wps.push(L.Routing.waypoint(L.latLng(vias[i].location),
 				                            inputWaypoints[i].name,
 				                            inputWaypoints[i].options));
 			}
@@ -292,7 +292,7 @@
 	});
 
 	L.Routing.osrmv1 = function(options) {
-		return new L.Routing.OSRM(options);
+		return new L.Routing.OSRMv1(options);
 	};
 
 	module.exports = L.Routing;
