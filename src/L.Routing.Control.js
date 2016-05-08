@@ -220,6 +220,20 @@
 			this.fire('waypointschanged', {waypoints: e.waypoints});
 		},
 
+		_isZoomedOut: function() {
+			var bounds = this._map.getBounds(),
+					waypoints = this._plan.getWaypoints(),
+					i;
+			for (i = 0; i < waypoints.length; ++i)
+			{
+				if (!bounds.contains(waypoints[i].latLng))
+				{
+					return false;
+				}
+			}
+			return true;
+		},
+
 		_setupRouteDragging: function() {
 			var timer = 0,
 				waypoints;
@@ -232,6 +246,7 @@
 						this.route({
 							waypoints: waypoints,
 							geometryOnly: true,
+							simplifyGeometry: this._isZoomedOut(),
 							callback: L.bind(this._updateLineCallback, this)
 						});
 						timer = undefined;
