@@ -46,7 +46,10 @@ module.exports = L.Control.extend({
 			L.DomEvent.on(collapseBtn, 'click', itinerary._toggle, itinerary);
 			itinerary._container.insertBefore(collapseBtn, itinerary._container.firstChild);
 		},
-		collapseBtnClass: 'leaflet-routing-collapse-btn'
+		collapseBtnClass: 'leaflet-routing-collapse-btn',
+		defaultErrorHandler: function(e) {
+			console.error('Routing error:', e.error);
+		}
 	},
 
 	initialize: function(options) {
@@ -61,6 +64,9 @@ module.exports = L.Control.extend({
 
 		L.Control.prototype.initialize.call(this, options);
 
+		if (this.options.defaultErrorHandler) {
+			this.on('routingerror', this.options.defaultErrorHandler);
+		}
 		if (this._itinerary) {
 			this._itinerary.on('routeselected', this._routeSelected, this);
 		}
