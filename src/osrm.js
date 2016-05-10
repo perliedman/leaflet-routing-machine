@@ -56,19 +56,34 @@ module.exports = L.Class.extend({
 		}
 
 		corslite(url, L.bind(function(err, resp) {
-			var data;
+			var data,
+				message,
+				status;
 
 			clearTimeout(timer);
 			if (!timedOut) {
 				if (!err) {
-					data = JSON.parse(resp.responseText);
-					this._routeDone(data, wps, callback, context);
+					try {
+						data = JSON.parse(resp.responseText);
+						try {
+							return this._routeDone(data, wps, callback, context);
+						} catch (ex) {
+							status = 'INTERNAL_ERROR';
+							message = ex.toString();
+						}
+					} catch (ex) {
+						status = 'PARSE_ERROR';
+						message = 'Error parsing OSRM response: ' + ex.toString();
+					}
 				} else {
-					callback.call(context || callback, {
-						status: -1,
-						message: 'HTTP request failed: ' + err
-					});
+					status = 'HTTP_ERROR';
+					message = 'HTTP request failed: ' + err;
 				}
+
+				callback.call(context || callback, {
+					status: status,
+					message: message
+				});
 			}
 		}, this));
 
