@@ -163,7 +163,8 @@
 							road: step.name,
 							direction: this._bearingToDirection(step.maneuver.bearing_after),
 							exit: step.maneuver.exit,
-							index: index
+							index: index,
+							mode: step.mode
 						});
 					}
 
