@@ -5,7 +5,7 @@ var L = require('leaflet'),
 	GeocoderControl = require('./geocoder-control'),
 	Line = require('./line'),
 	Plan = require('./plan'),
-	OSRM = require('./osrm'),
+	OSRMv1 = require('./osrm-v1'),
 	WaypointsLayer = require('./waypoints-layer');
 
 /**
@@ -52,7 +52,7 @@ module.exports = L.Control.extend({
 	initialize: function(options) {
 		L.Util.setOptions(this, options);
 
-		this._router = this.options.router || new OSRM(options);
+		this._router = this.options.router || new OSRMv1(options);
 		this._itinerary = this.options.itinerary === undefined ? new Itinerary(options) : this.options.itinerary;
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
 		this._geocoderControl = this.options.geocoderControl === undefined ? new GeocoderControl(this._plan, options) : this.options.geocoderControl;
