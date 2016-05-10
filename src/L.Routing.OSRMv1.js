@@ -245,22 +245,6 @@
 			return wps;
 		},
 
-		_createName: function(nameParts) {
-			var name = '',
-				i;
-
-			for (i = 0; i < nameParts.length; i++) {
-				if (nameParts[i]) {
-					if (name) {
-						name += ', ';
-					}
-					name += nameParts[i].charAt(0).toUpperCase() + nameParts[i].slice(1);
-				}
-			}
-
-			return name;
-		},
-
 		buildRouteUrl: function(waypoints, options) {
 			var locs = [],
 				hints = [],
@@ -301,40 +285,6 @@
 				loc = waypoints[i].latLng;
 				this._hints.locations[this._locationKey(loc)] = actualWaypoints[i].hint;
 			}
-		},
-
-		_convertSummary: function(osrmSummary) {
-			return {
-				totalDistance: osrmSummary.total_distance,
-				totalTime: osrmSummary.total_time
-			};
-		},
-
-		_convertInstructions: function(osrmInstructions) {
-			var result = [],
-			    i,
-			    instr,
-			    type,
-			    driveDir;
-
-			for (i = 0; i < osrmInstructions.length; i++) {
-				instr = osrmInstructions[i];
-				type = this._drivingDirectionType(instr[0]);
-				driveDir = instr[0].split('-');
-				if (type) {
-					result.push({
-						type: type,
-						distance: instr[2],
-						time: instr[4],
-						road: instr[1],
-						direction: instr[6],
-						exit: driveDir.length > 1 ? driveDir[1] : undefined,
-						index: instr[3]
-					});
-				}
-			}
-
-			return result;
 		},
 	});
 
