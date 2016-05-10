@@ -35,7 +35,7 @@ module.exports = L.Control.extend({
 		routeWhileDragging: true,
 		routeDragInterval: 500,
 		waypointMode: 'connect',
-		useZoomParameter: true,
+		useZoomParameter: false,
 		showAlternatives: true,
 		containerClassName: '',
 		minimizedClassName: '',
