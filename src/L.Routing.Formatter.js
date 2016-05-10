@@ -76,6 +76,9 @@
 		},
 
 		formatTime: function(t /* Number (seconds) */) {
+			// More than 30 seconds precision looks ridiculous
+			t = Math.round(t / 30) * 30;
+
 			if (t > 86400) {
 				return Math.round(t / 3600) + ' h';
 			} else if (t > 3600) {
