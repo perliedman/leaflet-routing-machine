@@ -43,7 +43,8 @@
 				wp,
 				i;
 
-			url = this.buildRouteUrl(waypoints, L.extend({}, this.options.routingOptions, options));
+			options = L.extend({}, this.options.routingOptions, options);
+			url = this.buildRouteUrl(waypoints, options);
 
 			timer = setTimeout(function() {
 				timedOut = true;
@@ -96,6 +97,23 @@
 			return this;
 		},
 
+		requiresMoreDetail: function(route, zoom, bounds) {
+			if (!route.properties.isSimplified) {
+				return false;
+			}
+
+			var waypoints = route.inputWaypoints,
+				i;
+			for (i = 0; i < waypoints.length; ++i)
+			{
+				if (!bounds.contains(waypoints[i].latLng))
+				{
+					return true;
+				}
+			}
+			return false;
+		},
+
 		_routeDone: function(response, inputWaypoints, options, callback, context) {
 			var alts = [],
 			    actualWaypoints,
@@ -116,6 +134,7 @@
 				route = this._convertRoute(response.routes[i]);
 				route.inputWaypoints = inputWaypoints;
 				route.waypoints = actualWaypoints;
+				route.properties = {isSimplified: !options || !options.geometryOnly || options.simplifyGeometry};
 				alts.push(route);
 			}
 
@@ -169,7 +188,7 @@
 				}
 			}
 
-			result.name = legNames.join(", ");
+			result.name = legNames.join(', ');
 			if (!hasSteps) {
 				result.coordinates = this._decodePolyline(responseRoute.geometry);
 			}
@@ -241,7 +260,7 @@
 			for (i = 0; i < vias.length; i++) {
 				wps.push(L.Routing.waypoint(L.latLng(vias[i].location),
 				                            inputWaypoints[i].name,
-				                            inputWaypoints[i].options));
+											inputWaypoints[i].options));
 			}
 
 			return wps;
@@ -269,7 +288,7 @@
 				wp,
 				latLng,
 			    computeInstructions,
-			    computeAlternative;
+			    computeAlternative = true;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
@@ -278,7 +297,7 @@
 				hints.push(this._hints[this._locationKey(latLng)] || '');
 			}
 
-			computeAlternative = computeInstructions =
+			computeInstructions =
 				!(options && options.geometryOnly);
 
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
