@@ -18,7 +18,7 @@
 	 */
 	L.Routing.OSRM = L.Class.extend({
 		options: {
-			serviceUrl: 'https://router.project-osrm.org/viaroute',
+			serviceUrl: '//router.project-osrm.org/viaroute',
 			timeout: 30 * 1000,
 			routingOptions: {},
 			polylinePrecision: 6
