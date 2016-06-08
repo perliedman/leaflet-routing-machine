@@ -19,7 +19,13 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * Customizable look (theming / skins)
 * Open Source released under ISC License (more or less equivalent with the MIT license)
 
-### Go to the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.
+__Go to the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
+
+## Support and New Features
+
+Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, you're requirements are already covered and require very little adaptation.
+
+If you have more complex requirements, need new features or just need some support, I am open to doing paid custom work and support around Leaflet Routing Machine for your organization. Contact me at [per@liedman.net](mailto:per@liedman.net) and we'll sort this out!
 
 ## Building
 
