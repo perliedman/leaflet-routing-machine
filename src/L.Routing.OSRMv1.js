@@ -278,7 +278,7 @@
 				wp = waypoints[i];
 				latLng = wp.latLng;
 				locs.push(latLng.lng + ',' + latLng.lat);
-				hints.push(this._hints[this._locationKey(latLng)] || '');
+				hints.push(this._hints.locations[this._locationKey(latLng)] || '');
 			}
 
 			computeInstructions =
@@ -286,9 +286,10 @@
 
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
 				locs.join(';') + '?' +
-				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full&') : 'overview=false&') +
-				'alternatives=' + computeAlternative.toString() + '&' +
-				'steps=' + computeInstructions.toString() +
+				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
+				'&alternatives=' + computeAlternative.toString() +
+				'&steps=' + computeInstructions.toString() +
+				'&hints=' + hints.join(';') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
 
