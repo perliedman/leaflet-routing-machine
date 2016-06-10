@@ -104,13 +104,12 @@
 
 			var waypoints = route.inputWaypoints,
 				i;
-			for (i = 0; i < waypoints.length; ++i)
-			{
-				if (!bounds.contains(waypoints[i].latLng))
-				{
+			for (i = 0; i < waypoints.length; ++i) {
+				if (!bounds.contains(waypoints[i].latLng)) {
 					return true;
 				}
 			}
+
 			return false;
 		},
 
