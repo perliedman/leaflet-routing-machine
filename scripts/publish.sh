@@ -17,7 +17,7 @@ git remote set-url origin $ORIGIN
 git fetch origin gh-pages
 git rebase origin/gh-pages
 
-mkdir -p dist
+cp -a $CWD/dist $TMP
 git add -f dist/
 git commit -m "Dist files $VERSION"
 git push origin gh-pages
