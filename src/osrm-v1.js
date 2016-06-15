@@ -15,7 +15,7 @@ var L = require('leaflet'),
  */
 module.exports = L.Class.extend({
 	options: {
-		serviceUrl: 'http://router.project-osrm.org/route/v1',
+		serviceUrl: 'https://router.project-osrm.org/route/v1',
 		profile: 'driving',
 		timeout: 30 * 1000,
 		routingOptions: {
@@ -93,6 +93,22 @@ module.exports = L.Class.extend({
 		return this;
 	},
 
+	requiresMoreDetail: function(route, zoom, bounds) {
+		if (!route.properties.isSimplified) {
+			return false;
+		}
+
+		var waypoints = route.inputWaypoints,
+			i;
+		for (i = 0; i < waypoints.length; ++i) {
+			if (!bounds.contains(waypoints[i].latLng)) {
+				return true;
+			}
+		}
+
+		return false;
+	},
+
 	_routeDone: function(response, inputWaypoints, options, callback, context) {
 		var alts = [],
 		    actualWaypoints,
@@ -110,9 +126,10 @@ module.exports = L.Class.extend({
 		actualWaypoints = this._toWaypoints(inputWaypoints, response.waypoints);
 
 		for (i = 0; i < response.routes.length; i++) {
-			route = this._convertRoute(response.routes[i], options.geometryOnly);
+			route = this._convertRoute(response.routes[i]);
 			route.inputWaypoints = inputWaypoints;
 			route.waypoints = actualWaypoints;
+			route.properties = {isSimplified: !options || !options.geometryOnly || options.simplifyGeometry};
 			alts.push(route);
 		}
 
@@ -121,18 +138,20 @@ module.exports = L.Class.extend({
 		callback.call(context, null, alts);
 	},
 
-	_convertRoute: function(responseRoute, geometryOnly) {
+	_convertRoute: function(responseRoute) {
 		var result = {
-				name: '', // TODO
+				name: '',
+				coordinates: [],
+				instructions: [],
 				summary: {
 					totalDistance: responseRoute.distance,
 					totalTime: responseRoute.duration
 				}
 			},
-			coordinates = [],
-			instructions = [],
+			legNames = [],
 			index = 0,
 			legCount = responseRoute.legs.length,
+			hasSteps = responseRoute.legs[0].steps.length > 0,
 			i,
 			j,
 			leg,
@@ -140,20 +159,16 @@ module.exports = L.Class.extend({
 			geometry,
 			type;
 
-		if (geometryOnly) {
-			result.coordinates = this._decodePolyline(responseRoute.geometry);
-			return result;
-		}
-
 		for (i = 0; i < legCount; i++) {
 			leg = responseRoute.legs[i];
+			legNames.push(leg.summary);
 			for (j = 0; j < leg.steps.length; j++) {
 				step = leg.steps[j];
 				geometry = this._decodePolyline(step.geometry);
-				coordinates.push(geometry);
+				result.coordinates.push.apply(result.coordinates, geometry);
 				type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
 				if (type) {
-					instructions.push({
+					result.instructions.push({
 						type: type,
 						distance: step.distance,
 						time: step.duration,
@@ -169,8 +184,10 @@ module.exports = L.Class.extend({
 			}
 		}
 
-		result.coordinates = Array.prototype.concat.apply([], coordinates);
-		result.instructions = instructions;
+		result.name = legNames.join(', ');
+		if (!hasSteps) {
+			result.coordinates = this._decodePolyline(responseRoute.geometry);
+		}
 
 		return result;
 	},
@@ -235,7 +252,7 @@ module.exports = L.Class.extend({
 		var wps = [],
 		    i;
 		for (i = 0; i < vias.length; i++) {
-			wps.push(new Waypoint(L.latLng(vias[i]),
+			wps.push(new Waypoint(L.latLng(vias[i].location),
 			                            inputWaypoints[i].name,
 			                            inputWaypoints[i].options));
 		}
@@ -246,27 +263,26 @@ module.exports = L.Class.extend({
 	buildRouteUrl: function(waypoints, options) {
 		var locs = [],
 			hints = [],
+		    computeAlternative = true,
 			wp,
 			latLng,
-		    computeInstructions,
-		    computeAlternative;
+		    computeInstructions;
 
 		for (var i = 0; i < waypoints.length; i++) {
 			wp = waypoints[i];
 			latLng = wp.latLng;
 			locs.push(latLng.lng + ',' + latLng.lat);
-			hints.push(this._hints[this._locationKey(latLng)] || '');
+			hints.push(this._hints.locations[this._locationKey(latLng)] || '');
 		}
 
-		computeAlternative = true;
 		computeInstructions = !(options && options.geometryOnly);
 
 		return this.options.serviceUrl + '/' + this.options.profile + '/' +
 			locs.join(';') + '?' +
-			(options.geometryOnly ? 'overview=full&' : '') +
-			//'hints=' + hints.join(';') + '&' +
-			'alternatives=' + computeAlternative.toString() + '&' +
-			'steps=' + computeInstructions.toString() +
+			(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full&') : 'overview=false&') +
+			'hints=' + hints.join(';') +
+			'&alternatives=' + computeAlternative.toString() +
+			'&steps=' + computeInstructions.toString() +
 			(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 	},
 

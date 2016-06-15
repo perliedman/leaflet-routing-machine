@@ -35,7 +35,6 @@ module.exports = L.Control.extend({
 		routeWhileDragging: true,
 		routeDragInterval: 500,
 		waypointMode: 'connect',
-		useZoomParameter: false,
 		showAlternatives: true,
 		containerClassName: '',
 		minimizedClassName: '',
@@ -99,16 +98,22 @@ module.exports = L.Control.extend({
 
 		this._map = map;
 
-		if (this.options.useZoomParameter) {
-			this._map.on('zoomend', function() {
-				if (this._routeZoom !== this._map.getZoom()) {
-					this.route({
-						geometryOnly: true,
-						callback: L.bind(this._updateRouteCoordinates, this)
-					});
-				}
-			}, this);
-		}
+		this._map.on('zoomend', function() {
+			if (!this._selectedRoute ||
+				!this._router.requiresMoreDetail) {
+				return;
+			}
+
+			var map = this._map;
+			if (this._router.requiresMoreDetail(this._selectedRoute,
+				map.getZoom(), map.getBounds())) {
+				this.route({
+					callback: L.bind(this._updateRouteCoordinates, this),
+					simplifyGeometry: false,
+					geometryOnly: true
+				});
+			}
+		}, this);
 
 		if (this._geocoderControl) {
 			container.appendChild(this._geocoderControl.onAdd());
@@ -195,6 +200,8 @@ module.exports = L.Control.extend({
 				(fitMode === 'smart' && !this._waypointsVisible()) ||
 				(fitMode !== 'smart' && fitMode),
 			i;
+
+		this._selectedRoute = route;
 
 		if (this.options.showAlternatives && !alternatives) {
 			alternatives = [];
@@ -374,6 +381,7 @@ module.exports = L.Control.extend({
 					this._routes[i].inputWaypoints = routes[i].inputWaypoints;
 					this._routes[i].coordinates = routes[i].coordinates;
 					this._routes[i].waypointIndices = routes[i].waypointIndices;
+					this._routes[i].properties = routes[i].properties;
 				} else {
 					this._routes[i] = newRoute;
 				}
@@ -391,10 +399,6 @@ module.exports = L.Control.extend({
 		options = options || {};
 
 		if (this._plan.isReady()) {
-			if (this.options.useZoomParameter) {
-				options.z = this._map && this._map.getZoom();
-			}
-
 			wps = options && options.waypoints || this._plan.getWaypoints();
 			this.fire('routingstart', {waypoints: wps});
 			this._router.route(wps, options.callback || function(err, routes) {
