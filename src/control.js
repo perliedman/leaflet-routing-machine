@@ -71,7 +71,7 @@ module.exports = L.Control.extend({
 			this._itinerary.on('routeselected', this._routeSelected, this);
 		}
 		this._plan.on('waypointschanged', this._onWaypointsChanged, this);
-		if (options.routeWhileDragging) {
+		if (this.options.autoRoute && this.options.routeWhileDragging) {
 			this._setupRouteDragging();
 		}
 
@@ -342,7 +342,7 @@ module.exports = L.Control.extend({
 			waypoints;
 
 		if (this._waypointsLayer) {
-			this._waypointsLayer.on('waypointdrag', L.bind(function(e) {
+			this._waypointsLayer.on('waypointdrag', function(e) {
 				waypoints = e.waypoints;
 
 				if (!timer) {
@@ -355,7 +355,7 @@ module.exports = L.Control.extend({
 						timer = undefined;
 					}, this), this.options.routeDragInterval);
 				}
-			}, this));
+			}, this);
 			this._waypointsLayer.on('waypointdragend', function() {
 				if (timer) {
 					clearTimeout(timer);
