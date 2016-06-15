@@ -47,11 +47,13 @@ module.exports = L.LayerGroup.extend({
 		this._markers = [];
 
 		for (i = 0; i < wps.length; i++) {
-			marker = this.options.createMarker.call(this.options, i, wps[i]);
-			if (marker) {
-				this.addLayer(marker);
-				this._hookWaypointEvents(wps[i], marker, i, false);
-				this._markers.push(marker);
+			if (wps[i].latLng) {
+				marker = this.options.createMarker.call(this.options, i, wps[i]);
+				if (marker) {
+					this.addLayer(marker);
+					this._hookWaypointEvents(wps[i], marker, i, false);
+					this._markers.push(marker);
+				}
 			}
 		}
 	},

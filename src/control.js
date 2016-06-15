@@ -57,9 +57,10 @@ module.exports = L.Control.extend({
 		this._router = this.options.router || new OSRMv1(options);
 		this._itinerary = this.options.itinerary === undefined ? new Itinerary(options) : this.options.itinerary;
 		this._plan = this.options.plan || new Plan(this.options.waypoints, options);
-		this._geocoderControl = this.options.geocoderControl === undefined ? new GeocoderControl(this._plan, options) : this.options.geocoderControl;
+		this._geocoderControl = (this.options.geocoderControl === undefined && this.options.geocoder) ? new GeocoderControl(this._plan, options) : this.options.geocoderControl;
 		this._waypointsLayer = this.options.waypointsLayer === undefined ? new WaypointsLayer(this._plan, options) : this.options.waypointsLayer;
 		this._requestCount = 0;
+		this._routes = [];
 
 		L.Control.prototype.initialize.call(this, options);
 
@@ -128,9 +129,7 @@ module.exports = L.Control.extend({
 		}
 
 		this._container = container;
-		if (container.children.length === 0) {
-			container.style.display = 'none';
-		}
+		this._updateContainerVisiblity();
 
 		return container;
 	},
@@ -426,7 +425,7 @@ module.exports = L.Control.extend({
 						this._selectRoute(routes[0]);
 					}
 
-					this._routeZoom = options.z;
+					this._updateContainerVisiblity();
 				}
 			}, this, options);
 		}
@@ -442,6 +441,18 @@ module.exports = L.Control.extend({
 				this._map.removeLayer(this._alternatives[i]);
 			}
 			this._alternatives = [];
+		}
+	},
+
+	_updateContainerVisiblity: function() {
+		var container = this._container;
+
+		if ((container.children.length === 0) ||
+			(this._itinerary && container.children.length === 1 &&
+				(this._routes.length === 0))) {
+			container.style.display = 'none';
+		} else {
+			container.style.display = null;
 		}
 	}
 });
