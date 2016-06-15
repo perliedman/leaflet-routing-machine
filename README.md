@@ -23,7 +23,7 @@ __Go to the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routin
 
 ## Support and New Features
 
-Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, you're requirements are already covered and require very little adaptation.
+Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, your requirements are already covered and require very little adaptation.
 
 If you have more complex requirements, need new features or just need some support, I am open to doing paid custom work and support around Leaflet Routing Machine for your organization. Contact me at [per@liedman.net](mailto:per@liedman.net) and we'll sort this out!
 
