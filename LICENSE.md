@@ -1,3 +1,5 @@
+## ISC License
+
 Copyright (c) 2014, Per Liedman (per@liedman.net)
 Turn instruction icons Copyright (c) 2014, Mapbox (mapbox.com)
 
