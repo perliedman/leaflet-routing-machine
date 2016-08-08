@@ -205,6 +205,8 @@
 			switch (maneuver.type) {
 			case 'new name':
 				return 'Continue';
+			case 'depart':
+				return 'Head';
 			case 'arrive':
 				return lastLeg ? 'DestinationReached' : 'WaypointReached';
 			case 'roundabout':
