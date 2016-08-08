@@ -267,7 +267,9 @@
 
 		_updateLineCallback: function(err, routes) {
 			if (!err) {
-				this._updateLines({route: routes[0], alternatives: routes.slice(1) });
+				routes = routes.slice();
+				var selected = routes.splice(this._selectedRoute.routesIndex, 1)[0];
+				this._updateLines({route: selected, alternatives: routes });
 			} else {
 				this._clearLines();
 			}
