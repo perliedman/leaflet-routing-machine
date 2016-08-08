@@ -56,8 +56,7 @@
 			}
 
 			if (simpleRounding) {
-				pow10 = Math.pow(10, -sensitivity);
-				data.value = Math.round(data.value * pow10) / pow10;
+				data.value = data.value.toFixed(-sensitivity);
 			}
 
 			return L.Util.template(this.options.distanceTemplate, data);
