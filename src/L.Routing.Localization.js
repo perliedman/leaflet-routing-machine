@@ -32,8 +32,6 @@
 					return value;
 				}
 			}
-
-			console.warn('No available localization for keys: ' + keys);
 		}
 	});
 
