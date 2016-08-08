@@ -45,6 +45,9 @@
 
 			options = L.extend({}, this.options.routingOptions, options);
 			url = this.buildRouteUrl(waypoints, options);
+			if (this.options.requestParameters) {
+				url += L.Util.getParamString(this.options.requestParameters, url);
+			}
 
 			timer = setTimeout(function() {
 				timedOut = true;
