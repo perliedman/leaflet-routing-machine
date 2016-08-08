@@ -2,7 +2,42 @@
 	'use strict';
 	L.Routing = L.Routing || {};
 
-	L.Routing.Localization = {
+	L.Routing.Localization = L.Class.extend({
+		initialize: function(langs) {
+			this._langs = L.Util.isArray(langs) ? langs : [langs, 'en'];
+
+			for (var i = 0, l = this._langs.length; i < l; i++) {
+				if (!L.Routing.Localization[this._langs[i]]) {
+					throw new Error('No localization for language "' + this._langs[i] + '".');
+				}
+			}
+		},
+
+		localize: function(keys) {
+			var dict,
+				key,
+				value;
+
+			keys = L.Util.isArray(keys) ? keys : [keys];
+
+			for (var i = 0, l = this._langs.length; i < l; i++) {
+				dict = L.Routing.Localization[this._langs[i]];
+				for (var j = 0, nKeys = keys.length; dict && j < nKeys; j++) {
+					key = keys[j];
+					value = dict[key];
+					dict = value;
+				}
+
+				if (value) {
+					return value;
+				}
+			}
+
+			console.warn('No available localization for keys: ' + keys);
+		}
+	});
+
+	L.Routing.Localization = L.extend(L.Routing.Localization, {
 		'en': {
 			directions: {
 				N: 'north',
@@ -51,6 +86,15 @@
 				startPlaceholder: 'Start',
 				viaPlaceholder: 'Via {viaNumber}',
 				endPlaceholder: 'End'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'mín',
+				seconds: 's'
 			}
 		},
 
@@ -488,7 +532,7 @@
 				endPlaceholder: 'Προορισμός'
 			}
 		}
-	};
+	});
 
 	module.exports = L.Routing;
 })();

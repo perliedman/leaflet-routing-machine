@@ -32,8 +32,8 @@
 					closeButton: remove
 				};
 			},
-			geocoderPlaceholder: function(i, numberWaypoints, plan) {
-				var l = L.Routing.Localization[plan.options.language].ui;
+			geocoderPlaceholder: function(i, numberWaypoints, geocoderElement) {
+				var l = new L.Routing.Localization(geocoderElement.options.language).localize('ui');
 				return i === 0 ?
 					l.startPlaceholder :
 					(i < numberWaypoints - 1 ?

@@ -10,15 +10,7 @@
 	L.Routing.Formatter = L.Class.extend({
 		options: {
 			units: 'metric',
-			unitNames: {
-				meters: 'm',
-				kilometers: 'km',
-				yards: 'yd',
-				miles: 'mi',
-				hours: 'h',
-				minutes: 'mín',
-				seconds: 's'
-			},
+			unitNames: null,
 			language: 'en',
 			roundingSensitivity: 1,
 			distanceTemplate: '{value} {unit}'
@@ -26,10 +18,15 @@
 
 		initialize: function(options) {
 			L.setOptions(this, options);
+
+			var langs = L.Util.isArray(this.options.language) ?
+				this.options.language :
+				[this.options.language, 'en'];
+			this._localization = new L.Routing.Localization(langs);
 		},
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
-			var un = this.options.unitNames,
+			var un = this.options.unitNames || this._localization.localize('units'),
 				simpleRounding = sensitivity <= 0,
 				round = simpleRounding ? function(v) { return v; } : L.bind(this._round, this),
 			    v,
@@ -76,21 +73,22 @@
 		},
 
 		formatTime: function(t /* Number (seconds) */) {
+			var un = this.options.unitNames || this._localization.localize('units');
 			// More than 30 seconds precision looks ridiculous
 			t = Math.round(t / 30) * 30;
 
 			if (t > 86400) {
-				return Math.round(t / 3600) + ' h';
+				return Math.round(t / 3600) + ' ' + un.hours;
 			} else if (t > 3600) {
-				return Math.floor(t / 3600) + ' h ' +
-					Math.round((t % 3600) / 60) + ' min';
+				return Math.floor(t / 3600) + ' ' + un.hours + ' ' +
+					Math.round((t % 3600) / 60) + ' ' + un.minutes;
 			} else if (t > 300) {
-				return Math.round(t / 60) + ' min';
+				return Math.round(t / 60) + ' ' + un.minutes;
 			} else if (t > 60) {
-				return Math.floor(t / 60) + ' min' +
-					(t % 60 !== 0 ? ' ' + (t % 60) + ' s' : '');
+				return Math.floor(t / 60) + ' ' + un.minutes +
+					(t % 60 !== 0 ? ' ' + (t % 60) + ' ' + un.seconds : '');
 			} else {
-				return t + ' s';
+				return t + ' ' + un.seconds;
 			}
 		},
 
@@ -98,8 +96,8 @@
 			if (instr.text === undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
 					L.extend({
-						exitStr: instr.exit ? L.Routing.Localization[this.options.language].formatOrder(instr.exit) : '',
-						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
+						exitStr: instr.exit ? this._localization.localize('formatOrder')(instr.exit) : '',
+						dir: this._localization.localize(['directions', instr.direction])
 					},
 					instr));
 			} else {
@@ -136,7 +134,7 @@
 
 		_getInstructionTemplate: function(instr, i) {
 			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
-				strings = L.Routing.Localization[this.options.language].instructions[type];
+				strings = this._localization.localize(['instructions', type]);
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}
