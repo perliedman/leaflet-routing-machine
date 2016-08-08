@@ -95,11 +95,11 @@
 		formatInstruction: function(instr, i) {
 			if (instr.text === undefined) {
 				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({
+					L.extend({}, instr, {
 						exitStr: instr.exit ? this._localization.localize('formatOrder')(instr.exit) : '',
-						dir: this._localization.localize(['directions', instr.direction])
-					},
-					instr));
+						dir: this._localization.localize(['directions', instr.direction]),
+						modifier: this._localization.localize(['directions', instr.modifier])
+					}));
 			} else {
 				return instr.text;
 			}
@@ -107,22 +107,11 @@
 
 		getIconName: function(instr, i) {
 			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'depart' : 'continue');
-			case 'SlightRight':
-				return 'bear-right';
-			case 'Right':
-				return 'turn-right';
-			case 'SharpRight':
-				return 'sharp-right';
-			case 'TurnAround':
-				return 'u-turn';
-			case 'SharpLeft':
-				return 'sharp-left';
-			case 'Left':
-				return 'turn-left';
-			case 'SlightLeft':
-				return 'bear-left';
+			case 'Head':
+				if (i === 0) {
+					return 'depart';
+				}
+				break;
 			case 'WaypointReached':
 				return 'via';
 			case 'Roundabout':
@@ -130,11 +119,38 @@
 			case 'DestinationReached':
 				return 'arrive';
 			}
+
+			switch (instr.modifier) {
+			case 'Straight':
+				return 'continue';
+			case 'SlightRight':
+				return 'bear-right';
+			case 'Right':
+				return 'turn-right';
+			case 'SharpRight':
+				return 'sharp-right';
+			case 'TurnAround':
+			case 'Uturn':
+				return 'u-turn';
+			case 'SharpLeft':
+				return 'sharp-left';
+			case 'Left':
+				return 'turn-left';
+			case 'SlightLeft':
+				return 'bear-left';
+			}
 		},
 
 		_getInstructionTemplate: function(instr, i) {
 			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
 				strings = this._localization.localize(['instructions', type]);
+
+			if (!strings) {
+				strings = [
+					this._localization.localize(['directions', type]),
+					' ' + this._localization.localize(['instructions', 'Onto'])
+				];
+			}
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}

@@ -165,7 +165,7 @@
 
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
-				legNames.push(leg.summary);
+				legNames.push(leg.summary && leg.summary.charAt(0).toUpperCase() + leg.summary.substring(1));
 				for (j = 0; j < leg.steps.length; j++) {
 					step = leg.steps[j];
 					geometry = this._decodePolyline(step.geometry);
@@ -180,7 +180,8 @@
 							direction: this._bearingToDirection(step.maneuver.bearing_after),
 							exit: step.maneuver.exit,
 							index: index,
-							mode: step.mode
+							mode: step.mode,
+							modifier: step.maneuver.modifier && this._camelCase(step.maneuver.modifier)
 						});
 					}
 
@@ -212,37 +213,32 @@
 			case 'roundabout':
 			case 'rotary':
 				return 'Roundabout';
+			case 'merge':
+			case 'fork':
+			case 'on ramp':
+			case 'off ramp':
+			case 'end of road':
+				return this._camelCase(maneuver.type);
 			// These are all reduced to the same instruction in the current model
 			//case 'turn':
-			//case 'end of road':
-			//case 'merge':
-			//case 'on ramp': // new in v5.1
-			//case 'off ramp': // new in v5.1
 			//case 'ramp': // deprecated in v5.1
-			//case 'fork':
 			default:
-				switch (maneuver.modifier) {
-				case 'straight':
-					return 'Straight';
-				case 'slight right':
-					return 'SlightRight';
-				case 'right':
-					return 'Right';
-				case 'sharp right':
-					return 'SharpRight';
-				case 'sharp left':
-					return 'SharpLeft';
-				case 'left':
-					return 'Left';
-				case 'slight left':
-					return 'SlightLeft';
-				case 'uturn':
-					return 'TurnAround';
-				default:
-					return null;
-				}
-				return null;
+				return this._camelCase(maneuver.modifier);
 			}
+		},
+
+		_camelCase: function(s) {
+			var words = s.split(' '),
+				result = '';
+			for (var i = 0, l = words.length; i < l; i++) {
+				result += words[i].charAt(0).toUpperCase() + words[i].substring(1);
+			}
+
+			return result;
+		},
+
+		_leftOrRight: function(d) {
+			return d.indexOf('left') >= 0 ? 'Left' : 'Right';
 		},
 
 		_decodePolyline: function(routeGeometry) {

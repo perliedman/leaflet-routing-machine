@@ -47,34 +47,34 @@
 				S: 'south',
 				SW: 'southwest',
 				W: 'west',
-				NW: 'northwest'
+				NW: 'northwest',
+				SlightRight: 'slight right',
+				Right: 'right',
+				SharpRight: 'sharp right',
+				SlightLeft: 'slight left',
+				Left: 'left',
+				SharpLeft: 'sharp left'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
 					['Head {dir}', ' on {road}'],
 				'Continue':
-					['Continue {dir}', ' on {road}'],
-				'SlightRight':
-					['Slight right', ' onto {road}'],
-				'Right':
-					['Right', ' onto {road}'],
-				'SharpRight':
-					['Sharp right', ' onto {road}'],
+					['Continue {dir}'],
 				'TurnAround':
 					['Turn around'],
-				'SharpLeft':
-					['Sharp left', ' onto {road}'],
-				'Left':
-					['Left', ' onto {road}'],
-				'SlightLeft':
-					['Slight left', ' onto {road}'],
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
 					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
 				'DestinationReached':
 					['Destination reached'],
+				'Fork': ['At the fork, turn {modifier}', ' onto {road}'],
+				'Merge': ['Merge {modifier}', ' onto {road}'],
+				'OnRamp': ['Turn {modifier} on the ramp', ' onto {road}'],
+				'OffRamp': ['Take the ramp on the {modifier}', ' onto {road}'],
+				'EndOfRoad': ['Turn {modifier} at the end of the road', ' onto {road}'],
+				'Onto': 'onto {road}'
 			},
 			formatOrder: function(n) {
 				var i = n % 10 - 1,
@@ -155,34 +155,46 @@
 				S: 'syd',
 				SW: 'sydväst',
 				W: 'väst',
-				NW: 'nordväst'
+				NW: 'nordväst',
+				SlightRight: 'svagt höger',
+				Right: 'höger',
+				SharpRight: 'skarpt höger',
+				SlightLeft: 'svagt vänster',
+				Left: 'vänster',
+				SharpLeft: 'skarpt vänster'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Åk åt {dir}', ' på {road}'],
+					['Åk åt {dir}', ' till {road}'],
 				'Continue':
-					['Fortsätt {dir}', ' på {road}'],
+					['Fortsätt {dir}'],
 				'SlightRight':
-					['Svagt höger', ' på {road}'],
+					['Svagt höger', ' till {road}'],
 				'Right':
-					['Sväng höger', ' på {road}'],
+					['Sväng höger', ' till {road}'],
 				'SharpRight':
-					['Skarpt höger', ' på {road}'],
+					['Skarpt höger', ' till {road}'],
 				'TurnAround':
 					['Vänd'],
 				'SharpLeft':
-					['Skarpt vänster', ' på {road}'],
+					['Skarpt vänster', ' till {road}'],
 				'Left':
-					['Sväng vänster', ' på {road}'],
+					['Sväng vänster', ' till {road}'],
 				'SlightLeft':
-					['Svagt vänster', ' på {road}'],
+					['Svagt vänster', ' till {road}'],
 				'WaypointReached':
 					['Viapunkt nådd'],
 				'Roundabout':
 					['Tag {exitStr} avfarten i rondellen', ' till {road}'],
 				'DestinationReached':
 					['Framme vid resans mål'],
+				'Fork': ['Tag av {modifier}', ' till {road}'],
+				'Merge': ['Anslut {modifier} ', ' till {road}'],
+				'OnRamp': ['Tag påfarten {modifier}', ' till {road}'],
+				'OffRamp': ['Tag avfarten {modifier}', ' till {road}'],
+				'EndOfRoad': ['Sväng {modifier} vid vägens slut', ' till {road}'],
+				'Onto': 'till {road}'
 			},
 			formatOrder: function(n) {
 				return ['första', 'andra', 'tredje', 'fjärde', 'femte',
