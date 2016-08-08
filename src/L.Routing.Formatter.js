@@ -94,12 +94,12 @@
 
 		formatInstruction: function(instr, i) {
 			if (instr.text === undefined) {
-				return L.Util.template(this._getInstructionTemplate(instr, i),
+				return this.capitalize(L.Util.template(this._getInstructionTemplate(instr, i),
 					L.extend({}, instr, {
 						exitStr: instr.exit ? this._localization.localize('formatOrder')(instr.exit) : '',
 						dir: this._localization.localize(['directions', instr.direction]),
 						modifier: this._localization.localize(['directions', instr.modifier])
-					}));
+					})));
 			} else {
 				return instr.text;
 			}
@@ -139,6 +139,10 @@
 			case 'SlightLeft':
 				return 'bear-left';
 			}
+		},
+
+		capitalize: function(s) {
+			return s.charAt(0).toUpperCase() + s.substring(1);
 		},
 
 		_getInstructionTemplate: function(instr, i) {
