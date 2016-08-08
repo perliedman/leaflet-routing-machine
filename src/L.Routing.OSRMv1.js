@@ -25,7 +25,8 @@
 				alternatives: true,
 				steps: true
 			},
-			polylinePrecision: 5
+			polylinePrecision: 5,
+			useHints: true
 		},
 
 		initialize: function(options) {
@@ -290,7 +291,7 @@
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
 				'&alternatives=' + computeAlternative.toString() +
 				'&steps=' + computeInstructions.toString() +
-				'&hints=' + hints.join(';') +
+				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
 
