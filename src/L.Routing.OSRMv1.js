@@ -165,7 +165,8 @@
 				leg,
 				step,
 				geometry,
-				type;
+				type,
+				modifier;
 
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
@@ -175,6 +176,8 @@
 					geometry = this._decodePolyline(step.geometry);
 					result.coordinates.push.apply(result.coordinates, geometry);
 					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
+					modifier = this._maneuverToModifier(step.maneuver);
+
 					if (type) {
 						result.instructions.push({
 							type: type,
@@ -185,7 +188,7 @@
 							exit: step.maneuver.exit,
 							index: index,
 							mode: step.mode,
-							modifier: step.maneuver.modifier && this._camelCase(step.maneuver.modifier)
+							modifier: modifier
 						});
 					}
 
@@ -229,6 +232,21 @@
 			default:
 				return this._camelCase(maneuver.modifier);
 			}
+		},
+
+		_maneuverToModifier: function(maneuver) {
+			var modifier = maneuver.modifier;
+
+			switch (maneuver.type) {
+			case 'merge':
+			case 'fork':
+			case 'on ramp':
+			case 'off ramp':
+			case 'end of road':
+				modifier = this._leftOrRight(modifier);
+			}
+
+			return modifier && this._camelCase(modifier);
 		},
 
 		_camelCase: function(s) {
