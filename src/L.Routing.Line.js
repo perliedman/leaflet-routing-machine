@@ -38,11 +38,7 @@
 				this.options.styles,
 				this.options.addWaypoints);
 		},
-
-		addTo: function(map) {
-			map.addLayer(this);
-			return this;
-		},
+		
 		getBounds: function() {
 			return L.latLngBounds(this._route.coordinates);
 		},
