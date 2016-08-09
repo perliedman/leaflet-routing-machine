@@ -22,7 +22,7 @@ telling it where the server is located:
 ```language-javascript
 L.Routing.control({
     [...]
-    serviceUrl: 'http://my-osrm/viaroute'
+    serviceUrl: 'http://my-osrm/route/v1'
 });
 ```
 
@@ -34,9 +34,29 @@ You can also, more explicitly, hand the router instance to use directly to the c
 ```language-javascript
 L.Routing.control({
     [...]
-    router: L.Routing.osrm({
-        serviceUrl: 'http://my-osrm/viaroute'
+    router: L.Routing.osrmv1({
+        serviceUrl: 'http://my-osrm/route/v1'
     })
+});
+```
+
+### Mapbox directions API
+
+Another popular alternative for routing is to use
+[Mapbox Directions API](https://www.mapbox.com/developers/api/directions/). The directions API
+is a part of Mapbox's platform, so you can't install your own version of it: it's installed, hosted
+and supported by Mapbox. You'll need a Mapbox account to use this feature.
+
+First, you need an [API access token](https://www.mapbox.com/account/apps/) to identify that it's
+your account that should be billed for the routing.
+
+Once you have an access token, support for Mapbox directions is already built into Leaflet Routing Machine,
+you just need to specify that you want to use the Mapbox router:
+
+```language-javascript
+L.Routing.control({
+    [...]
+    router: L.Routing.mapbox('your-access-token-here')
 });
 ```
 
@@ -101,59 +121,6 @@ require('lrm-graphhopper'); // Adds L.Routing.GraphHopper onto L.Routing
 L.Routing.control({
     [...]
     router: L.Routing.graphHopper('api-key');
-});
-```
-
-### Mapbox directions API
-
-Another popular alternative for routing is to use
-[Mapbox Directions API](https://www.mapbox.com/developers/api/directions/). The directions API
-is a part of Mapbox's platform, so you can't install your own version of it, it's installed, hosted
-and supported by Mapbox. You'll need a Mapbox account to use this feature.
-
-First, you need an [API access token](https://www.mapbox.com/account/apps/) to identify that it's
-your account that should be billed for the routing.
-
-Second, you need to use the plugin
-[lrm-mapbox](https://github.com/perliedman/lrm-mapbox). You can
-[download lrm-mapbox](http://www.liedman.net/lrm-mapbox/download/) and insert the
-JavaScript file into your page right after where it loads Leaflet Routing Machine:
-
-<pre><code class="language-markup">[...]
-&lt;script src=&quot;leaflet-routing-machine.js&quot;&gt;&lt;/script&gt;
-&lt;script src=&quot;lrm-mapbox.js&quot;&gt;&lt;/script&gt;
-[...]</code></pre>
-
-Now, we are ready to tell Leaflet Routing Machine's control to use Mapbox as router:
-
-```language-javascript
-L.Routing.control({
-    [...]
-    router: L.Routing.mapbox('access-token');
-});
-```
-
-#### Using Mapbox directions API with npm and Browserify
-
-Like with the GraphHopper plugin, the Mapbox plugin can be installed through npm instead
-of downloading the script manually:
-
-```
-npm install --save lrm-mapbox
-```
-
-Note that the plugin, like many Leaflet plugins, will tack
-itself on to the main Leaflet object, `L`, so there's no explicit need to save the result you'll
-get back from the `require` statement, although you can if that is how you structure your code.
-
-```language-javascript
-var L = require('leaflet');
-require('leaflet-routing-machine'); // Adds L.Routing onto L
-require('lrm-mapbox'); // Adds L.Routing.Mapbox onto L.Routing
-
-L.Routing.control({
-    [...]
-    router: L.Routing.mapbox('access-token');
 });
 ```
 
