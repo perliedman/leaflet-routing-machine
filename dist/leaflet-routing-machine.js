@@ -408,6 +408,7 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.extend(L.Routing, require('./L.Routing.Line'));
 	L.extend(L.Routing, require('./L.Routing.Plan'));
 	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
+	L.extend(L.Routing, require('./L.Routing.Mapbox'));
 	L.extend(L.Routing, require('./L.Routing.ErrorControl'));
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
@@ -666,7 +667,9 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		_updateLineCallback: function(err, routes) {
 			if (!err) {
-				this._updateLines({route: routes[0], alternatives: routes.slice(1) });
+				routes = routes.slice();
+				var selected = routes.splice(this._selectedRoute.routesIndex, 1)[0];
+				this._updateLines({route: selected, alternatives: routes });
 			} else {
 				this._clearLines();
 			}
@@ -734,7 +737,7 @@ if (typeof module !== undefined) module.exports = polyline;
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.OSRMv1":12,"./L.Routing.Plan":13}],5:[function(require,module,exports){
+},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.Mapbox":12,"./L.Routing.OSRMv1":13,"./L.Routing.Plan":14}],5:[function(require,module,exports){
 (function() {
 	'use strict';
 
@@ -809,15 +812,7 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.Routing.Formatter = L.Class.extend({
 		options: {
 			units: 'metric',
-			unitNames: {
-				meters: 'm',
-				kilometers: 'km',
-				yards: 'yd',
-				miles: 'mi',
-				hours: 'h',
-				minutes: 'mín',
-				seconds: 's'
-			},
+			unitNames: null,
 			language: 'en',
 			roundingSensitivity: 1,
 			distanceTemplate: '{value} {unit}'
@@ -825,10 +820,15 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		initialize: function(options) {
 			L.setOptions(this, options);
+
+			var langs = L.Util.isArray(this.options.language) ?
+				this.options.language :
+				[this.options.language, 'en'];
+			this._localization = new L.Routing.Localization(langs);
 		},
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
-			var un = this.options.unitNames,
+			var un = this.options.unitNames || this._localization.localize('units'),
 				simpleRounding = sensitivity <= 0,
 				round = simpleRounding ? function(v) { return v; } : L.bind(this._round, this),
 			    v,
@@ -858,8 +858,7 @@ if (typeof module !== undefined) module.exports = polyline;
 			}
 
 			if (simpleRounding) {
-				pow10 = Math.pow(10, -sensitivity);
-				data.value = Math.round(data.value * pow10) / pow10;
+				data.value = data.value.toFixed(-sensitivity);
 			}
 
 			return L.Util.template(this.options.distanceTemplate, data);
@@ -875,32 +874,33 @@ if (typeof module !== undefined) module.exports = polyline;
 		},
 
 		formatTime: function(t /* Number (seconds) */) {
+			var un = this.options.unitNames || this._localization.localize('units');
 			// More than 30 seconds precision looks ridiculous
 			t = Math.round(t / 30) * 30;
 
 			if (t > 86400) {
-				return Math.round(t / 3600) + ' h';
+				return Math.round(t / 3600) + ' ' + un.hours;
 			} else if (t > 3600) {
-				return Math.floor(t / 3600) + ' h ' +
-					Math.round((t % 3600) / 60) + ' min';
+				return Math.floor(t / 3600) + ' ' + un.hours + ' ' +
+					Math.round((t % 3600) / 60) + ' ' + un.minutes;
 			} else if (t > 300) {
-				return Math.round(t / 60) + ' min';
+				return Math.round(t / 60) + ' ' + un.minutes;
 			} else if (t > 60) {
-				return Math.floor(t / 60) + ' min' +
-					(t % 60 !== 0 ? ' ' + (t % 60) + ' s' : '');
+				return Math.floor(t / 60) + ' ' + un.minutes +
+					(t % 60 !== 0 ? ' ' + (t % 60) + ' ' + un.seconds : '');
 			} else {
-				return t + ' s';
+				return t + ' ' + un.seconds;
 			}
 		},
 
 		formatInstruction: function(instr, i) {
 			if (instr.text === undefined) {
-				return L.Util.template(this._getInstructionTemplate(instr, i),
-					L.extend({
-						exitStr: instr.exit ? L.Routing.Localization[this.options.language].formatOrder(instr.exit) : '',
-						dir: L.Routing.Localization[this.options.language].directions[instr.direction]
-					},
-					instr));
+				return this.capitalize(L.Util.template(this._getInstructionTemplate(instr, i),
+					L.extend({}, instr, {
+						exitStr: instr.exit ? this._localization.localize('formatOrder')(instr.exit) : '',
+						dir: this._localization.localize(['directions', instr.direction]),
+						modifier: this._localization.localize(['directions', instr.modifier])
+					})));
 			} else {
 				return instr.text;
 			}
@@ -908,22 +908,11 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		getIconName: function(instr, i) {
 			switch (instr.type) {
-			case 'Straight':
-				return (i === 0 ? 'depart' : 'continue');
-			case 'SlightRight':
-				return 'bear-right';
-			case 'Right':
-				return 'turn-right';
-			case 'SharpRight':
-				return 'sharp-right';
-			case 'TurnAround':
-				return 'u-turn';
-			case 'SharpLeft':
-				return 'sharp-left';
-			case 'Left':
-				return 'turn-left';
-			case 'SlightLeft':
-				return 'bear-left';
+			case 'Head':
+				if (i === 0) {
+					return 'depart';
+				}
+				break;
 			case 'WaypointReached':
 				return 'via';
 			case 'Roundabout':
@@ -931,11 +920,42 @@ if (typeof module !== undefined) module.exports = polyline;
 			case 'DestinationReached':
 				return 'arrive';
 			}
+
+			switch (instr.modifier) {
+			case 'Straight':
+				return 'continue';
+			case 'SlightRight':
+				return 'bear-right';
+			case 'Right':
+				return 'turn-right';
+			case 'SharpRight':
+				return 'sharp-right';
+			case 'TurnAround':
+			case 'Uturn':
+				return 'u-turn';
+			case 'SharpLeft':
+				return 'sharp-left';
+			case 'Left':
+				return 'turn-left';
+			case 'SlightLeft':
+				return 'bear-left';
+			}
+		},
+
+		capitalize: function(s) {
+			return s.charAt(0).toUpperCase() + s.substring(1);
 		},
 
 		_getInstructionTemplate: function(instr, i) {
 			var type = instr.type === 'Straight' ? (i === 0 ? 'Head' : 'Continue') : instr.type,
-				strings = L.Routing.Localization[this.options.language].instructions[type];
+				strings = this._localization.localize(['instructions', type]);
+
+			if (!strings) {
+				strings = [
+					this._localization.localize(['directions', type]),
+					' ' + this._localization.localize(['instructions', 'Onto'])
+				];
+			}
 
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}
@@ -982,8 +1002,8 @@ if (typeof module !== undefined) module.exports = polyline;
 					closeButton: remove
 				};
 			},
-			geocoderPlaceholder: function(i, numberWaypoints, plan) {
-				var l = L.Routing.Localization[plan.options.language].ui;
+			geocoderPlaceholder: function(i, numberWaypoints, geocoderElement) {
+				var l = new L.Routing.Localization(geocoderElement.options.language).localize('ui');
 				return i === 0 ?
 					l.startPlaceholder :
 					(i < numberWaypoints - 1 ?
@@ -1432,11 +1452,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				this.options.styles,
 				this.options.addWaypoints);
 		},
-
-		addTo: function(map) {
-			map.addLayer(this);
-			return this;
-		},
+		
 		getBounds: function() {
 			return L.latLngBounds(this._route.coordinates);
 		},
@@ -1541,7 +1557,40 @@ if (typeof module !== undefined) module.exports = polyline;
 	'use strict';
 	L.Routing = L.Routing || {};
 
-	L.Routing.Localization = {
+	L.Routing.Localization = L.Class.extend({
+		initialize: function(langs) {
+			this._langs = L.Util.isArray(langs) ? langs : [langs, 'en'];
+
+			for (var i = 0, l = this._langs.length; i < l; i++) {
+				if (!L.Routing.Localization[this._langs[i]]) {
+					throw new Error('No localization for language "' + this._langs[i] + '".');
+				}
+			}
+		},
+
+		localize: function(keys) {
+			var dict,
+				key,
+				value;
+
+			keys = L.Util.isArray(keys) ? keys : [keys];
+
+			for (var i = 0, l = this._langs.length; i < l; i++) {
+				dict = L.Routing.Localization[this._langs[i]];
+				for (var j = 0, nKeys = keys.length; dict && j < nKeys; j++) {
+					key = keys[j];
+					value = dict[key];
+					dict = value;
+				}
+
+				if (value) {
+					return value;
+				}
+			}
+		}
+	});
+
+	L.Routing.Localization = L.extend(L.Routing.Localization, {
 		'en': {
 			directions: {
 				N: 'north',
@@ -1551,34 +1600,34 @@ if (typeof module !== undefined) module.exports = polyline;
 				S: 'south',
 				SW: 'southwest',
 				W: 'west',
-				NW: 'northwest'
+				NW: 'northwest',
+				SlightRight: 'slight right',
+				Right: 'right',
+				SharpRight: 'sharp right',
+				SlightLeft: 'slight left',
+				Left: 'left',
+				SharpLeft: 'sharp left'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
 					['Head {dir}', ' on {road}'],
 				'Continue':
-					['Continue {dir}', ' on {road}'],
-				'SlightRight':
-					['Slight right', ' onto {road}'],
-				'Right':
-					['Right', ' onto {road}'],
-				'SharpRight':
-					['Sharp right', ' onto {road}'],
+					['Continue {dir}'],
 				'TurnAround':
 					['Turn around'],
-				'SharpLeft':
-					['Sharp left', ' onto {road}'],
-				'Left':
-					['Left', ' onto {road}'],
-				'SlightLeft':
-					['Slight left', ' onto {road}'],
 				'WaypointReached':
 					['Waypoint reached'],
 				'Roundabout':
 					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
 				'DestinationReached':
 					['Destination reached'],
+				'Fork': ['At the fork, turn {modifier}', ' onto {road}'],
+				'Merge': ['Merge {modifier}', ' onto {road}'],
+				'OnRamp': ['Turn {modifier} on the ramp', ' onto {road}'],
+				'OffRamp': ['Take the ramp on the {modifier}', ' onto {road}'],
+				'EndOfRoad': ['Turn {modifier} at the end of the road', ' onto {road}'],
+				'Onto': 'onto {road}'
 			},
 			formatOrder: function(n) {
 				var i = n % 10 - 1,
@@ -1590,6 +1639,15 @@ if (typeof module !== undefined) module.exports = polyline;
 				startPlaceholder: 'Start',
 				viaPlaceholder: 'Via {viaNumber}',
 				endPlaceholder: 'End'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'mín',
+				seconds: 's'
 			}
 		},
 
@@ -1650,34 +1708,46 @@ if (typeof module !== undefined) module.exports = polyline;
 				S: 'syd',
 				SW: 'sydväst',
 				W: 'väst',
-				NW: 'nordväst'
+				NW: 'nordväst',
+				SlightRight: 'svagt höger',
+				Right: 'höger',
+				SharpRight: 'skarpt höger',
+				SlightLeft: 'svagt vänster',
+				Left: 'vänster',
+				SharpLeft: 'skarpt vänster'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Åk åt {dir}', ' på {road}'],
+					['Åk åt {dir}', ' till {road}'],
 				'Continue':
-					['Fortsätt {dir}', ' på {road}'],
+					['Fortsätt {dir}'],
 				'SlightRight':
-					['Svagt höger', ' på {road}'],
+					['Svagt höger', ' till {road}'],
 				'Right':
-					['Sväng höger', ' på {road}'],
+					['Sväng höger', ' till {road}'],
 				'SharpRight':
-					['Skarpt höger', ' på {road}'],
+					['Skarpt höger', ' till {road}'],
 				'TurnAround':
 					['Vänd'],
 				'SharpLeft':
-					['Skarpt vänster', ' på {road}'],
+					['Skarpt vänster', ' till {road}'],
 				'Left':
-					['Sväng vänster', ' på {road}'],
+					['Sväng vänster', ' till {road}'],
 				'SlightLeft':
-					['Svagt vänster', ' på {road}'],
+					['Svagt vänster', ' till {road}'],
 				'WaypointReached':
 					['Viapunkt nådd'],
 				'Roundabout':
 					['Tag {exitStr} avfarten i rondellen', ' till {road}'],
 				'DestinationReached':
 					['Framme vid resans mål'],
+				'Fork': ['Tag av {modifier}', ' till {road}'],
+				'Merge': ['Anslut {modifier} ', ' till {road}'],
+				'OnRamp': ['Tag påfarten {modifier}', ' till {road}'],
+				'OffRamp': ['Tag avfarten {modifier}', ' till {road}'],
+				'EndOfRoad': ['Sväng {modifier} vid vägens slut', ' till {road}'],
+				'Onto': 'till {road}'
 			},
 			formatOrder: function(n) {
 				return ['första', 'andra', 'tredje', 'fjärde', 'femte',
@@ -2027,12 +2097,50 @@ if (typeof module !== undefined) module.exports = polyline;
 				endPlaceholder: 'Προορισμός'
 			}
 		}
-	};
+	});
 
 	module.exports = L.Routing;
 })();
 
 },{}],12:[function(require,module,exports){
+(function (global){
+(function() {
+	'use strict';
+
+	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+
+	L.Routing = L.Routing || {};
+	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
+
+	/**
+	 * Works against OSRM's new API in version 5.0; this has
+	 * the API version v1.
+	 */
+	L.Routing.Mapbox = L.Routing.OSRMv1.extend({
+		options: {
+			serviceUrl: 'https://api.mapbox.com/directions/v5',
+			profile: 'mapbox/driving',
+			useHints: false
+		},
+
+		initialize: function(accessToken, options) {
+			L.Routing.OSRMv1.prototype.initialize.call(this, options);
+			this.options.requestParameters = this.options.requestParameters || {};
+			/* jshint camelcase: false */
+			this.options.requestParameters.access_token = accessToken;
+			/* jshint camelcase: true */
+		}
+	});
+
+	L.Routing.mapbox = function(accessToken, options) {
+		return new L.Routing.Mapbox(accessToken, options);
+	};
+
+	module.exports = L.Routing;
+})();
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./L.Routing.OSRMv1":13}],13:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -2061,7 +2169,8 @@ if (typeof module !== undefined) module.exports = polyline;
 				alternatives: true,
 				steps: true
 			},
-			polylinePrecision: 5
+			polylinePrecision: 5,
+			useHints: true
 		},
 
 		initialize: function(options) {
@@ -2081,6 +2190,9 @@ if (typeof module !== undefined) module.exports = polyline;
 
 			options = L.extend({}, this.options.routingOptions, options);
 			url = this.buildRouteUrl(waypoints, options);
+			if (this.options.requestParameters) {
+				url += L.Util.getParamString(this.options.requestParameters, url);
+			}
 
 			timer = setTimeout(function() {
 				timedOut = true;
@@ -2197,16 +2309,19 @@ if (typeof module !== undefined) module.exports = polyline;
 				leg,
 				step,
 				geometry,
-				type;
+				type,
+				modifier;
 
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
-				legNames.push(leg.summary);
+				legNames.push(leg.summary && leg.summary.charAt(0).toUpperCase() + leg.summary.substring(1));
 				for (j = 0; j < leg.steps.length; j++) {
 					step = leg.steps[j];
 					geometry = this._decodePolyline(step.geometry);
 					result.coordinates.push.apply(result.coordinates, geometry);
 					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
+					modifier = this._maneuverToModifier(step.maneuver);
+
 					if (type) {
 						result.instructions.push({
 							type: type,
@@ -2216,7 +2331,8 @@ if (typeof module !== undefined) module.exports = polyline;
 							direction: this._bearingToDirection(step.maneuver.bearing_after),
 							exit: step.maneuver.exit,
 							index: index,
-							mode: step.mode
+							mode: step.mode,
+							modifier: modifier
 						});
 					}
 
@@ -2241,42 +2357,54 @@ if (typeof module !== undefined) module.exports = polyline;
 			switch (maneuver.type) {
 			case 'new name':
 				return 'Continue';
+			case 'depart':
+				return 'Head';
 			case 'arrive':
 				return lastLeg ? 'DestinationReached' : 'WaypointReached';
 			case 'roundabout':
 			case 'rotary':
 				return 'Roundabout';
+			case 'merge':
+			case 'fork':
+			case 'on ramp':
+			case 'off ramp':
+			case 'end of road':
+				return this._camelCase(maneuver.type);
 			// These are all reduced to the same instruction in the current model
 			//case 'turn':
-			//case 'end of road':
-			//case 'merge':
-			//case 'on ramp': // new in v5.1
-			//case 'off ramp': // new in v5.1
 			//case 'ramp': // deprecated in v5.1
-			//case 'fork':
 			default:
-				switch (maneuver.modifier) {
-				case 'straight':
-					return 'Straight';
-				case 'slight right':
-					return 'SlightRight';
-				case 'right':
-					return 'Right';
-				case 'sharp right':
-					return 'SharpRight';
-				case 'sharp left':
-					return 'SharpLeft';
-				case 'left':
-					return 'Left';
-				case 'slight left':
-					return 'SlightLeft';
-				case 'uturn':
-					return 'TurnAround';
-				default:
-					return null;
-				}
-				return null;
+				return this._camelCase(maneuver.modifier);
 			}
+		},
+
+		_maneuverToModifier: function(maneuver) {
+			var modifier = maneuver.modifier;
+
+			switch (maneuver.type) {
+			case 'merge':
+			case 'fork':
+			case 'on ramp':
+			case 'off ramp':
+			case 'end of road':
+				modifier = this._leftOrRight(modifier);
+			}
+
+			return modifier && this._camelCase(modifier);
+		},
+
+		_camelCase: function(s) {
+			var words = s.split(' '),
+				result = '';
+			for (var i = 0, l = words.length; i < l; i++) {
+				result += words[i].charAt(0).toUpperCase() + words[i].substring(1);
+			}
+
+			return result;
+		},
+
+		_leftOrRight: function(d) {
+			return d.indexOf('left') >= 0 ? 'Left' : 'Right';
 		},
 
 		_decodePolyline: function(routeGeometry) {
@@ -2325,7 +2453,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
 				'&alternatives=' + computeAlternative.toString() +
 				'&steps=' + computeInstructions.toString() +
-				'&hints=' + hints.join(';') +
+				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
 
@@ -2353,7 +2481,7 @@ if (typeof module !== undefined) module.exports = polyline;
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Waypoint":14,"corslite":1,"polyline":2}],13:[function(require,module,exports){
+},{"./L.Routing.Waypoint":15,"corslite":1,"polyline":2}],14:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -2705,7 +2833,7 @@ if (typeof module !== undefined) module.exports = polyline;
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.GeocoderElement":7,"./L.Routing.Waypoint":14}],14:[function(require,module,exports){
+},{"./L.Routing.GeocoderElement":7,"./L.Routing.Waypoint":15}],15:[function(require,module,exports){
 (function (global){
 (function() {
 	'use strict';
