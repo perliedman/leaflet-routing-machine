@@ -15,7 +15,7 @@ title: API
       <li><a href="#l-routing-itinerary">L.Routing.Itinerary</a></li>
       <li><a href="#l-routing-plan">L.Routing.Plan</a></li>
       <li><a href="#l-routing-line">L.Routing.Line</a></li>
-      <li><a href="#l-routing-osrm">L.Routing.OSRM</a></li>
+      <li><a href="#l-routing-osrmv1">L.Routing.OSRMv1</a></li>
       <li><a href="#l-routing-formatter">L.Routing.Formatter</a></li>
       <li><a href="#l-routing-itinerarybuilder">L.Routing.ItineraryBuilder</a></li>
       <li><a href="#l-routing-localization">L.Routing.Localization</a></li>
@@ -70,7 +70,7 @@ Provides these options, in addition to the options of [`L.Routing.Itinerary`](#i
 Option                 | Type                | Default       | Description
 -----------------------|---------------------|----------------------|---------------------------------------------------------
 `waypoints`            | [`L.Routing.Waypoint`](#l-routing-waypoint)`[]` or `L.LatLng[]` | [] | Initial waypoints for the control
-`router`               | [`IRouter`](#irouter) | `new L.Routing.OSRM(options)` | The router to use to calculate routes between waypoints
+`router`               | [`IRouter`](#irouter) | `new L.Routing.OSRMv1(options)` | The router to use to calculate routes between waypoints
 `plan`                 | [`L.Routing.Plan`](#l-routing-plan) | `new L.Routing.Plan(options.waypoints, options)` | The plan to use to store and edit the route's waypoints
 `geocoder`                 | [`IGeocoder`](https://github.com/perliedman/leaflet-control-geocoder#igeocoder) | - | Optional geocoder to use, unless the `plan` option is used
 `fitSelectedRoutes`    | `string`/`Boolean`    | `'smart'`       | How the map's view is fitted to a selected route result: `smart` will fit only if no waypoint is within the current view, or if the result covers a very small part of the view; other truthy values will always fit the map, falsy will never fit the map
@@ -231,25 +231,29 @@ Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
 `getBounds()`          | `L.LatLngBounds`| Returns the bounds of the line
 
-## <a name="l-routing-osrm"></a> L.Routing.OSRM
+## <a name="l-routing-osrmv1"></a> L.Routing.OSRMv1
 
-Handles communication with the OSRM backend, building the request and parsing the response. Implements [IRouter](#irouter).
+Handles communication with the OSRM backend, building the request and parsing the response. Implements [IRouter](#irouter). Note that this class supports the OSRM HTTP API v1, that is included with OSRM version 5 and up. OSRM 4 used another API that is
+not supported by this class.
 
-See [OSRM Server API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api) for the specification this implementation
+See [OSRM HTTP API](https://github.com/Project-OSRM/osrm-backend/blob/master/docs/http.md) for the specification this implementation
 is built on.
 
 ### Creation
 
 Factory                | Description
 -----------------------|-------------------------------------------------------
-`L.Routing.osrm(<`[`OSRMOptions`](#osrmoptions)`> options?)` | Instantiates a new router with the provided options
+`L.Routing.osrmv1(<`[`OSRMOptions`](#osrmoptions)`> options?)` | Instantiates a new router with the provided options
 
 ### <a name="osrmoptions"></a> Options
 
 Option                 | Type     | Default             | Description
 -----------------------|----------|---------------------|---------------------------------------------------------
 `serviceUrl`           | `String` | `//router.project-osrm.org/viaroute` | Router service URL
-`timeout`              | `Number` | 30000               | Number of milliseconds before a route calculation times out, returning an error to the routing callback
+`timeout`              | `Number` | `30000`             | Number of milliseconds before a route calculation times out, returning an error to the routing callback
+`profile`              | `String` | `driving`           | The OSRM profile to use in requests
+`polylinePrecision`    | `Number` | `5`                 | The precision to use when decoding polylines in responses from OSRM
+`useHints`             | `Boolean`| `true`              | Whether hints should be included in server requests
 
 ### Methods
 
