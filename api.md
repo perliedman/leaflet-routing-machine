@@ -173,7 +173,7 @@ Option                 | Type                | Default       | Description
 `maxGeocoderTolerance` | `Number`            | `200`         | Maximum distance in meters from a reverse geocoding result to a waypoint, to consider the address valid
 `geocoderPlaceholder`  | `Function`          | -             | Function to generate placeholder text for a waypoint geocoder: `placeholder(<Number> waypointIndex, <Number> numberWaypoints)`; by default, gives text "Start" for first waypoint, "End" for last, and "Via x" in between
 `geocodersClassName`   | `String`            | `''`          | HTML classname to assign to geocoders container
-`geocoderClass`        | `String`            | `''`          | HTML classname to assign to individual geocoder inputs
+`geocoderClass`        | `Function`          | -             | A function that returns the HTML classname to assign to individual geocoder inputs; the function should have the signature `geocoderClass(<Number> i, <Number> n)`, where `i` is the waypoint's index, and `n` is the total number of waypoints in the plan
 `waypointNameFallback` | `Function`          | -             | When a waypoint's name can't be reverse geocoded, this function will be called to generate a name. Default will give a name based on the waypoint's latitude and longitude.
 `createGeocoder`       | `Function`          | -             | Create a geocoder for a waypoint; can take three arguments: the waypoints index (`Number`), the total number of waypoints (`Number`) and the `L.Routing.Plan` instance; returns an [`IGeocoderElement`](#igeocoderelement)
 `addButtonClassName`   | `String`            | `''`          | HTML classname to assign to the add waypoint button
