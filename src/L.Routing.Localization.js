@@ -51,7 +51,8 @@
 				SharpRight: 'sharp right',
 				SlightLeft: 'slight left',
 				Left: 'left',
-				SharpLeft: 'sharp left'
+				SharpLeft: 'sharp left',
+				Uturn: 'Turn around'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
@@ -159,7 +160,8 @@
 				SharpRight: 'skarpt höger',
 				SlightLeft: 'svagt vänster',
 				Left: 'vänster',
-				SharpLeft: 'skarpt vänster'
+				SharpLeft: 'skarpt vänster',
+				Uturn: 'Vänd'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
