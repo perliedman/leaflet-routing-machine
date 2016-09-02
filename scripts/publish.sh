@@ -35,3 +35,4 @@ cd $CWD
 rm -rf $TMP
 
 git checkout master
+git branch -D build
