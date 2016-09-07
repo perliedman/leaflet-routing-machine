@@ -181,7 +181,8 @@
 				step,
 				geometry,
 				type,
-				modifier;
+				modifier,
+				text;
 
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
@@ -192,6 +193,7 @@
 					result.coordinates.push.apply(result.coordinates, geometry);
 					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
 					modifier = this._maneuverToModifier(step.maneuver);
+					text = this._stepToText(step);
 
 					if (type) {
 						result.instructions.push({
@@ -203,7 +205,8 @@
 							exit: step.maneuver.exit,
 							index: index,
 							mode: step.mode,
-							modifier: modifier
+							modifier: modifier,
+							text: text
 						});
 					}
 
@@ -217,6 +220,17 @@
 			}
 
 			return result;
+		},
+
+		_stepToText: function(step) {
+			if (options.stepToText) {
+				// use custom text instruction generation
+				// if provided
+				return options.stepToText(step);
+			} else {
+				// by default delegate text instruction generation
+				// to generic downstream implementation
+				return undefined;
 		},
 
 		_bearingToDirection: function(bearing) {
