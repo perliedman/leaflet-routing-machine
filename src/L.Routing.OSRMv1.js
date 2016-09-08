@@ -278,7 +278,7 @@
 			var wps = [],
 			    i;
 			for (i = 0; i < vias.length; i++) {
-				wps.push(L.Routing.waypoint(L.latLng(vias[i].location),
+				wps.push(L.Routing.waypoint(L.latLng({lat: vias[i].location[1], lng: vias[i].location[0]}),
 				                            inputWaypoints[i].name,
 											inputWaypoints[i].options));
 			}
