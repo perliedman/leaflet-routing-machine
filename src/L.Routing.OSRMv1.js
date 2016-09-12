@@ -276,9 +276,11 @@
 
 		_toWaypoints: function(inputWaypoints, vias) {
 			var wps = [],
-			    i;
+			    i,
+			    viaLoc;
 			for (i = 0; i < vias.length; i++) {
-				wps.push(L.Routing.waypoint(L.latLng({lat: vias[i].location[1], lng: vias[i].location[0]}),
+				viaLoc = vias[i].location;
+				wps.push(L.Routing.waypoint(L.latLng(viaLoc[1], viaLoc[0]),
 				                            inputWaypoints[i].name,
 											inputWaypoints[i].options));
 			}
