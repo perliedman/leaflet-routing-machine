@@ -92,7 +92,7 @@
 				yards: 'yd',
 				miles: 'mi',
 				hours: 'h',
-				minutes: 'mín',
+				minutes: 'min',
 				seconds: 's'
 			}
 		},
