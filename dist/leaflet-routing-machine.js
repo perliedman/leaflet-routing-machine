@@ -1647,7 +1647,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				yards: 'yd',
 				miles: 'mi',
 				hours: 'h',
-				minutes: 'mín',
+				minutes: 'min',
 				seconds: 's'
 			}
 		},
@@ -2422,9 +2422,11 @@ if (typeof module !== undefined) module.exports = polyline;
 
 		_toWaypoints: function(inputWaypoints, vias) {
 			var wps = [],
-			    i;
+			    i,
+			    viaLoc;
 			for (i = 0; i < vias.length; i++) {
-				wps.push(L.Routing.waypoint(L.latLng(vias[i].location),
+				viaLoc = vias[i].location;
+				wps.push(L.Routing.waypoint(L.latLng(viaLoc[1], viaLoc[0]),
 				                            inputWaypoints[i].name,
 											inputWaypoints[i].options));
 			}
@@ -2493,7 +2495,7 @@ if (typeof module !== undefined) module.exports = polyline;
 	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
 
-	L.Routing.Plan = L.Class.extend({
+	L.Routing.Plan = (L.Layer || L.Class).extend({
 		includes: L.Mixin.Events,
 
 		options: {
