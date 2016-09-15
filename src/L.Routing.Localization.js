@@ -437,6 +437,12 @@
 					['Pegue a {exitStr} saída na rotatória', ' na {road}'],
 				'DestinationReached':
 					['Destino atingido'],
+				'Fork': ['Na bifurcação, vire à {modifier}', ' em {road}'],
+				'Merge': ['Mantenha-se à {modifier}', ' em {road}'],
+				'OnRamp': ['Vire à {modifier} na rampa', ' em {road}'],
+				'OffRamp': ['Pegue a rampa à {modifier}', ' em {road}'],
+				'EndOfRoad': ['Vire à {modifier} no final da pista', ' em {road}'],
+				'Onto': 'em {road}'
 			},
 			formatOrder: function(n) {
 				return n + 'º';
