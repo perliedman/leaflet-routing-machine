@@ -57,7 +57,7 @@
 				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
-			corslite(url, L.bind(function(err, resp) {
+			return corslite(url, L.bind(function(err, resp) {
 				var data,
 					errorMessage,
 					statusCode;
@@ -88,8 +88,6 @@
 					});
 				}
 			}, this));
-
-			return this;
 		},
 
 		_routeDone: function(response, inputWaypoints, callback, context) {

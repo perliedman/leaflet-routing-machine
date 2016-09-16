@@ -42,7 +42,8 @@
 				url,
 				timer,
 				wp,
-				i;
+				i,
+				xhr;
 
 			options = L.extend({}, this.options.routingOptions, options);
 			url = this.buildRouteUrl(waypoints, options);
@@ -66,39 +67,37 @@
 				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
-			corslite(url, L.bind(function(err, resp) {
+			return xhr = corslite(url, L.bind(function(err, resp) {
 				var data,
-					errorMessage,
-					statusCode;
+					error =  {};
 
 				clearTimeout(timer);
 				if (!timedOut) {
-					errorMessage = 'HTTP request failed: ' + err;
-					statusCode = -1;
-
 					if (!err) {
 						try {
 							data = JSON.parse(resp.responseText);
 							try {
 								return this._routeDone(data, wps, options, callback, context);
 							} catch (ex) {
-								statusCode = -3;
-								errorMessage = ex.toString();
+								error.status = -3;
+								error.error = ex.toString();
 							}
 						} catch (ex) {
-							statusCode = -2;
-							errorMessage = 'Error parsing OSRM response: ' + ex.toString();
+							error.status = -2;
+							error.error = 'Error parsing OSRM response: ' + ex.toString();
 						}
+					} else {
+						error = L.extend({}, err, {
+							error: 'HTTP request failed: ' + err.type,
+							status: -1
+						})
 					}
 
-					callback.call(context || callback, {
-						status: statusCode,
-						message: errorMessage
-					});
+					callback.call(context || callback, error);
+				} else {
+					xhr.abort();
 				}
 			}, this));
-
-			return this;
 		},
 
 		requiresMoreDetail: function(route, zoom, bounds) {

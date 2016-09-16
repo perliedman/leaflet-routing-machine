@@ -270,7 +270,7 @@
 				routes = routes.slice();
 				var selected = routes.splice(this._selectedRoute.routesIndex, 1)[0];
 				this._updateLines({route: selected, alternatives: routes });
-			} else {
+			} else if (err.type !== 'abort') {
 				this._clearLines();
 			}
 		},
@@ -278,6 +278,11 @@
 		route: function(options) {
 			var ts = ++this._requestCount,
 				wps;
+
+			if (this._pendingRequest && this._pendingRequest.abort) {
+				this._pendingRequest.abort();
+				this._pendingRequest = null;
+			}
 
 			options = options || {};
 
@@ -288,15 +293,21 @@
 
 				wps = options && options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
-				this._router.route(wps, options.callback || function(err, routes) {
+				this._pendingRequest = this._router.route(wps, function(err, routes) {
+					this._pendingRequest = null;
+
+					if (options.callback) {
+						return options.callback.call(this, err, routes);
+					}
+
 					// Prevent race among multiple requests,
-					// by checking the current request's timestamp
+					// by checking the current request's count
 					// against the last request's; ignore result if
-					// this isn't the latest request.
+					// this isn't the last request.
 					if (ts === this._requestCount) {
 						this._clearLines();
 						this._clearAlts();
-						if (err) {
+						if (err && err.type !== 'abort') {
 							this.fire('routingerror', {error: err});
 							return;
 						}
