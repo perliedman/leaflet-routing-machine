@@ -543,6 +543,53 @@
 				viaPlaceholder: 'μέσω {viaNumber}',
 				endPlaceholder: 'Προορισμός'
 			}
+		},
+		'ca': {
+			directions: {
+				N: 'nord',
+				NE: 'nord-est',
+				E: 'est',
+				SE: 'sud-est',
+				S: 'sud',
+				SW: 'sud-oest',
+				W: 'oest',
+				NW: 'nord-oest',
+				SlightRight: 'lleu gir a la dreta',
+				Right: 'dreta',
+				SharpRight: 'gir pronunciat a la dreta',
+				SlightLeft: 'gir pronunciat a l\'esquerra',
+				Left: 'esquerra',
+				SharpLeft: 'lleu gir a l\'esquerra',
+				Uturn: 'mitja volta'
+			},
+			instructions: {
+				'Head':
+					['Recte {dir}', ' sobre {road}'],
+				'Continue':
+					['Continuar {dir}'],
+				'TurnAround':
+					['Donar la volta'],
+				'WaypointReached':
+					['Ha arribat a un punt del camí'],
+				'Roundabout':
+					['Agafar {exitStr} sortida a la rotonda', ' a {road}'],
+				'DestinationReached':
+					['Arribada al destí'],
+				'Fork': ['A la cruïlla girar {modifier}', ' a {road}'],
+				'Merge': ['Incorporat {modifier}', ' a {road}'],
+				'OnRamp': ['Canvia {modifier} en el carril', ' a {road}'],
+				'OffRamp': ['Agafa el carril de la {modifier}', ' a {road}'],
+				'EndOfRoad': ['Gira {modifier} al final de la carretera', ' a {road}'],
+				'Onto': 'a {road}'
+			},
+			formatOrder: function(n) {
+				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Origen',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Destí'
+			}
 		}
 	});
 
