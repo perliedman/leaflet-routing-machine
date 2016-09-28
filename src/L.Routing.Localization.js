@@ -543,6 +543,53 @@
 				viaPlaceholder: 'μέσω {viaNumber}',
 				endPlaceholder: 'Προορισμός'
 			}
+		},
+		'ca': {
+			directions: {
+				N: 'nord',
+				NE: 'nord-est',
+				E: 'est',
+				SE: 'sud-est',
+				S: 'sud',
+				SW: 'sud-oest',
+				W: 'oest',
+				NW: 'nord-oest'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Recte {dir}', ' sobre {road}'],
+				'Continue':
+					['Continuar {dir}', ' en {road}'],
+				'SlightRight':
+					['Lleu gir a la dreta', ' sobre {road}'],
+				'Right':
+					['Dreta', ' sobre {road}'],
+				'SharpRight':
+					['Gir pronunciat a la dreta', ' sobre {road}'],
+				'TurnAround':
+					['Donar la volta'],
+				'SharpLeft':
+					['Gir pronunciat a l\'esquerra', ' sobre {road}'],
+				'Left':
+					['Esquerra', ' en {road}'],
+				'SlightLeft':
+					['Lleu gir a l\'esquerra', ' en {road}'],
+				'WaypointReached':
+					['Ha arribat a un punt del camí'],
+				'Roundabout':
+					['Agafar {exitStr} sortida a la rotonda', ' en {road}'],
+				'DestinationReached':
+					['Arribada al destí'],
+			},
+			formatOrder: function(n) {
+				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Origen',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Destí'
+			}
 		}
 	});
 
