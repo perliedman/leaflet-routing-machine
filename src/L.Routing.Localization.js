@@ -553,34 +553,34 @@
 				S: 'sud',
 				SW: 'sud-oest',
 				W: 'oest',
-				NW: 'nord-oest'
+				NW: 'nord-oest',
+				SlightRight: 'lleu gir a la dreta',
+				Right: 'dreta',
+				SharpRight: 'gir pronunciat a la dreta',
+				SlightLeft: 'gir pronunciat a l\'esquerra',
+				Left: 'esquerra',
+				SharpLeft: 'lleu gir a l\'esquerra',
+				Uturn: 'mitja volta'
 			},
 			instructions: {
-				// instruction, postfix if the road is named
 				'Head':
 					['Recte {dir}', ' sobre {road}'],
 				'Continue':
-					['Continuar {dir}', ' en {road}'],
-				'SlightRight':
-					['Lleu gir a la dreta', ' sobre {road}'],
-				'Right':
-					['Dreta', ' sobre {road}'],
-				'SharpRight':
-					['Gir pronunciat a la dreta', ' sobre {road}'],
+					['Continuar {dir}'],
 				'TurnAround':
 					['Donar la volta'],
-				'SharpLeft':
-					['Gir pronunciat a l\'esquerra', ' sobre {road}'],
-				'Left':
-					['Esquerra', ' en {road}'],
-				'SlightLeft':
-					['Lleu gir a l\'esquerra', ' en {road}'],
 				'WaypointReached':
 					['Ha arribat a un punt del camí'],
 				'Roundabout':
-					['Agafar {exitStr} sortida a la rotonda', ' en {road}'],
+					['Agafar {exitStr} sortida a la rotonda', ' a {road}'],
 				'DestinationReached':
 					['Arribada al destí'],
+				'Fork': ['A la cruïlla girar {modifier}', ' a {road}'],
+				'Merge': ['Incorporat {modifier}', ' a {road}'],
+				'OnRamp': ['Canvia {modifier} en el carril', ' a {road}'],
+				'OffRamp': ['Agafa el carril de la {modifier}', ' a {road}'],
+				'EndOfRoad': ['Gira {modifier} al final de la carretera', ' a {road}'],
+				'Onto': 'a {road}'
 			},
 			formatOrder: function(n) {
 				return n + 'º';
