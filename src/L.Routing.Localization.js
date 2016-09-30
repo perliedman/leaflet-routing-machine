@@ -575,12 +575,12 @@
 					['Agafar {exitStr} sortida a la rotonda', ' a {road}'],
 				'DestinationReached':
 					['Arribada al destí'],
-				'Fork': ['A la cruïlla girar {modifier}', ' a {road}'],
-				'Merge': ['Incorporat {modifier}', ' a {road}'],
-				'OnRamp': ['Canvia {modifier} en el carril', ' a {road}'],
-				'OffRamp': ['Agafa el carril de la {modifier}', ' a {road}'],
-				'EndOfRoad': ['Gira {modifier} al final de la carretera', ' a {road}'],
-				'Onto': 'a {road}'
+				'Fork': ['A la cruïlla gira a la {modifier}', ' cap a {road}'],
+				'Merge': ['Incorpora\'t {modifier}', ' a {road}'],
+				'OnRamp': ['Gira {modifier} a la sortida', ' cap a {road}'],
+				'OffRamp': ['Pren la sortida {modifier}', ' cap a {road}'],
+				'EndOfRoad': ['Gira {modifier} al final de la carretera', ' cap a {road}'],
+				'Onto': 'cap a {road}'
 			},
 			formatOrder: function(n) {
 				return n + 'º';
@@ -589,6 +589,15 @@
 				startPlaceholder: 'Origen',
 				viaPlaceholder: 'Via {viaNumber}',
 				endPlaceholder: 'Destí'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'min',
+				seconds: 's'
 			}
 		}
 	});
