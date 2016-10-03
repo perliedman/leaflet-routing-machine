@@ -445,7 +445,7 @@
 				'DestinationReached':
 					['Destino atingido'],
 				'Fork': ['Na encruzilhada, vire a {modifier}', ' na {road}'],
-				// 'Merge': ['Merge {modifier}', ' onto {road}'],
+				'Merge': ['Entre à {modifier}', ' na {road}'],
 				'OnRamp': ['Vire {modifier} na rampa', ' na {road}'],
 				'OffRamp': ['Entre na rampa na {modifier}', ' na {road}'],
 				'EndOfRoad': ['Vire {modifier} no fim da rua', ' na {road}'],
