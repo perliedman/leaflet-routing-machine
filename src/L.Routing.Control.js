@@ -92,6 +92,11 @@
 				map.removeLayer(this._line);
 			}
 			map.removeLayer(this._plan);
+			if (this._alternatives && this._alternatives.length > 0) {
+				for (var i = 0, len = this._alternatives.length; i < len; i++) {
+					map.removeLayer(this._alternatives[i]);
+				}
+			}
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
