@@ -238,6 +238,9 @@
 			var eventLatLng = function(e) {
 					return trackMouseMove ? e.latlng : e.target.getLatLng();
 				},
+				click = L.bind(function(e) {
+					this.fire('waypointclick', {index: i, latlng: eventLatLng(e), });
+				}, this),
 				dragStart = L.bind(function(e) {
 					this.fire('waypointdragstart', {index: i, latlng: eventLatLng(e)});
 				}, this),
@@ -276,6 +279,7 @@
 				m.on('dragstart', dragStart);
 				m.on('drag', drag);
 				m.on('dragend', dragEnd);
+				m.on('click', click);
 			}
 		},
 
