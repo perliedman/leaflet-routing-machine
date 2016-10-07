@@ -9,14 +9,20 @@ module.exports = function(grunt) {
 					browserifyOptions: {
 						transform: 'browserify-shim',
 						standalone: 'L.Routing'
+					},
+					banner: '/*! <%= pkg.name %> - v<%= pkg.version %> - ' +
+					'<%= grunt.template.today("yyyy-mm-dd") %>\n' +
+					' * Copyright (c) 2013-2016 Per Liedman\n' +
+					' * Distributed under the <%= pkg.license %> license */\n\n'
 					}
-				}
 			}
 		},
 		uglify: {
 			options: {
-				banner: '/*! <%= pkg.name %> - v<%= pkg.version %> - ' +
-				'<%= grunt.template.today("yyyy-mm-dd") %> */\n\n'
+				banner: '/* <%= pkg.name %> - v<%= pkg.version %> - ' +
+				'<%= grunt.template.today("yyyy-mm-dd") %>\n' +
+				' * Copyright (c) 2013-2016 Per Liedman\n' +
+				' * Distributed under the <%= pkg.license %> license */\n\n'
 			},
 			build: {
 				src: 'dist/leaflet-routing-machine.js',
