@@ -1,6 +1,6 @@
 var map = L.map('map', { scrollWheelZoom: false });
 
-L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + LRM.apiToken, {
+L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}{r}.png?access_token=' + LRM.apiToken, {
     attribution: 'Maps by <a href="https://www.mapbox.com/about/maps/">MapBox</a>. ' +
         'Routes from <a href="http://project-osrm.org/">OSRM</a>, ' +
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
