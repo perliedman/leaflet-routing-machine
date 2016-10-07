@@ -32,7 +32,7 @@
   "browserify-shim": {
     "leaflet": "global:L"
   },
-  "main": "./src/L.Routing.Control.js",
+  "main": "./dist/leaflet-routing-machine.js",
   "devDependencies": {
     "browserify": "^13.1.0",
     "browserify-shim": "^3.7.0",
