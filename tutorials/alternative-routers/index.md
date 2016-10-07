@@ -19,26 +19,26 @@ control yourself, you can quite easily [set up your own OSRM server](https://git
 When you have it running, using it with Leaflet Routing Machineis a matter of telling
 telling it where the server is located:
 
-```language-javascript
+<pre><code class="language-javascript">
 L.Routing.control({
     [...]
     serviceUrl: 'http://my-osrm/route/v1'
 });
-```
+</code></pre>
 
 Under the hood, this option will be passed along to the [`L.Routing.OSRM`]({{site.baseurl}}/api#l-routing-osrm)
 instance that is implicitly created with your control; this is the control's *router*.
 
 You can also, more explicitly, hand the router instance to use directly to the control:
 
-```language-javascript
+<pre><code class="language-javascript">
 L.Routing.control({
     [...]
     router: L.Routing.osrmv1({
         serviceUrl: 'http://my-osrm/route/v1'
     })
 });
-```
+</code></pre>
 
 ### Mapbox directions API
 
@@ -53,12 +53,12 @@ your account that should be billed for the routing.
 Once you have an access token, support for Mapbox directions is already built into Leaflet Routing Machine,
 you just need to specify that you want to use the Mapbox router:
 
-```language-javascript
+<pre><code class="language-javascript">
 L.Routing.control({
     [...]
     router: L.Routing.mapbox('your-access-token-here')
 });
-```
+</code></pre>
 
 ### GraphHopper
 
@@ -77,12 +77,12 @@ JavaScript file into your page right after where it loads Leaflet Routing Machin
 
 Now you need to give the GraphHopper router to Leaflet Routing Machine's control:
 
-```language-javascript
+<pre><code class="language-javascript">
 L.Routing.control({
     [...]
     router: L.Routing.graphHopper('apiKey');
 });
-```
+</code></pre>
 
 Like OSRM, the GraphHopper router will by default use GraphHopper's public servers. You need to
 [register](https://graphhopper.com/dashboard/#/register) and get an API key to use these, and
@@ -91,29 +91,29 @@ you need to give that API key to the router instance.
 If you set up your own GraphHopper server, you don't need the API key, but instead configure the
 address of your server:
 
-```language-javascript
+<pre><code class="language-javascript">
 L.Routing.control({
     [...]
     router: L.Routing.graphHopper(undefined /* no api key */, {
         serviceUrl: 'http://my-graphhopper/api/v1/route'
     });
 });
-```
+</code></pre>
 
 #### Using GraphHopper with npm and Browserify
 
 If you're lucky enough to work with Browserify, the plugin can be installed through npm instead
 of downloading the script manually:
 
-```
+<pre><code>
 npm install --save lrm-graphhopper
-```
+</code></pre>
 
 And later required into your source. Note that the plugin, like many Leaflet plugins, will tack
 itself on to the main Leaflet object, `L`, so there's no explicit need to save the result you'll
 get back from the `require` statement, although you can if that is how you structure your code.
 
-```language-javascript
+<pre><code class="language-javascript">
 var L = require('leaflet');
 require('leaflet-routing-machine'); // Adds L.Routing onto L
 require('lrm-graphhopper'); // Adds L.Routing.GraphHopper onto L.Routing
@@ -122,7 +122,7 @@ L.Routing.control({
     [...]
     router: L.Routing.graphHopper('api-key');
 });
-```
+</code></pre>
 
 ### Mapzen Valhalla
 
@@ -130,13 +130,13 @@ L.Routing.control({
 
 Download prebuilt files: [http://mapzen.com/resources/lrm-valhalla-0.0.9.zip](http://mapzen.com/resources/lrm-valhalla-0.0.9.zip)
 
-Load this file with a `<script>` tag in your page, after Leaflet and Leaflet Routing Machine has been loaded.
+Load this file with a `&lt;script&gt;` tag in your page, after Leaflet and Leaflet Routing Machine has been loaded.
 
 Or, to use with for example Browserify:
 
-```
+<pre><code>
 npm install --save lrm-valhalla
-```
+</code></pre>
 
 See the [lrm-valhalla](https://github.com/valhalla/lrm-valhalla) project page for info and docs on using the plug-in as well as the Valhalla API reference.
 
@@ -154,9 +154,9 @@ The basic requirement is that the router class must implement the
 how to communicate with your router. The interface is pretty simple and contains a single
 method:
 
-```language-javascript
+<pre><code class="language-javascript">
 router.route(waypoints, callback, context, options)
-```
+</code></pre>
 
 `waypoints` is the array of waypoints the route should pass, and contains at least two
 elements when `route` is called; each element will have at least a `latLng` property,

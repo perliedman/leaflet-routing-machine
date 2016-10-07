@@ -102,7 +102,7 @@ method that is responsible for creating the UI.
 In this case, we need to override the control's [`L.Routing.Plan`]({{site.baseurl/api#l-routing-plan}}),
 since its method `createGeocoders` is what creates the panel we're going to add a button to.
 
-```language-javascript
+<pre><code class="language-javascript">
 var ReversablePlan = L.Routing.Plan.extend({
     createGeocoders: function() {
         var container = L.Routing.Plan.prototype.createGeocoders.call(this),
@@ -110,7 +110,7 @@ var ReversablePlan = L.Routing.Plan.extend({
         return container;
     }
 }
-```
+</code></pre>
 
 We're creating a new class, `ReversablePlan`, that inherits from `L.Routing.Plan`, with one single
 overridden method, `createGeocoders`. We're using our utility method `createButton` from the example
@@ -120,12 +120,12 @@ simply add the new button to the panel returned by that method, before returning
 Having added the new button, we simply need to attach a listener to it, and make it reverse the route.
 We add this code inside the `createGeocders` method, before returning the container:
 
-```language-javascript
+class="<pre><code language-javascript">
         L.DomEvent.on(reverseButton, 'click', function() {
             var waypoints = this.getWaypoints();
             this.setWaypoints(waypoints.reverse());
         }, this);
-```
+</code></pre>
 
 We get the current waypoints with `getWaypoints`, which returns an array. We then use JavaScript's
 builtin method `reverse` to flip the order of the array, and finally set the waypoints to the reversed
@@ -141,7 +141,7 @@ waypoints, and the control will query it when needed.
 Ok, we now have a `ReversablePlan`, but how do we use it in the routing control? This is done with yet
 another option when creating the control:
 
-```language-javascript
+<pre><code class="language-javascript">
 var plan = new ReversablePlan([
         L.latLng(57.74, 11.94),
         L.latLng(57.6792, 11.949)
@@ -153,7 +153,7 @@ var plan = new ReversablePlan([
         routeWhileDragging: true,
         plan: plan
     }).addTo(map1);
-```
+</code></pre>
 
 While this looks pretty straight forward, there are a couple of points to note here:
 
