@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "corslite": "0.0.7",
-    "leaflet": "^1.0.1",
     "polyline": "0.2.0"
   }
 }
