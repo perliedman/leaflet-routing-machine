@@ -1,4 +1,9 @@
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.L||(f.L={})).Routing=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*! leaflet-routing-machine - v3.2.0 - 2016-10-07
+ * Copyright (c) 2013-2016 Per Liedman
+ * Distributed under the ISC license */
+
+
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -8,7 +13,7 @@ function corslite(url, callback, cors) {
 
     if (typeof cors === 'undefined') {
         var m = url.match(/^\s*https?:\/\/[^\/]*/);
-        cors = m && (m[0] !== location.protocol + '//' + location.domain +
+        cors = m && (m[0] !== location.protocol + '//' + location.hostname +
                 (location.port ? ':' + location.port : ''));
     }
 
@@ -94,12 +99,18 @@ function corslite(url, callback, cors) {
 if (typeof module !== 'undefined') module.exports = corslite;
 
 },{}],2:[function(require,module,exports){
-var polyline = {};
+'use strict';
 
-// Based off of [the offical Google document](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
-//
-// Some parts from [this implementation](http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.js)
-// by [Mark McClure](http://facstaff.unca.edu/mcmcclur/)
+/**
+ * Based off of [the offical Google document](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
+ *
+ * Some parts from [this implementation](http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.js)
+ * by [Mark McClure](http://facstaff.unca.edu/mcmcclur/)
+ *
+ * @module polyline
+ */
+
+var polyline = {};
 
 function encode(coordinate, factor) {
     coordinate = Math.round(coordinate * factor);
@@ -116,8 +127,17 @@ function encode(coordinate, factor) {
     return output;
 }
 
-// This is adapted from the implementation in Project-OSRM
-// https://github.com/DennisOSRM/Project-OSRM-Web/blob/master/WebContent/routing/OSRM.RoutingGeometry.js
+/**
+ * Decodes to a [latitude, longitude] coordinates array.
+ *
+ * This is adapted from the implementation in Project-OSRM.
+ *
+ * @param {String} str
+ * @param {Number} precision
+ * @returns {Array}
+ *
+ * @see https://github.com/Project-OSRM/osrm-frontend/blob/master/WebContent/routing/OSRM.RoutingGeometry.js
+ */
 polyline.decode = function(str, precision) {
     var index = 0,
         lat = 0,
@@ -167,8 +187,15 @@ polyline.decode = function(str, precision) {
     return coordinates;
 };
 
+/**
+ * Encodes the given [latitude, longitude] coordinates array.
+ *
+ * @param {Array.<Array.<Number>>} coordinates
+ * @param {Number} precision
+ * @returns {String}
+ */
 polyline.encode = function(coordinates, precision) {
-    if (!coordinates.length) return '';
+    if (!coordinates.length) { return ''; }
 
     var factor = Math.pow(10, precision || 5),
         output = encode(coordinates[0][0], factor) + encode(coordinates[0][1], factor);
@@ -182,7 +209,49 @@ polyline.encode = function(coordinates, precision) {
     return output;
 };
 
-if (typeof module !== undefined) module.exports = polyline;
+function flipped(coords) {
+    var flipped = [];
+    for (var i = 0; i < coords.length; i++) {
+        flipped.push(coords[i].slice().reverse());
+    }
+    return flipped;
+}
+
+/**
+ * Encodes a GeoJSON LineString feature/geometry.
+ *
+ * @param {Object} geojson
+ * @param {Number} precision
+ * @returns {String}
+ */
+polyline.fromGeoJSON = function(geojson, precision) {
+    if (geojson && geojson.type === 'Feature') {
+        geojson = geojson.geometry;
+    }
+    if (!geojson || geojson.type !== 'LineString') {
+        throw new Error('Input must be a GeoJSON LineString');
+    }
+    return polyline.encode(flipped(geojson.coordinates), precision);
+};
+
+/**
+ * Decodes to a GeoJSON LineString geometry.
+ *
+ * @param {String} str
+ * @param {Number} precision
+ * @returns {Object}
+ */
+polyline.toGeoJSON = function(str, precision) {
+    var coords = polyline.decode(str, precision);
+    return {
+        type: 'LineString',
+        coordinates: flipped(coords)
+    };
+};
+
+if (typeof module === 'object' && module.exports) {
+    module.exports = polyline;
+}
 
 },{}],3:[function(require,module,exports){
 (function() {
@@ -401,7 +470,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Itinerary'));
@@ -492,6 +561,11 @@ if (typeof module !== undefined) module.exports = polyline;
 				map.removeLayer(this._line);
 			}
 			map.removeLayer(this._plan);
+			if (this._alternatives && this._alternatives.length > 0) {
+				for (var i = 0, len = this._alternatives.length; i < len; i++) {
+					map.removeLayer(this._alternatives[i]);
+				}
+			}
 			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
 		},
 
@@ -670,7 +744,7 @@ if (typeof module !== undefined) module.exports = polyline;
 				routes = routes.slice();
 				var selected = routes.splice(this._selectedRoute.routesIndex, 1)[0];
 				this._updateLines({route: selected, alternatives: routes });
-			} else {
+			} else if (err.type !== 'abort') {
 				this._clearLines();
 			}
 		},
@@ -678,6 +752,11 @@ if (typeof module !== undefined) module.exports = polyline;
 		route: function(options) {
 			var ts = ++this._requestCount,
 				wps;
+
+			if (this._pendingRequest && this._pendingRequest.abort) {
+				this._pendingRequest.abort();
+				this._pendingRequest = null;
+			}
 
 			options = options || {};
 
@@ -688,15 +767,21 @@ if (typeof module !== undefined) module.exports = polyline;
 
 				wps = options && options.waypoints || this._plan.getWaypoints();
 				this.fire('routingstart', {waypoints: wps});
-				this._router.route(wps, options.callback || function(err, routes) {
+				this._pendingRequest = this._router.route(wps, function(err, routes) {
+					this._pendingRequest = null;
+
+					if (options.callback) {
+						return options.callback.call(this, err, routes);
+					}
+
 					// Prevent race among multiple requests,
-					// by checking the current request's timestamp
+					// by checking the current request's count
 					// against the last request's; ignore result if
-					// this isn't the latest request.
+					// this isn't the last request.
 					if (ts === this._requestCount) {
 						this._clearLines();
 						this._clearAlts();
-						if (err) {
+						if (err && err.type !== 'abort') {
 							this.fire('routingerror', {error: err});
 							return;
 						}
@@ -803,7 +888,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 
@@ -971,7 +1056,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
 
@@ -1127,7 +1212,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.Formatter'));
@@ -1364,7 +1449,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.ItineraryBuilder = L.Class.extend({
@@ -1415,7 +1500,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 
@@ -1555,6 +1640,65 @@ if (typeof module !== undefined) module.exports = polyline;
 },{}],11:[function(require,module,exports){
 (function() {
 	'use strict';
+
+	var spanish = {
+		directions: {
+			N: 'norte',
+			NE: 'noreste',
+			E: 'este',
+			SE: 'sureste',
+			S: 'sur',
+			SW: 'suroeste',
+			W: 'oeste',
+			NW: 'noroeste',
+			SlightRight: 'leve giro a la derecha',
+			Right: 'derecha',
+			SharpRight: 'giro pronunciado a la derecha',
+			SlightLeft: 'leve giro a la izquierda',
+			Left: 'izquierda',
+			SharpLeft: 'giro pronunciado a la izquierda',
+			Uturn: 'media vuelta'
+		},
+		instructions: {
+			// instruction, postfix if the road is named
+			'Head':
+				['Derecho {dir}', ' sobre {road}'],
+			'Continue':
+				['Continuar {dir}', ' en {road}'],
+			'TurnAround':
+				['Dar vuelta'],
+			'WaypointReached':
+				['Llegó a un punto del camino'],
+			'Roundabout':
+				['Tomar {exitStr} salida en la rotonda', ' en {road}'],
+			'DestinationReached':
+				['Llegada a destino'],
+			'Fork': ['En el cruce gira a {modifier}', ' hacia {road}'],
+			'Merge': ['Incorpórate {modifier}', ' hacia {road}'],
+			'OnRamp': ['Gira {modifier} en la salida', ' hacia {road}'],
+			'OffRamp': ['Toma la salida {modifier}', ' hacia {road}'],
+			'EndOfRoad': ['Gira {modifier} al final de la carretera', ' hacia {road}'],
+			'Onto': 'hacia {road}'
+		},
+		formatOrder: function(n) {
+			return n + 'º';
+		},
+		ui: {
+			startPlaceholder: 'Inicio',
+			viaPlaceholder: 'Via {viaNumber}',
+			endPlaceholder: 'Destino'
+		},
+		units: {
+			meters: 'm',
+			kilometers: 'km',
+			yards: 'yd',
+			miles: 'mi',
+			hours: 'h',
+			minutes: 'min',
+			seconds: 's'
+		}
+	};
+
 	L.Routing = L.Routing || {};
 
 	L.Routing.Localization = L.Class.extend({
@@ -1763,53 +1907,9 @@ if (typeof module !== undefined) module.exports = polyline;
 			}
 		},
 
-		'sp': {
-			directions: {
-				N: 'norte',
-				NE: 'noreste',
-				E: 'este',
-				SE: 'sureste',
-				S: 'sur',
-				SW: 'suroeste',
-				W: 'oeste',
-				NW: 'noroeste'
-			},
-			instructions: {
-				// instruction, postfix if the road is named
-				'Head':
-					['Derecho {dir}', ' sobre {road}'],
-				'Continue':
-					['Continuar {dir}', ' en {road}'],
-				'SlightRight':
-					['Leve giro a la derecha', ' sobre {road}'],
-				'Right':
-					['Derecha', ' sobre {road}'],
-				'SharpRight':
-					['Giro pronunciado a la derecha', ' sobre {road}'],
-				'TurnAround':
-					['Dar vuelta'],
-				'SharpLeft':
-					['Giro pronunciado a la izquierda', ' sobre {road}'],
-				'Left':
-					['Izquierda', ' en {road}'],
-				'SlightLeft':
-					['Leve giro a la izquierda', ' en {road}'],
-				'WaypointReached':
-					['Llegó a un punto del camino'],
-				'Roundabout':
-					['Tomar {exitStr} salida en la rotonda', ' en {road}'],
-				'DestinationReached':
-					['Llegada a destino'],
-			},
-			formatOrder: function(n) {
-				return n + 'º';
-			},
-			ui: {
-				startPlaceholder: 'Inicio',
-				viaPlaceholder: 'Via {viaNumber}',
-				endPlaceholder: 'Destino'
-			}
-		},
+		'es': spanish,
+    'sp': spanish,
+		
 		'nl': {
 			directions: {
 				N: 'noordelijke',
@@ -1964,7 +2064,14 @@ if (typeof module !== undefined) module.exports = polyline;
 				S: 'sul',
 				SW: 'sudoeste',
 				W: 'oeste',
-				NW: 'noroeste'
+				NW: 'noroeste',
+				SlightRight: 'curva ligeira a direita',
+				Right: 'direita',
+				SharpRight: 'curva fechada a direita',
+				SlightLeft: 'ligeira a esquerda',
+				Left: 'esquerda',
+				SharpLeft: 'curva fechada a esquerda',
+				Uturn: 'Meia volta'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
@@ -1992,6 +2099,12 @@ if (typeof module !== undefined) module.exports = polyline;
 					['Pegue a {exitStr} saída na rotatória', ' na {road}'],
 				'DestinationReached':
 					['Destino atingido'],
+				'Fork': ['Na encruzilhada, vire a {modifier}', ' na {road}'],
+				'Merge': ['Entre à {modifier}', ' na {road}'],
+				'OnRamp': ['Vire {modifier} na rampa', ' na {road}'],
+				'OffRamp': ['Entre na rampa na {modifier}', ' na {road}'],
+				'EndOfRoad': ['Vire {modifier} no fim da rua', ' na {road}'],
+				'Onto': 'na {road}'
 			},
 			formatOrder: function(n) {
 				return n + 'º';
@@ -2098,6 +2211,62 @@ if (typeof module !== undefined) module.exports = polyline;
 				viaPlaceholder: 'μέσω {viaNumber}',
 				endPlaceholder: 'Προορισμός'
 			}
+		},
+		'ca': {
+			directions: {
+				N: 'nord',
+				NE: 'nord-est',
+				E: 'est',
+				SE: 'sud-est',
+				S: 'sud',
+				SW: 'sud-oest',
+				W: 'oest',
+				NW: 'nord-oest',
+				SlightRight: 'lleu gir a la dreta',
+				Right: 'dreta',
+				SharpRight: 'gir pronunciat a la dreta',
+				SlightLeft: 'gir pronunciat a l\'esquerra',
+				Left: 'esquerra',
+				SharpLeft: 'lleu gir a l\'esquerra',
+				Uturn: 'mitja volta'
+			},
+			instructions: {
+				'Head':
+					['Recte {dir}', ' sobre {road}'],
+				'Continue':
+					['Continuar {dir}'],
+				'TurnAround':
+					['Donar la volta'],
+				'WaypointReached':
+					['Ha arribat a un punt del camí'],
+				'Roundabout':
+					['Agafar {exitStr} sortida a la rotonda', ' a {road}'],
+				'DestinationReached':
+					['Arribada al destí'],
+				'Fork': ['A la cruïlla gira a la {modifier}', ' cap a {road}'],
+				'Merge': ['Incorpora\'t {modifier}', ' a {road}'],
+				'OnRamp': ['Gira {modifier} a la sortida', ' cap a {road}'],
+				'OffRamp': ['Pren la sortida {modifier}', ' cap a {road}'],
+				'EndOfRoad': ['Gira {modifier} al final de la carretera', ' cap a {road}'],
+				'Onto': 'cap a {road}'
+			},
+			formatOrder: function(n) {
+				return n + 'º';
+			},
+			ui: {
+				startPlaceholder: 'Origen',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'Destí'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'min',
+				seconds: 's'
+			}
 		}
 	});
 
@@ -2109,7 +2278,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
@@ -2147,7 +2316,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null),
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
 		corslite = require('corslite'),
 		polyline = require('polyline');
 
@@ -2188,7 +2357,8 @@ if (typeof module !== undefined) module.exports = polyline;
 				url,
 				timer,
 				wp,
-				i;
+				i,
+				xhr;
 
 			options = L.extend({}, this.options.routingOptions, options);
 			url = this.buildRouteUrl(waypoints, options);
@@ -2212,39 +2382,37 @@ if (typeof module !== undefined) module.exports = polyline;
 				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
-			corslite(url, L.bind(function(err, resp) {
+			return xhr = corslite(url, L.bind(function(err, resp) {
 				var data,
-					errorMessage,
-					statusCode;
+					error =  {};
 
 				clearTimeout(timer);
 				if (!timedOut) {
-					errorMessage = 'HTTP request failed: ' + err;
-					statusCode = -1;
-
 					if (!err) {
 						try {
 							data = JSON.parse(resp.responseText);
 							try {
 								return this._routeDone(data, wps, options, callback, context);
 							} catch (ex) {
-								statusCode = -3;
-								errorMessage = ex.toString();
+								error.status = -3;
+								error.error = ex.toString();
 							}
 						} catch (ex) {
-							statusCode = -2;
-							errorMessage = 'Error parsing OSRM response: ' + ex.toString();
+							error.status = -2;
+							error.error = 'Error parsing OSRM response: ' + ex.toString();
 						}
+					} else {
+						error = L.extend({}, err, {
+							error: 'HTTP request failed: ' + err.type,
+							status: -1
+						})
 					}
 
-					callback.call(context || callback, {
-						status: statusCode,
-						message: errorMessage
-					});
+					callback.call(context || callback, error);
+				} else {
+					xhr.abort();
 				}
 			}, this));
-
-			return this;
 		},
 
 		requiresMoreDetail: function(route, zoom, bounds) {
@@ -2490,7 +2658,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
 	L.extend(L.Routing, require('./L.Routing.Waypoint'));
@@ -2842,7 +3010,7 @@ if (typeof module !== undefined) module.exports = polyline;
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
 
 	L.Routing.Waypoint = L.Class.extend({
