@@ -424,7 +424,14 @@
 				S: 'sul',
 				SW: 'sudoeste',
 				W: 'oeste',
-				NW: 'noroeste'
+				NW: 'noroeste',
+				SlightRight: 'curva ligeira a direita',
+				Right: 'direita',
+				SharpRight: 'curva fechada a direita',
+				SlightLeft: 'ligeira a esquerda',
+				Left: 'esquerda',
+				SharpLeft: 'curva fechada a esquerda',
+				Uturn: 'Meia volta'
 			},
 			instructions: {
 				// instruction, postfix if the road is named
@@ -452,6 +459,12 @@
 					['Pegue a {exitStr} saída na rotatória', ' na {road}'],
 				'DestinationReached':
 					['Destino atingido'],
+				'Fork': ['Na encruzilhada, vire a {modifier}', ' na {road}'],
+				'Merge': ['Entre à {modifier}', ' na {road}'],
+				'OnRamp': ['Vire {modifier} na rampa', ' na {road}'],
+				'OffRamp': ['Entre na rampa na {modifier}', ' na {road}'],
+				'EndOfRoad': ['Vire {modifier} no fim da rua', ' na {road}'],
+				'Onto': 'na {road}'
 			},
 			formatOrder: function(n) {
 				return n + 'º';
