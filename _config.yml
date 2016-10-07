@@ -1,5 +1,5 @@
 permalink:    pretty
-highlighter:  rougue
+highlighter:  rouge
 paginate:     5
 url:          http://www.liedman.net/leaflet-routing-machine
 baseurl:      /leaflet-routing-machine
