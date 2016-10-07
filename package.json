@@ -34,18 +34,18 @@
   },
   "main": "./src/L.Routing.Control.js",
   "devDependencies": {
-    "browserify": "^5.12.1",
+    "browserify": "^13.1.0",
     "browserify-shim": "^3.7.0",
-    "grunt": "^0.4.5",
-    "grunt-browserify": "^3.0.1",
-    "grunt-contrib-copy": "^0.6.0",
-    "grunt-contrib-uglify": "^0.6.0",
-    "grunt-gh-pages": "^0.9.1",
+    "grunt": "^1.0.1",
+    "grunt-browserify": "^5.0.0",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-uglify": "^2.0.0",
+    "grunt-gh-pages": "^2.0.0",
     "grunt-semantic-release": "^0.2.1"
   },
   "dependencies": {
-    "corslite": "0.0.6",
-    "leaflet": "^0.7.2",
-    "polyline": "0.0.3"
+    "corslite": "0.0.7",
+    "leaflet": "^1.0.1",
+    "polyline": "0.2.0"
   }
 }
