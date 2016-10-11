@@ -1,4 +1,4 @@
-/*! leaflet-routing-machine - v3.2.1 - 2016-10-11
+/*! leaflet-routing-machine - v3.2.2 - 2016-10-11
  * Copyright (c) 2013-2016 Per Liedman
  * Distributed under the ISC license */
 
@@ -517,37 +517,39 @@ if (typeof module === 'object' && module.exports) {
 			}
 		},
 
+		onZoomEnd: function() {
+			if (!this._selectedRoute ||
+				!this._router.requiresMoreDetail) {
+				return;
+			}
+
+			var map = this._map;
+			if (this._router.requiresMoreDetail(this._selectedRoute,
+					map.getZoom(), map.getBounds())) {
+				this.route({
+					callback: L.bind(function(err, routes) {
+						var i;
+						if (!err) {
+							for (i = 0; i < routes.length; i++) {
+								this._routes[i].properties = routes[i].properties;
+							}
+							this._updateLineCallback(err, routes);
+						}
+
+					}, this),
+					simplifyGeometry: false,
+					geometryOnly: true
+				});
+			}
+		},
+
 		onAdd: function(map) {
 			var container = L.Routing.Itinerary.prototype.onAdd.call(this, map);
 
 			this._map = map;
 			this._map.addLayer(this._plan);
 
-			this._map.on('zoomend', function() {
-				if (!this._selectedRoute ||
-					!this._router.requiresMoreDetail) {
-					return;
-				}
-
-				var map = this._map;
-				if (this._router.requiresMoreDetail(this._selectedRoute,
-						map.getZoom(), map.getBounds())) {
-					this.route({
-						callback: L.bind(function(err, routes) {
-							var i;
-							if (!err) {
-								for (i = 0; i < routes.length; i++) {
-									this._routes[i].properties = routes[i].properties;
-								}
-								this._updateLineCallback(err, routes);
-							}
-
-						}, this),
-						simplifyGeometry: false,
-						geometryOnly: true
-					});
-				}
-			}, this);
+			this._map.on('zoomend', this.onZoomEnd, this);
 
 			if (this._plan.options.geocoder) {
 				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
@@ -557,6 +559,7 @@ if (typeof module === 'object' && module.exports) {
 		},
 
 		onRemove: function(map) {
+			map.off('zoomend', this.onZoomEnd, this);
 			if (this._line) {
 				map.removeLayer(this._line);
 			}
