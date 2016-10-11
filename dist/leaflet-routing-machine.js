@@ -1,9 +1,9 @@
-/*! leaflet-routing-machine - v3.2.0 - 2016-10-07
+/*! leaflet-routing-machine - v3.2.1 - 2016-10-11
  * Copyright (c) 2013-2016 Per Liedman
  * Distributed under the ISC license */
 
 
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}(g.L || (g.L = {})).Routing = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -98,7 +98,7 @@ function corslite(url, callback, cors) {
 
 if (typeof module !== 'undefined') module.exports = corslite;
 
-},{}],2:[function(require,module,exports){
+},{}],2:[function(_dereq_,module,exports){
 'use strict';
 
 /**
@@ -253,7 +253,7 @@ if (typeof module === 'object' && module.exports) {
     module.exports = polyline;
 }
 
-},{}],3:[function(require,module,exports){
+},{}],3:[function(_dereq_,module,exports){
 (function() {
 	'use strict';
 
@@ -465,7 +465,7 @@ if (typeof module === 'object' && module.exports) {
 	});
 })();
 
-},{}],4:[function(require,module,exports){
+},{}],4:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -473,12 +473,12 @@ if (typeof module === 'object' && module.exports) {
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Itinerary'));
-	L.extend(L.Routing, require('./L.Routing.Line'));
-	L.extend(L.Routing, require('./L.Routing.Plan'));
-	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
-	L.extend(L.Routing, require('./L.Routing.Mapbox'));
-	L.extend(L.Routing, require('./L.Routing.ErrorControl'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Itinerary'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Line'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Plan'));
+	L.extend(L.Routing, _dereq_('./L.Routing.OSRMv1'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Mapbox'));
+	L.extend(L.Routing, _dereq_('./L.Routing.ErrorControl'));
 
 	L.Routing.Control = L.Routing.Itinerary.extend({
 		options: {
@@ -822,7 +822,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.Mapbox":12,"./L.Routing.OSRMv1":13,"./L.Routing.Plan":14}],5:[function(require,module,exports){
+},{"./L.Routing.ErrorControl":5,"./L.Routing.Itinerary":8,"./L.Routing.Line":10,"./L.Routing.Mapbox":12,"./L.Routing.OSRMv1":13,"./L.Routing.Plan":14}],5:[function(_dereq_,module,exports){
 (function() {
 	'use strict';
 
@@ -883,7 +883,7 @@ if (typeof module === 'object' && module.exports) {
 	};
 })();
 
-},{}],6:[function(require,module,exports){
+},{}],6:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -892,7 +892,7 @@ if (typeof module === 'object' && module.exports) {
 
 	L.Routing = L.Routing || {};
 
-	L.extend(L.Routing, require('./L.Routing.Localization'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Localization'));
 
 	L.Routing.Formatter = L.Class.extend({
 		options: {
@@ -1051,14 +1051,14 @@ if (typeof module === 'object' && module.exports) {
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Localization":11}],7:[function(require,module,exports){
+},{"./L.Routing.Localization":11}],7:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Autocomplete'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Autocomplete'));
 
 	function selectInputText(input) {
 		if (input.setSelectionRange) {
@@ -1207,7 +1207,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Autocomplete":3}],8:[function(require,module,exports){
+},{"./L.Routing.Autocomplete":3}],8:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1215,8 +1215,8 @@ if (typeof module === 'object' && module.exports) {
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Formatter'));
-	L.extend(L.Routing, require('./L.Routing.ItineraryBuilder'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Formatter'));
+	L.extend(L.Routing, _dereq_('./L.Routing.ItineraryBuilder'));
 
 	L.Routing.Itinerary = L.Control.extend({
 		includes: L.Mixin.Events,
@@ -1444,7 +1444,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Formatter":6,"./L.Routing.ItineraryBuilder":9}],9:[function(require,module,exports){
+},{"./L.Routing.Formatter":6,"./L.Routing.ItineraryBuilder":9}],9:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1495,7 +1495,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],10:[function(require,module,exports){
+},{}],10:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -1637,7 +1637,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],11:[function(require,module,exports){
+},{}],11:[function(_dereq_,module,exports){
 (function() {
 	'use strict';
 
@@ -2273,7 +2273,7 @@ if (typeof module === 'object' && module.exports) {
 	module.exports = L.Routing;
 })();
 
-},{}],12:[function(require,module,exports){
+},{}],12:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
@@ -2281,7 +2281,7 @@ if (typeof module === 'object' && module.exports) {
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
+	L.extend(L.Routing, _dereq_('./L.Routing.OSRMv1'));
 
 	/**
 	 * Works against OSRM's new API in version 5.0; this has
@@ -2311,21 +2311,21 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.OSRMv1":13}],13:[function(require,module,exports){
+},{"./L.Routing.OSRMv1":13}],13:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
-		corslite = require('corslite'),
-		polyline = require('polyline');
+		corslite = _dereq_('corslite'),
+		polyline = _dereq_('polyline');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
 	// underscores.
 	/* jshint camelcase: false */
 
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Waypoint'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Waypoint'));
 
 	/**
 	 * Works against OSRM's new API in version 5.0; this has
@@ -2653,15 +2653,15 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.Waypoint":15,"corslite":1,"polyline":2}],14:[function(require,module,exports){
+},{"./L.Routing.Waypoint":15,"corslite":1,"polyline":2}],14:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
-	L.extend(L.Routing, require('./L.Routing.Waypoint'));
+	L.extend(L.Routing, _dereq_('./L.Routing.GeocoderElement'));
+	L.extend(L.Routing, _dereq_('./L.Routing.Waypoint'));
 
 	L.Routing.Plan = (L.Layer || L.Class).extend({
 		includes: L.Mixin.Events,
@@ -3005,7 +3005,7 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./L.Routing.GeocoderElement":7,"./L.Routing.Waypoint":15}],15:[function(require,module,exports){
+},{"./L.Routing.GeocoderElement":7,"./L.Routing.Waypoint":15}],15:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
