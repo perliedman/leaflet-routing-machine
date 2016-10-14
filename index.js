@@ -15,7 +15,7 @@ var control = L.Routing.control({
 			createMarker: function(i, wp) {
 				return L.marker(wp.latLng, {
 					draggable: true,
-					icon: new L.Icon.Label.Default({ labelText: String.fromCharCode(65 + i) })
+					icon: L.icon.glyph({ glyph: String.fromCharCode(65 + i) })
 				});
 			},
 			geocoder: L.Control.Geocoder.nominatim(),
