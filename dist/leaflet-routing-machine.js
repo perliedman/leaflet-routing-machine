@@ -1,4 +1,4 @@
-/*! leaflet-routing-machine - v3.2.2 - 2016-10-11
+/*! leaflet-routing-machine - v3.2.3 - 2016-10-14
  * Copyright (c) 2013-2016 Per Liedman
  * Distributed under the ISC license */
 
@@ -2398,17 +2398,18 @@ if (typeof module === 'object' && module.exports) {
 								return this._routeDone(data, wps, options, callback, context);
 							} catch (ex) {
 								error.status = -3;
-								error.error = ex.toString();
+								error.message = ex.toString();
 							}
 						} catch (ex) {
 							error.status = -2;
-							error.error = 'Error parsing OSRM response: ' + ex.toString();
+							error.message = 'Error parsing OSRM response: ' + ex.toString();
 						}
 					} else {
-						error = L.extend({}, err, {
-							error: 'HTTP request failed: ' + err.type,
-							status: -1
-						})
+						error.message = 'HTTP request failed: ' + err.type +
+							(err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
+						error.url = url;
+						error.status = -1;
+						error.target = err;
 					}
 
 					callback.call(context || callback, error);
