@@ -1,4 +1,4 @@
-/*! leaflet-routing-machine - v3.2.3 - 2016-10-14
+/*! leaflet-routing-machine - v3.2.4 - 2016-10-14
  * Copyright (c) 2013-2016 Per Liedman
  * Distributed under the ISC license */
 
@@ -2406,7 +2406,7 @@ if (typeof module === 'object' && module.exports) {
 						}
 					} else {
 						error.message = 'HTTP request failed: ' + err.type +
-							(err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
+							(err.target && err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
 						error.url = url;
 						error.status = -1;
 						error.target = err;
