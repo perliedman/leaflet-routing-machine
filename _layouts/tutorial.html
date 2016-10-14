@@ -57,9 +57,30 @@
 
     <hr>
     Copyright &copy; 2015 Per Liedman, released under <a href="https://raw.githubusercontent.com/perliedman/leaflet-routing-machine/master/LICENSE">ISC License</a>. Logo by <a href="http://thenounproject.com/alexeyivanov">Alexey Ivanov</a>, released under Creative Commons CC-BY 3.0.
+    <div id="osrm-error">
+      <a href="#" id="osrm-error-close">&times;</a>
+      <h4><strong>Sorry!</strong> The OSRM demo server appears down, or a network error occured.</h4>
+      <p>This prevents Leaflet Routing Machine from displaying a route. The demo server will hopefully be
+      back up soon. Please <em>do not</em> report this as an issue, Leaflet Routing Machine has no control
+      over the demo server.</p>
+      <p>In production, set up your own OSRM instance, or pay a service provider.</p>
+    </div>
   </div>
 </div>
 
     <script src="{{site.baseurl}}/lib/prism.js"></script>
+
+    <script type="text/javascript">
+      function handleError(e) {
+        if (e.error.status === -1) {
+          // HTTP error, show our error banner
+          document.querySelector('#osrm-error').style.display = 'block';
+          L.DomEvent.on(document.querySelector('#osrm-error-close'), 'click', function(e) {
+            document.querySelector('#osrm-error').style.display = 'none';
+            L.DomEvent.preventDefault(e);
+          });
+        }
+      }
+    </script>
   </body>
 </html>

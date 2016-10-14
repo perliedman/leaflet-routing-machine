@@ -61,3 +61,26 @@ pre > code {
 .leaflet-routing-error h3 {
     font-size: 16px;
 }
+
+#osrm-error {
+    position: fixed;
+    top: 24px;
+    left: 25%;
+    right: 25%;
+    padding: 20px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+    z-index: 1001;
+    display: none;
+}
+
+#osrm-error-close {
+    position: absolute;
+    top: 0px;
+    right: 8px;
+    font-size: 24px;
+    font-weight: bold;
+    color: inherit;
+    text-decoration: none;
+}

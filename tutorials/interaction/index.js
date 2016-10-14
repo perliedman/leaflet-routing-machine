@@ -14,27 +14,37 @@ function button(label, container) {
 }
 
 var control = L.Routing.control({
-    routeWhileDragging: true,
-    plan: new (L.Routing.Plan.extend({
-        createGeocoders: function() {
-            var container = L.Routing.Plan.prototype.createGeocoders.call(this),
-                reverseButton = button('&#8593;&#8595;', container);
+        routeWhileDragging: true,
+        plan: new (L.Routing.Plan.extend({
+            createGeocoders: function() {
+                var container = L.Routing.Plan.prototype.createGeocoders.call(this),
+                    reverseButton = button('&#8593;&#8595;', container);
 
-            L.DomEvent.on(reverseButton, 'click', function() {
-                var waypoints = this.getWaypoints();
-                this.setWaypoints(waypoints.reverse());
-            }, this);
+                L.DomEvent.on(reverseButton, 'click', function() {
+                    var waypoints = this.getWaypoints();
+                    this.setWaypoints(waypoints.reverse());
+                }, this);
 
-            return container;
-        }
-    }))([
-        L.latLng(57.74, 11.94),
-        L.latLng(57.6792, 11.949)
-    ], {
-        geocoder: L.Control.Geocoder.nominatim(),
-        routeWhileDragging: true
+                return container;
+            }
+        }))([
+            L.latLng(57.74, 11.94),
+            L.latLng(57.6792, 11.949)
+        ], {
+            geocoder: L.Control.Geocoder.nominatim(),
+            routeWhileDragging: true
+        })
     })
-}).addTo(map1);
+    .on('routingerror', function(e) {
+        try {
+            map1.getCenter();
+        } catch (e) {
+            map1.fitBounds(L.latLngBounds(control.getWaypoints().map(function(wp) { return wp.latLng; })));
+        }
+
+        handleError(e);
+    })
+    .addTo(map1);
 
 map1.on('click', function(e) {
     var container = L.DomUtil.create('div'),

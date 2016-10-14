@@ -33,12 +33,14 @@ var control = L.Routing.control({
 		}
 	})
 	.addTo(map)
-	.on('routingerror', function() {
+	.on('routingerror', function(e) {
 		try {
 			map.getCenter();
 		} catch (e) {
 			map.fitBounds(L.latLngBounds(waypoints));
 		}
+
+		handleError(e);
 	});
 
 L.Routing.errorControl(control).addTo(map);
