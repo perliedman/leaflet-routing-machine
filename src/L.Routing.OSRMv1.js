@@ -88,7 +88,7 @@
 						}
 					} else {
 						error.message = 'HTTP request failed: ' + err.type +
-							(err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
+							(err.target && err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
 						error.url = url;
 						error.status = -1;
 						error.target = err;
