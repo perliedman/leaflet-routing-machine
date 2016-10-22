@@ -34,7 +34,7 @@
   },
   "main": "./dist/leaflet-routing-machine.js",
   "devDependencies": {
-    "browserify": "^13.1.0",
+    "browserify": "^13.1.1",
     "browserify-derequire": "^0.9.4",
     "browserify-shim": "^3.7.0",
     "corslite": "0.0.7",
