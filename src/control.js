@@ -45,7 +45,7 @@
 			}
 		},
 
-		onZoomEnd: function() {
+		_onZoomEnd: function() {
 			if (!this._selectedRoute ||
 				!this._router.requiresMoreDetail) {
 				return;
@@ -77,7 +77,7 @@
 			this._map = map;
 			this._map.addLayer(this._plan);
 
-			this._map.on('zoomend', this.onZoomEnd, this);
+			this._map.on('zoomend', this._onZoomEnd, this);
 
 			if (this._plan.options.geocoder) {
 				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
@@ -87,7 +87,7 @@
 		},
 
 		onRemove: function(map) {
-			map.off('zoomend', this.onZoomEnd, this);
+			map.off('zoomend', this._onZoomEnd, this);
 			if (this._line) {
 				map.removeLayer(this._line);
 			}
