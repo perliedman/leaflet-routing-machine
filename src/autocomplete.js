@@ -1,9 +1,9 @@
 (function() {
 	'use strict';
 
-	L.Routing = L.Routing || {};
+	var L = require('leaflet');
 
-	L.Routing.Autocomplete = L.Class.extend({
+	module.exports = L.Class.extend({
 		options: {
 			timeout: 500,
 			blurTimeout: 100,

@@ -9,14 +9,13 @@
 	// underscores.
 	/* jshint camelcase: false */
 
-	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Waypoint'));
+	var Waypoint = require('./waypoint');
 
 	/**
 	 * Works against OSRM's new API in version 5.0; this has
 	 * the API version v1.
 	 */
-	L.Routing.OSRMv1 = L.Class.extend({
+	module.exports = L.Class.extend({
 		options: {
 			serviceUrl: 'https://router.project-osrm.org/route/v1',
 			profile: 'driving',
@@ -80,7 +79,7 @@
 			// the request is being processed.
 			for (i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
-				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
+				wps.push(new Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
 			return xhr = corslite(url, L.bind(function(err, resp) {
@@ -296,7 +295,7 @@
 			    viaLoc;
 			for (i = 0; i < vias.length; i++) {
 				viaLoc = vias[i].location;
-				wps.push(L.Routing.waypoint(L.latLng(viaLoc[1], viaLoc[0]),
+				wps.push(new Waypoint(L.latLng(viaLoc[1], viaLoc[0]),
 				                            inputWaypoints[i].name,
 											inputWaypoints[i].options));
 			}
@@ -346,10 +345,4 @@
 			}
 		},
 	});
-
-	L.Routing.osrmv1 = function(options) {
-		return new L.Routing.OSRMv1(options);
-	};
-
-	module.exports = L.Routing;
 })();

@@ -61,12 +61,12 @@
 
 	L.Routing = L.Routing || {};
 
-	L.Routing.Localization = L.Class.extend({
+	var Localization = L.Class.extend({
 		initialize: function(langs) {
 			this._langs = L.Util.isArray(langs) ? langs : [langs, 'en'];
 
 			for (var i = 0, l = this._langs.length; i < l; i++) {
-				if (!L.Routing.Localization[this._langs[i]]) {
+				if (!Localization[this._langs[i]]) {
 					throw new Error('No localization for language "' + this._langs[i] + '".');
 				}
 			}
@@ -80,7 +80,7 @@
 			keys = L.Util.isArray(keys) ? keys : [keys];
 
 			for (var i = 0, l = this._langs.length; i < l; i++) {
-				dict = L.Routing.Localization[this._langs[i]];
+				dict = Localization[this._langs[i]];
 				for (var j = 0, nKeys = keys.length; dict && j < nKeys; j++) {
 					key = keys[j];
 					value = dict[key];
@@ -94,7 +94,7 @@
 		}
 	});
 
-	L.Routing.Localization = L.extend(L.Routing.Localization, {
+	module.exports = L.extend(Localization, {
 		'en': {
 			directions: {
 				N: 'north',
@@ -710,6 +710,4 @@
 			}
 		}
 	});
-
-	module.exports = L.Routing;
 })();

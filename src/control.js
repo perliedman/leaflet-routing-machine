@@ -3,18 +3,15 @@
 
 	var L = require('leaflet');
 
-	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Itinerary'));
-	L.extend(L.Routing, require('./L.Routing.Line'));
-	L.extend(L.Routing, require('./L.Routing.Plan'));
-	L.extend(L.Routing, require('./L.Routing.OSRMv1'));
-	L.extend(L.Routing, require('./L.Routing.Mapbox'));
-	L.extend(L.Routing, require('./L.Routing.ErrorControl'));
+	var Itinerary = require('./itinerary');
+	var Line = require('./line');
+	var Plan = require('./plan');
+	var OSRMv1 = require('./osrm-v1');
 
-	L.Routing.Control = L.Routing.Itinerary.extend({
+	module.exports = Itinerary.extend({
 		options: {
 			fitSelectedRoutes: 'smart',
-			routeLine: function(route, options) { return L.Routing.line(route, options); },
+			routeLine: function(route, options) { return new Line(route, options); },
 			autoRoute: true,
 			routeWhileDragging: false,
 			routeDragInterval: 500,
@@ -28,11 +25,11 @@
 		initialize: function(options) {
 			L.Util.setOptions(this, options);
 
-			this._router = this.options.router || new L.Routing.OSRMv1(options);
-			this._plan = this.options.plan || L.Routing.plan(this.options.waypoints, options);
+			this._router = this.options.router || new OSRMv1(options);
+			this._plan = this.options.plan || new Plan(this.options.waypoints, options);
 			this._requestCount = 0;
 
-			L.Routing.Itinerary.prototype.initialize.call(this, options);
+			Itinerary.prototype.initialize.call(this, options);
 
 			this.on('routeselected', this._routeSelected, this);
 			if (this.options.defaultErrorHandler) {
@@ -75,7 +72,7 @@
 		},
 
 		onAdd: function(map) {
-			var container = L.Routing.Itinerary.prototype.onAdd.call(this, map);
+			var container = Itinerary.prototype.onAdd.call(this, map);
 
 			this._map = map;
 			this._map.addLayer(this._plan);
@@ -100,7 +97,7 @@
 					map.removeLayer(this._alternatives[i]);
 				}
 			}
-			return L.Routing.Itinerary.prototype.onRemove.call(this, map);
+			return Itinerary.prototype.onRemove.call(this, map);
 		},
 
 		getWaypoints: function() {
@@ -347,10 +344,4 @@
 			}
 		}
 	});
-
-	L.Routing.control = function(options) {
-		return new L.Routing.Control(options);
-	};
-
-	module.exports = L.Routing;
 })();

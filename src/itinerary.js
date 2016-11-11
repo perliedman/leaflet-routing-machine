@@ -2,12 +2,10 @@
 	'use strict';
 
 	var L = require('leaflet');
+	var Formatter = require('./formatter');
+	var ItineraryBuilder = require('./itinerary-builder');
 
-	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Formatter'));
-	L.extend(L.Routing, require('./L.Routing.ItineraryBuilder'));
-
-	L.Routing.Itinerary = L.Control.extend({
+	module.exports = L.Control.extend({
 		includes: L.Mixin.Events,
 
 		options: {
@@ -37,8 +35,8 @@
 
 		initialize: function(options) {
 			L.setOptions(this, options);
-			this._formatter = this.options.formatter || new L.Routing.Formatter(this.options);
-			this._itineraryBuilder = this.options.itineraryBuilder || new L.Routing.ItineraryBuilder({
+			this._formatter = this.options.formatter || new Formatter(this.options);
+			this._itineraryBuilder = this.options.itineraryBuilder || new ItineraryBuilder({
 				containerClassName: this.options.itineraryClassName
 			});
 		},
@@ -224,10 +222,4 @@
 			this.fire('routeselected', routes);
 		}
 	});
-
-	L.Routing.itinerary = function(options) {
-		return new L.Routing.Itinerary(options);
-	};
-
-	module.exports = L.Routing;
 })();

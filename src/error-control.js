@@ -1,9 +1,9 @@
 (function() {
 	'use strict';
 
-	L.Routing = L.Routing || {};
+	var L = require('leaflet');
 
-	L.Routing.ErrorControl = L.Control.extend({
+	module.exports = L.Control.extend({
 		options: {
 			header: 'Routing error',
 			formatMessage: function(error) {
@@ -52,8 +52,4 @@
 			delete this._element;
 		}
 	});
-
-	L.Routing.errorControl = function(routingControl, options) {
-		return new L.Routing.ErrorControl(routingControl, options);
-	};
 })();

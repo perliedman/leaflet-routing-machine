@@ -3,11 +3,9 @@
 
 	var L = require('leaflet');
 
-	L.Routing = L.Routing || {};
+	var Localization = require('./localization');
 
-	L.extend(L.Routing, require('./L.Routing.Localization'));
-
-	L.Routing.Formatter = L.Class.extend({
+	module.exports = L.Class.extend({
 		options: {
 			units: 'metric',
 			unitNames: null,
@@ -22,7 +20,7 @@
 			var langs = L.Util.isArray(this.options.language) ?
 				this.options.language :
 				[this.options.language, 'en'];
-			this._localization = new L.Routing.Localization(langs);
+			this._localization = new Localization(langs);
 		},
 
 		formatDistance: function(d /* Number (meters) */, sensitivity) {
@@ -158,7 +156,4 @@
 			return strings[0] + (strings.length > 1 && instr.road ? strings[1] : '');
 		}
 	});
-
-	module.exports = L.Routing;
 })();
-

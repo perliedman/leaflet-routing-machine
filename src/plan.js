@@ -2,11 +2,10 @@
 	'use strict';
 
 	var L = require('leaflet');
-	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.GeocoderElement'));
-	L.extend(L.Routing, require('./L.Routing.Waypoint'));
+	var GeocoderElement = require('./geocoder-element');
+	var Waypoint = require('./waypoint');
 
-	L.Routing.Plan = (L.Layer || L.Class).extend({
+	module.exports = (L.Layer || L.Class).extend({
 		includes: L.Mixin.Events,
 
 		options: {
@@ -21,7 +20,9 @@
 			reverseWaypoints: false,
 			addButtonClassName: '',
 			language: 'en',
-			createGeocoderElement: L.Routing.geocoderElement,
+			createGeocoderElement: function(wp, i, nWps, plan) {
+				return new GeocoderElement(wp, i, nWps, plan);
+			},
 			createMarker: function(i, wp) {
 				var options = {
 						draggable: this.draggableWaypoints
@@ -72,7 +73,7 @@
 			    i;
 
 			for (i = 2; i < arguments.length; i++) {
-				args.push(arguments[i] && arguments[i].hasOwnProperty('latLng') ? arguments[i] : L.Routing.waypoint(arguments[i]));
+				args.push(arguments[i] && arguments[i].hasOwnProperty('latLng') ? arguments[i] : new Waypoint(arguments[i]));
 			}
 
 			[].splice.apply(this._waypoints, args);
@@ -144,7 +145,7 @@
 				if (i > 0 || this._waypoints.length > 2) {
 					this.spliceWaypoints(i, 1);
 				} else {
-					this.spliceWaypoints(i, 1, new L.Routing.Waypoint());
+					this.spliceWaypoints(i, 1, new Waypoint());
 				}
 			}, this)
 			.on('geocoded', function(e) {
@@ -290,7 +291,7 @@
 		},
 
 		_dragNewWaypoint: function(newWpIndex, initialLatLng) {
-			var wp = new L.Routing.Waypoint(initialLatLng),
+			var wp = new Waypoint(initialLatLng),
 				prevWp = this._waypoints[newWpIndex - 1],
 				nextWp = this._waypoints[newWpIndex],
 				marker = this.options.createMarker(newWpIndex, wp, this._waypoints.length + 1),
@@ -339,10 +340,4 @@
 			}
 		}
 	});
-
-	L.Routing.plan = function(waypoints, options) {
-		return new L.Routing.Plan(waypoints, options);
-	};
-
-	module.exports = L.Routing;
 })();

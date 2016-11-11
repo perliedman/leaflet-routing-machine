@@ -2,10 +2,8 @@
 	'use strict';
 
 	var L = require('leaflet');
-
-	L.Routing = L.Routing || {};
-
-	L.Routing.Line = L.LayerGroup.extend({
+	
+	module.exports = L.LayerGroup.extend({
 		includes: L.Mixin.Events,
 
 		options: {
@@ -129,10 +127,4 @@
 			return this._wpIndices;
 		}
 	});
-
-	L.Routing.line = function(route, options) {
-		return new L.Routing.Line(route, options);
-	};
-
-	module.exports = L.Routing;
 })();

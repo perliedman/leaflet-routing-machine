@@ -2,9 +2,8 @@
 	'use strict';
 
 	var L = require('leaflet');
-	L.Routing = L.Routing || {};
 
-	L.Routing.ItineraryBuilder = L.Class.extend({
+	module.exports = L.Class.extend({
 		options: {
 			containerClassName: ''
 		},
@@ -42,6 +41,4 @@
 			return row;
 		}
 	});
-
-	module.exports = L.Routing;
 })();
