@@ -42,5 +42,7 @@
     "polyline": "0.2.0",
     "uglify-js": "^2.7.4"
   },
-  "dependencies": {}
+  "dependencies": {
+    "osrm-text-instructions": "^0.1.0"
+  }
 }

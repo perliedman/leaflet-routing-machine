@@ -3,7 +3,8 @@
 
 	var L = require('leaflet'),
 		corslite = require('corslite'),
-		polyline = require('polyline');
+		polyline = require('polyline'),
+		osrmTextInstructions = require('osrm-text-instructions');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
 	// underscores.
@@ -26,7 +27,7 @@
 			},
 			polylinePrecision: 5,
 			useHints: true,
-			suppressDemoServerWarning: false
+			suppressDemoServerWarning: false,
 		},
 
 		initialize: function(options) {
@@ -182,7 +183,15 @@
 				geometry,
 				type,
 				modifier,
-				text;
+				text,
+				stepToText;
+
+			if (this.options.stepToText) {
+				stepToText = this.options.stepToText;
+			} else {
+				var textInstructions = osrmTextInstructions('v5', this.options.language);
+				stepToText = textInstructions.compile.bind(textInstructions);
+			}
 
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
@@ -193,7 +202,7 @@
 					result.coordinates.push.apply(result.coordinates, geometry);
 					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
 					modifier = this._maneuverToModifier(step.maneuver);
-					text = this._stepToText(step);
+					text = stepToText(step);
 
 					if (type) {
 						result.instructions.push({
@@ -220,17 +229,6 @@
 			}
 
 			return result;
-		},
-
-		_stepToText: function(step) {
-			if (options.stepToText) {
-				// use custom text instruction generation
-				// if provided
-				return options.stepToText(step);
-			} else {
-				// by default delegate text instruction generation
-				// to generic downstream implementation
-				return undefined;
 		},
 
 		_bearingToDirection: function(bearing) {
