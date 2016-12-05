@@ -43,6 +43,7 @@
     "uglify-js": "^2.7.5"
   },
   "dependencies": {
+    "leaflet": "^1.0.2",
     "osrm-text-instructions": "^0.1.0"
   }
 }
