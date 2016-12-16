@@ -28,6 +28,7 @@
 			polylinePrecision: 5,
 			useHints: true,
 			suppressDemoServerWarning: false,
+			language: 'en'
 		},
 
 		initialize: function(options) {
@@ -173,6 +174,7 @@
 					}
 				},
 				legNames = [],
+				waypointIndices = [],
 				index = 0,
 				legCount = responseRoute.legs.length,
 				hasSteps = responseRoute.legs[0].steps.length > 0,
@@ -205,6 +207,10 @@
 					text = stepToText(step);
 
 					if (type) {
+						if ((i == 0 && step.maneuver.type == 'depart') || step.maneuver.type == 'arrive') {
+							waypointIndices.push(index);
+						}
+
 						result.instructions.push({
 							type: type,
 							distance: step.distance,
@@ -226,6 +232,8 @@
 			result.name = legNames.join(', ');
 			if (!hasSteps) {
 				result.coordinates = this._decodePolyline(responseRoute.geometry);
+			} else {
+				result.waypointIndices = waypointIndices;
 			}
 
 			return result;
@@ -331,7 +339,7 @@
 			}
 
 			computeInstructions =
-				!(options && options.geometryOnly);
+				true;
 
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
 				locs.join(';') + '?' +
