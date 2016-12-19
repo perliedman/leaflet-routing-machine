@@ -38,7 +38,7 @@
     "browserify-derequire": "^0.9.4",
     "browserify-shim": "^3.7.0",
     "corslite": "0.0.7",
-    "derequire": "^2.0.3",
+    "derequire": "^2.0.6",
     "polyline": "0.2.0",
     "uglify-js": "^2.7.5"
   },
