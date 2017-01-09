@@ -296,14 +296,20 @@
 				nextWp = this._waypoints[newWpIndex],
 				marker = this.options.createMarker(newWpIndex, wp, this._waypoints.length + 1),
 				lines = [],
+				draggingEnabled = this._map.dragging.enabled(),
 				mouseMove = L.bind(function(e) {
-					var i;
+					var i,
+						latLngs;
 					if (marker) {
 						marker.setLatLng(e.latlng);
 					}
 					for (i = 0; i < lines.length; i++) {
-						lines[i].spliceLatLngs(1, 1, e.latlng);
+						latLngs = lines[i].getLatLngs();
+						latLngs.splice(1, 1, e.latlng);
+						lines[i].setLatLngs(latLngs);
 					}
+
+					L.DomEvent.stop(e);
 				}, this),
 				mouseUp = L.bind(function(e) {
 					var i;
@@ -316,6 +322,9 @@
 					this._map.off('mousemove', mouseMove);
 					this._map.off('mouseup', mouseUp);
 					this.spliceWaypoints(newWpIndex, 0, e.latlng);
+					if (draggingEnabled) {
+						this._map.dragging.enable();
+					}
 				}, this),
 				i;
 
@@ -326,6 +335,10 @@
 			for (i = 0; i < this.options.dragStyles.length; i++) {
 				lines.push(L.polyline([prevWp.latLng, initialLatLng, nextWp.latLng],
 					this.options.dragStyles[i]).addTo(this._map));
+			}
+
+			if (draggingEnabled) {
+				this._map.dragging.disable();
 			}
 
 			this._map.on('mousemove', mouseMove);
