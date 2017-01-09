@@ -8,7 +8,7 @@ CWD=`pwd`
 git checkout -b build
 
 echo Building dist files for $VERSION...
-grunt
+npm install
 echo Done.
 
 git add dist/* -f
