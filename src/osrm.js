@@ -9,14 +9,13 @@
 	// underscores.
 	/* jshint camelcase: false */
 
-	L.Routing = L.Routing || {};
-	L.extend(L.Routing, require('./L.Routing.Waypoint'));
+	var Waypoint = require('./waypoint');
 
 	/**
 	 * This class works against OSRM version 4 and lower,
 	 * for version 5, use the L.Routing.OSRMv1 class.
 	 */
-	L.Routing.OSRM = L.Class.extend({
+	module.exports = L.Class.extend({
 		options: {
 			serviceUrl: 'https://router.project-osrm.org/viaroute',
 			timeout: 30 * 1000,
@@ -54,7 +53,7 @@
 			// the request is being processed.
 			for (i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
-				wps.push(new L.Routing.Waypoint(wp.latLng, wp.name, wp.options));
+				wps.push(new Waypoint(wp.latLng, wp.name, wp.options));
 			}
 
 			return corslite(url, L.bind(function(err, resp) {
@@ -312,10 +311,4 @@
 			return indices;
 		}
 	});
-
-	L.Routing.osrm = function(options) {
-		return new L.Routing.OSRM(options);
-	};
-
-	module.exports = L.Routing;
 })();
