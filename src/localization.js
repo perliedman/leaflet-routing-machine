@@ -1,3 +1,13 @@
+/* 
+   NOTICE
+   Since version 3.2.5, the functionality in this file is by
+   default NOT used for localizing OSRM instructions.
+   Instead, we rely on the module osrm-text-instructions (https://github.com/Project-OSRM/osrm-text-instructions/).
+   
+   This file can still be used for other routing backends, or if you specify the
+   stepToText option in the OSRMv1 class.
+*/
+
 (function() {
 	'use strict';
 
