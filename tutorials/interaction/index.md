@@ -99,7 +99,7 @@ since it is created by Leaflet Routing Machine? We will use pattern that is comm
 customize parts of the control's user interface: we will extend the implementing class and override the
 method that is responsible for creating the UI.
 
-In this case, we need to override the control's [`L.Routing.Plan`]({{site.baseurl/api#l-routing-plan}}),
+In this case, we need to override the control's [`L.Routing.Plan`]({{site.baseurl}}/api#l-routing-plan),
 since its method `createGeocoders` is what creates the panel we're going to add a button to.
 
 <pre><code class="language-javascript">
