@@ -80,7 +80,30 @@
 			this._map.on('zoomend', this._onZoomEnd, this);
 
 			if (this._plan.options.geocoder) {
-				container.insertBefore(this._plan.createGeocoders(), container.firstChild);
+				var fromtocontainer, profileSel;
+				fromtocontainer = this._plan.createGeocoders()
+				container.insertBefore(fromtocontainer, container.firstChild);
+				if (this.options.services.length > 1)
+				{
+					var services = this.options.services, router = this.options.router;
+					profileSel = L.DomUtil.create('select', 'leaflet-routing-select-profile', fromtocontainer);
+					for (var profile = 0, len = this.options.services.length; profile < len; profile++)
+					{
+						var profOption;
+
+						profOption = L.DomUtil.create('option', '', profileSel);
+						profOption.setAttribute('value', '' + profile);
+						profOption.innerHTML = this.options.services[profile].label;
+					}
+					L.DomEvent.addListener(profileSel, 'change', function () {
+						if (profileSel.selectedIndex >= 0 &&
+							profileSel.selectedIndex < services.length) {
+							L.Util.setOptions(router,
+								{serviceUrl: services[profileSel.selectedIndex].path});
+						}
+					}, this);
+				}
+
 			}
 
 			return container;
