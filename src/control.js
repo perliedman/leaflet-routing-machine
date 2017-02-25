@@ -100,6 +100,7 @@
 							profileSel.selectedIndex < services.length) {
 							L.Util.setOptions(router,
 								{serviceUrl: services[profileSel.selectedIndex].path});
+							this.setWaypoints(this.getWaypoints());
 						}
 					}, this);
 				}
