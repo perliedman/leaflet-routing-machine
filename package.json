@@ -40,7 +40,7 @@
     "corslite": "0.0.7",
     "derequire": "^2.0.6",
     "polyline": "0.2.0",
-    "uglify-js": "^2.7.5"
+    "uglify-js": "^2.8.3"
   },
   "dependencies": {
     "osrm-text-instructions": "^0.1.0"
