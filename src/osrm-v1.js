@@ -347,6 +347,7 @@
 				'&alternatives=' + computeAlternative.toString() +
 				'&steps=' + computeInstructions.toString() +
 				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
+		                (this.options.radiuses ? '&radiuses=' + locs.fill(this.options.radiuses).join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
 
