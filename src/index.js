@@ -2,6 +2,7 @@ var L = require('leaflet'),
     Control = require('./control'),
     Itinerary = require('./itinerary'),
     Line = require('./line'),
+    OSRM = require('./osrm'),
     OSRMv1 = require('./osrm-v1'),
     Plan = require('./plan'),
     Waypoint = require('./waypoint'),
@@ -26,6 +27,9 @@ L.routing = {
     },
     waypoint: function(latLng, name, options) {
         return new Waypoint(latLng, name, options);
+    },
+    osrm: function(options) {
+        return new OSRM(options);
     },
     osrmv1: function(options) {
         return new OSRMv1(options);
@@ -57,6 +61,7 @@ module.exports = L.Routing = {
     Control: Control,
     Itinerary: Itinerary,
     Line: Line,
+    OSRM: OSRM,
     OSRMv1: OSRMv1,
     Plan: Plan,
     Waypoint: Waypoint,
@@ -73,6 +78,7 @@ module.exports = L.Routing = {
     line: L.routing.line,
     plan: L.routing.plan,
     waypoint: L.routing.waypoint,
+    osrm: L.routing.osrm,
     osrmv1: L.routing.osrmv1,
     geocoderElement: L.routing.geocoderElement,
     mapbox: L.routing.mapbox,
