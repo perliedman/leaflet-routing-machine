@@ -729,5 +729,83 @@
 	L.Control.Geocoder.google = function(key) {
 		return new L.Control.Geocoder.Google(key);
 	};
+	
+	L.Control.Geocoder.ArcGis = L.Class.extend({
+		//docs: https://developers.arcgis.com/rest/geocode/api-reference/geocoding-find-address-candidates.htm
+		options: {
+			service_url: 'http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer'
+		},
+
+		initialize: function(key, options) {
+			this._key = key;
+			L.Util.setOptions(this, options);
+		},
+
+		geocode: function(query, cb, context) {
+			var params = {
+				SingleLine: query,
+				outFields: 'Addr_Type',
+				forStorage: false,
+				maxLocations: 10,
+				f: 'json'
+			};
+
+			if (this._key && this._key.length) {
+				params.token = this._key;
+			}
+
+			L.Control.Geocoder.getJSON(this.options.service_url + '/findAddressCandidates', params, function(data) {
+					var results = [],
+							loc,
+							latLng,
+							latLngBounds;
+					if (data.candidates && data.candidates.length) {
+						for (var i = 0; i <= data.candidates.length - 1; i++) {
+							loc = data.candidates[i];
+							latLng = L.latLng(loc.location.y, loc.location.x);
+							latLngBounds = L.latLngBounds(L.latLng(loc.extent.ymax, loc.extent.xmax), L.latLng(loc.extent.ymin, loc.extent.xmin));
+							results[i] = {
+									name: loc.address,
+									bbox: latLngBounds,
+									center: latLng
+							};
+						}
+					}
+
+					cb.call(context, results);
+			});
+		},
+
+		suggest: function(query, cb, context) {
+			return this.geocode(query, cb, context);
+		},
+
+		reverse: function(location, scale, cb, context) {
+			var params = {
+				location: encodeURIComponent(location.lng) + ',' + encodeURIComponent(location.lat),
+				distance: 100,
+				f: 'json'
+			};
+			L.Control.Geocoder.getJSON(this.options.service_url + '/reverseGeocode', params, function(data) {
+				var result = [],
+				    loc;
+
+				if (data && !data.error) {
+					loc = L.latLng(data.location.y, data.location.x);
+					result.push({
+						name: data.address.Match_addr,
+						center: loc,
+						bounds: L.latLngBounds(loc, loc)
+					});
+				}
+
+				cb.call(context, result);
+			});	
+		}
+	});
+
+	L.Control.Geocoder.arcgis = function(token, options) {
+		return new L.Control.Geocoder.ArcGis(options);
+	};
 	return L.Control.Geocoder;
 }));
