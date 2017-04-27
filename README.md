@@ -9,6 +9,7 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * [Mapzen Valhalla](https://mapzen.com/projects/valhalla/) - through plugin [lrm-valhalla](https://github.com/valhalla/lrm-valhalla)
 * [TomTom Online Routing API](http://developer.tomtom.com/io-docs) - through plugin [lrm-tomtom](https://github.com/mrohnstock/lrm-tomtom) by [Mathias Rohnstock](https://github.com/mrohnstock)
 * Legacy support for OSRM version 4 through plugin [lrm-osrm4](https://github.com/perliedman/lrm-osrm4)
+* Esri - through plugin [lrm-esri](https://github.com/jgravois/lrm-esri)
 
 ## Features
 
