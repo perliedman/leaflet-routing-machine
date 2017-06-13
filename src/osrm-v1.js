@@ -2,8 +2,8 @@
 	'use strict';
 
 	var L = require('leaflet'),
-		corslite = require('corslite'),
-		polyline = require('polyline'),
+		corslite = require('@mapbox/corslite'),
+		polyline = require('@mapbox/polyline'),
 		osrmTextInstructions = require('osrm-text-instructions');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
