@@ -151,7 +151,9 @@
 				icon = this._formatter.getIconName(instr, i);
 				step = this._itineraryBuilder.createStep(text, distance, icon, steps);
 
-				this._addRowListeners(step, r.coordinates[instr.index]);
+				if(instr.index) {
+					this._addRowListeners(step, r.coordinates[instr.index]);
+				}
 			}
 
 			return container;
