@@ -171,7 +171,8 @@
 					summary: {
 						totalDistance: responseRoute.distance,
 						totalTime: responseRoute.duration
-					}
+					},
+					annotation: []
 				},
 				legNames = [],
 				waypointIndices = [],
@@ -198,6 +199,9 @@
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
 				legNames.push(leg.summary && leg.summary.charAt(0).toUpperCase() + leg.summary.substring(1));
+				if (typeof leg.annotation !== 'undefined') {
+                    result.annotation.push(leg.annotation);
+                }
 				for (j = 0; j < leg.steps.length; j++) {
 					step = leg.steps[j];
 					geometry = this._decodePolyline(step.geometry);
