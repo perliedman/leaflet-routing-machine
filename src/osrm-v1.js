@@ -199,7 +199,7 @@
 			for (i = 0; i < legCount; i++) {
 				leg = responseRoute.legs[i];
 				legNames.push(leg.summary && leg.summary.charAt(0).toUpperCase() + leg.summary.substring(1));
-				if (typeof leg.annotation !== 'undefined') {
+                if (typeof leg.annotation !== 'undefined') {
                     result.annotation.push(leg.annotation);
                 }
 				for (j = 0; j < leg.steps.length; j++) {
