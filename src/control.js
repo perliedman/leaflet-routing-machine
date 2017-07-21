@@ -301,6 +301,7 @@
 				this._pendingRequest = this._router.route(wps, function(err, routes) {
 					this._pendingRequest = null;
 
+					routes.forEach(function(route, i) { route.routesIndex = i; });
 					if (options.callback) {
 						return options.callback.call(this, err, routes);
 					}
@@ -317,7 +318,7 @@
 							return;
 						}
 
-						routes.forEach(function(route, i) { route.routesIndex = i; });
+			
 
 						if (!options.geometryOnly) {
 							this.fire('routesfound', {waypoints: wps, routes: routes});
