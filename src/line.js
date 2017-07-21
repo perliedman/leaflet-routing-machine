@@ -30,7 +30,8 @@
 			if (this.options.extendToWaypoints) {
 				this._extendToWaypoints();
 			}
-
+			var styleArray=[];
+			styleArray.push(this.options.styles[route.routesIndex]);
 			this._addSegment(
 				route.coordinates,
 				this.options.styles,
