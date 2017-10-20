@@ -94,43 +94,211 @@ function corslite(url, callback, cors) {
 if (typeof module !== 'undefined') module.exports = corslite;
 
 },{}],2:[function(_dereq_,module,exports){
-module.exports = function(version, language, options) {
-    // load instructions
-    var instructions = _dereq_('./instructions').get(language);
-    if (Object !== instructions.constructor) throw 'instructions must be object';
-    if (!instructions[version]) { throw 'invalid version ' + version; }
+'use strict';
+
+/**
+ * Based off of [the offical Google document](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
+ *
+ * Some parts from [this implementation](http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.js)
+ * by [Mark McClure](http://facstaff.unca.edu/mcmcclur/)
+ *
+ * @module polyline
+ */
+
+var polyline = {};
+
+function py2_round(value) {
+    // Google's polyline algorithm uses the same rounding strategy as Python 2, which is different from JS for negative values
+    return Math.floor(Math.abs(value) + 0.5) * Math.sign(value);
+}
+
+function encode(current, previous, factor) {
+    current = py2_round(current * factor);
+    previous = py2_round(previous * factor);
+    var coordinate = current - previous;
+    coordinate <<= 1;
+    if (current - previous < 0) {
+        coordinate = ~coordinate;
+    }
+    var output = '';
+    while (coordinate >= 0x20) {
+        output += String.fromCharCode((0x20 | (coordinate & 0x1f)) + 63);
+        coordinate >>= 5;
+    }
+    output += String.fromCharCode(coordinate + 63);
+    return output;
+}
+
+/**
+ * Decodes to a [latitude, longitude] coordinates array.
+ *
+ * This is adapted from the implementation in Project-OSRM.
+ *
+ * @param {String} str
+ * @param {Number} precision
+ * @returns {Array}
+ *
+ * @see https://github.com/Project-OSRM/osrm-frontend/blob/master/WebContent/routing/OSRM.RoutingGeometry.js
+ */
+polyline.decode = function(str, precision) {
+    var index = 0,
+        lat = 0,
+        lng = 0,
+        coordinates = [],
+        shift = 0,
+        result = 0,
+        byte = null,
+        latitude_change,
+        longitude_change,
+        factor = Math.pow(10, precision || 5);
+
+    // Coordinates have variable length when encoded, so just keep
+    // track of whether we've hit the end of the string. In each
+    // loop iteration, a single coordinate is decoded.
+    while (index < str.length) {
+
+        // Reset shift, result, and byte
+        byte = null;
+        shift = 0;
+        result = 0;
+
+        do {
+            byte = str.charCodeAt(index++) - 63;
+            result |= (byte & 0x1f) << shift;
+            shift += 5;
+        } while (byte >= 0x20);
+
+        latitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+
+        shift = result = 0;
+
+        do {
+            byte = str.charCodeAt(index++) - 63;
+            result |= (byte & 0x1f) << shift;
+            shift += 5;
+        } while (byte >= 0x20);
+
+        longitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+
+        lat += latitude_change;
+        lng += longitude_change;
+
+        coordinates.push([lat / factor, lng / factor]);
+    }
+
+    return coordinates;
+};
+
+/**
+ * Encodes the given [latitude, longitude] coordinates array.
+ *
+ * @param {Array.<Array.<Number>>} coordinates
+ * @param {Number} precision
+ * @returns {String}
+ */
+polyline.encode = function(coordinates, precision) {
+    if (!coordinates.length) { return ''; }
+
+    var factor = Math.pow(10, precision || 5),
+        output = encode(coordinates[0][0], 0, factor) + encode(coordinates[0][1], 0, factor);
+
+    for (var i = 1; i < coordinates.length; i++) {
+        var a = coordinates[i], b = coordinates[i - 1];
+        output += encode(a[0], b[0], factor);
+        output += encode(a[1], b[1], factor);
+    }
+
+    return output;
+};
+
+function flipped(coords) {
+    var flipped = [];
+    for (var i = 0; i < coords.length; i++) {
+        flipped.push(coords[i].slice().reverse());
+    }
+    return flipped;
+}
+
+/**
+ * Encodes a GeoJSON LineString feature/geometry.
+ *
+ * @param {Object} geojson
+ * @param {Number} precision
+ * @returns {String}
+ */
+polyline.fromGeoJSON = function(geojson, precision) {
+    if (geojson && geojson.type === 'Feature') {
+        geojson = geojson.geometry;
+    }
+    if (!geojson || geojson.type !== 'LineString') {
+        throw new Error('Input must be a GeoJSON LineString');
+    }
+    return polyline.encode(flipped(geojson.coordinates), precision);
+};
+
+/**
+ * Decodes to a GeoJSON LineString geometry.
+ *
+ * @param {String} str
+ * @param {Number} precision
+ * @returns {Object}
+ */
+polyline.toGeoJSON = function(str, precision) {
+    var coords = polyline.decode(str, precision);
+    return {
+        type: 'LineString',
+        coordinates: flipped(coords)
+    };
+};
+
+if (typeof module === 'object' && module.exports) {
+    module.exports = polyline;
+}
+
+},{}],3:[function(_dereq_,module,exports){
+var languages = _dereq_('./languages');
+var instructions = languages.instructions;
+var grammars = languages.grammars;
+
+module.exports = function(version) {
+    Object.keys(instructions).forEach(function(code) {
+        if (!instructions[code][version]) { throw 'invalid version ' + version + ': ' + code + ' not supported'; }
+    });
 
     return {
-        capitalizeFirstLetter: function(string) {
-            return string.charAt(0).toUpperCase() + string.slice(1);
+        capitalizeFirstLetter: function(language, string) {
+            return string.charAt(0).toLocaleUpperCase(language) + string.slice(1);
         },
-        ordinalize: function(number) {
+        ordinalize: function(language, number) {
             // Transform numbers to their translated ordinalized value
-            return instructions[version].constants.ordinalize[number.toString()] || '';
+            if (!language) throw new Error('No language code provided');
+
+            return instructions[language][version].constants.ordinalize[number.toString()] || '';
         },
-        directionFromDegree: function(degree) {
+        directionFromDegree: function(language, degree) {
             // Transform degrees to their translated compass direction
+            if (!language) throw new Error('No language code provided');
             if (!degree && degree !== 0) {
                 // step had no bearing_after degree, ignoring
                 return '';
             } else if (degree >= 0 && degree <= 20) {
-                return instructions[version].constants.direction.north;
+                return instructions[language][version].constants.direction.north;
             } else if (degree > 20 && degree < 70) {
-                return instructions[version].constants.direction.northeast;
-            } else if (degree >= 70 && degree < 110) {
-                return instructions[version].constants.direction.east;
-            } else if (degree >= 110 && degree <= 160) {
-                return instructions[version].constants.direction.southeast;
-            } else if (degree > 160 && degree <= 200) {
-                return instructions[version].constants.direction.south;
+                return instructions[language][version].constants.direction.northeast;
+            } else if (degree >= 70 && degree <= 110) {
+                return instructions[language][version].constants.direction.east;
+            } else if (degree > 110 && degree < 160) {
+                return instructions[language][version].constants.direction.southeast;
+            } else if (degree >= 160 && degree <= 200) {
+                return instructions[language][version].constants.direction.south;
             } else if (degree > 200 && degree < 250) {
-                return instructions[version].constants.direction.southwest;
+                return instructions[language][version].constants.direction.southwest;
             } else if (degree >= 250 && degree <= 290) {
-                return instructions[version].constants.direction.west;
+                return instructions[language][version].constants.direction.west;
             } else if (degree > 290 && degree < 340) {
-                return instructions[version].constants.direction.northwest;
+                return instructions[language][version].constants.direction.northwest;
             } else if (degree >= 340 && degree <= 360) {
-                return instructions[version].constants.direction.north;
+                return instructions[language][version].constants.direction.north;
             } else {
                 throw new Error('Degree ' + degree + ' invalid');
             }
@@ -155,7 +323,49 @@ module.exports = function(version, language, options) {
 
             return config.join('');
         },
-        compile: function(step) {
+        getWayName: function(language, step, options) {
+            var classes = options ? options.classes || [] : [];
+            if (typeof step !== 'object') throw new Error('step must be an Object');
+            if (!language) throw new Error('No language code provided');
+            if (!Array.isArray(classes)) throw new Error('classes must be an Array or undefined');
+
+            var wayName;
+            var name = step.name || '';
+            var ref = (step.ref || '').split(';')[0];
+
+            // Remove hacks from Mapbox Directions mixing ref into name
+            if (name === step.ref) {
+                // if both are the same we assume that there used to be an empty name, with the ref being filled in for it
+                // we only need to retain the ref then
+                name = '';
+            }
+            name = name.replace(' (' + step.ref + ')', '');
+
+            // In attempt to avoid using the highway name of a way,
+            // check and see if the step has a class which should signal
+            // the ref should be used instead of the name.
+            var wayMotorway = classes.indexOf('motorway') !== -1;
+
+            if (name && ref && name !== ref && !wayMotorway) {
+                var phrase = instructions[language][version].phrase['name and ref'] ||
+                    instructions.en[version].phrase['name and ref'];
+                wayName = this.tokenize(language, phrase, {
+                    name: name,
+                    ref: ref
+                }, options);
+            } else if (name && ref && wayMotorway && (/\d/).test(ref)) {
+                wayName = ref;
+            } else if (!name && ref) {
+                wayName = ref;
+            } else {
+                wayName = name;
+            }
+
+            return wayName;
+        },
+        compile: function(language, step, options) {
+            if (!language) throw new Error('No language code provided');
+            if (languages.supportedCodes.indexOf(language) === -1) throw new Error('language code ' + language + ' not loaded');
             if (!step.maneuver) throw new Error('No step maneuver provided');
 
             var type = step.maneuver.type;
@@ -165,7 +375,7 @@ module.exports = function(version, language, options) {
             if (!type) { throw new Error('Missing step maneuver type'); }
             if (type !== 'depart' && type !== 'arrive' && !modifier) { throw new Error('Missing step maneuver modifier'); }
 
-            if (!instructions[version][type]) {
+            if (!instructions[language][version][type]) {
                 // Log for debugging
                 console.log('Encountered unknown instruction type: ' + type); // eslint-disable-line no-console
                 // OSRM specification assumes turn types can be added without
@@ -176,23 +386,22 @@ module.exports = function(version, language, options) {
 
             // Use special instructions if available, otherwise `defaultinstruction`
             var instructionObject;
-            if (instructions[version].modes[mode]) {
-                instructionObject = instructions[version].modes[mode];
-            } else if (instructions[version][type][modifier]) {
-                instructionObject = instructions[version][type][modifier];
+            if (instructions[language][version].modes[mode]) {
+                instructionObject = instructions[language][version].modes[mode];
+            } else if (instructions[language][version][type][modifier]) {
+                instructionObject = instructions[language][version][type][modifier];
             } else {
-                instructionObject = instructions[version][type].default;
+                instructionObject = instructions[language][version][type].default;
             }
 
             // Special case handling
             var laneInstruction;
             switch (type) {
             case 'use lane':
-                laneInstruction = instructions[version].constants.lanes[this.laneConfig(step)];
-
+                laneInstruction = instructions[language][version].constants.lanes[this.laneConfig(step)];
                 if (!laneInstruction) {
                     // If the lane combination is not found, default to continue straight
-                    instructionObject = instructions[version]['use lane'].no_lanes;
+                    instructionObject = instructions[language][version]['use lane'].no_lanes;
                 }
                 break;
             case 'rotary':
@@ -212,93 +421,1192 @@ module.exports = function(version, language, options) {
             }
 
             // Decide way_name with special handling for name and ref
-            var wayName;
-            var name = step.name || '';
-            var ref = (step.ref || '').split(';')[0];
-
-            // Remove hacks from Mapbox Directions mixing ref into name
-            if (name === step.ref) {
-                // if both are the same we assume that there used to be an empty name, with the ref being filled in for it
-                // we only need to retain the ref then
-                name = '';
-            }
-            name = name.replace(' (' + step.ref + ')', '');
-
-            if (name && ref && name !== ref) {
-                wayName = name + ' (' + ref + ')';
-            } else if (!name && ref) {
-                wayName = ref;
-            } else {
-                wayName = name;
-            }
+            var wayName = this.getWayName(language, step, options);
 
             // Decide which instruction string to use
             // Destination takes precedence over name
             var instruction;
-            if (step.destinations && instructionObject.destination) {
+            if (step.destinations && step.exits && instructionObject.exit_destination) {
+                instruction = instructionObject.exit_destination;
+            } else if (step.destinations && instructionObject.destination) {
                 instruction = instructionObject.destination;
+            } else if (step.exits && instructionObject.exit) {
+                instruction = instructionObject.exit;
             } else if (wayName && instructionObject.name) {
                 instruction = instructionObject.name;
             } else {
                 instruction = instructionObject.default;
             }
 
-            var tokenizedInstructionHook = ((options || {}).hooks || {}).tokenizedInstruction;
-            if (tokenizedInstructionHook) {
-                instruction = tokenizedInstructionHook(instruction);
-            }
+            var nthWaypoint = options && options.legIndex >= 0 && options.legIndex !== options.legCount - 1 ? this.ordinalize(language, options.legIndex + 1) : '';
 
             // Replace tokens
             // NOOP if they don't exist
-            var nthWaypoint = ''; // TODO, add correct waypoint counting
-            instruction = instruction
-                .replace('{way_name}', wayName)
-                .replace('{destination}', (step.destinations || '').split(',')[0])
-                .replace('{exit_number}', this.ordinalize(step.maneuver.exit || 1))
-                .replace('{rotary_name}', step.rotary_name)
-                .replace('{lane_instruction}', laneInstruction)
-                .replace('{modifier}', instructions[version].constants.modifier[modifier])
-                .replace('{direction}', this.directionFromDegree(step.maneuver.bearing_after))
-                .replace('{nth}', nthWaypoint)
-                .replace(/ {2}/g, ' '); // remove excess spaces
+            var replaceTokens = {
+                'way_name': wayName,
+                'destination': (step.destinations || '').split(',')[0],
+                'exit': (step.exits || '').split(';')[0],
+                'exit_number': this.ordinalize(language, step.maneuver.exit || 1),
+                'rotary_name': step.rotary_name,
+                'lane_instruction': laneInstruction,
+                'modifier': instructions[language][version].constants.modifier[modifier],
+                'direction': this.directionFromDegree(language, step.maneuver.bearing_after),
+                'nth': nthWaypoint
+            };
 
-            if (instructions.meta.capitalizeFirstLetter) {
-                instruction = this.capitalizeFirstLetter(instruction);
+            return this.tokenize(language, instruction, replaceTokens, options);
+        },
+        grammarize: function(language, name, grammar) {
+            if (!language) throw new Error('No language code provided');
+            // Process way/rotary name with applying grammar rules if any
+            if (name && grammar && grammars && grammars[language] && grammars[language][version]) {
+                var rules = grammars[language][version][grammar];
+                if (rules) {
+                    // Pass original name to rules' regular expressions enclosed with spaces for simplier parsing
+                    var n = ' ' + name + ' ';
+                    var flags = grammars[language].meta.regExpFlags || '';
+                    rules.forEach(function(rule) {
+                        var re = new RegExp(rule[0], flags);
+                        n = n.replace(re, rule[1]);
+                    });
+
+                    return n.trim();
+                }
             }
 
-            return instruction;
+            return name;
+        },
+        tokenize: function(language, instruction, tokens, options) {
+            if (!language) throw new Error('No language code provided');
+            // Keep this function context to use in inline function below (no arrow functions in ES4)
+            var that = this;
+            var startedWithToken = false;
+            var output = instruction.replace(/\{(\w+)(?::(\w+))?\}/g, function(token, tag, grammar, offset) {
+                var value = tokens[tag];
+
+                // Return unknown token unchanged
+                if (typeof value === 'undefined') {
+                    return token;
+                }
+
+                value = that.grammarize(language, value, grammar);
+
+                // If this token appears at the beginning of the instruction, capitalize it.
+                if (offset === 0 && instructions[language].meta.capitalizeFirstLetter) {
+                    startedWithToken = true;
+                    value = that.capitalizeFirstLetter(language, value);
+                }
+
+                if (options && options.formatToken) {
+                    value = options.formatToken(tag, value);
+                }
+
+                return value;
+            })
+            .replace(/ {2}/g, ' '); // remove excess spaces
+
+            if (!startedWithToken && instructions[language].meta.capitalizeFirstLetter) {
+                return this.capitalizeFirstLetter(language, output);
+            }
+
+            return output;
+        },
+        getBestMatchingLanguage: function(language) {
+            if (languages.instructions[language]) return language;
+
+            var codes = languages.parseLanguageIntoCodes(language);
+            var languageCode = codes.language;
+            var scriptCode = codes.script;
+            var regionCode = codes.region;
+
+            // Same language code and script code (lng-Scpt)
+            if (languages.instructions[languageCode + '-' + scriptCode]) {
+                return languageCode + '-' + scriptCode;
+            }
+
+            // Same language code and region code (lng-CC)
+            if (languages.instructions[languageCode + '-' + regionCode]) {
+                return languageCode + '-' + regionCode;
+            }
+
+            // Same language code (lng)
+            if (languages.instructions[languageCode]) {
+                return languageCode;
+            }
+
+            // Same language code and any script code (lng-Scpx) and the found language contains a script
+            var anyScript = languages.parsedSupportedCodes.find(function (language) {
+                return language.language === languageCode && language.script;
+            });
+            if (anyScript) {
+                return anyScript.locale;
+            }
+
+            // Same language code and any region code (lng-CX)
+            var anyCountry = languages.parsedSupportedCodes.find(function (language) {
+                return language.language === languageCode && language.region;
+            });
+            if (anyCountry) {
+                return anyCountry.locale;
+            }
+
+            return 'en';
         }
     };
 };
 
-},{"./instructions":3}],3:[function(_dereq_,module,exports){
-var instructionsDe = _dereq_('./instructions/de.json');
-var instructionsEn = _dereq_('./instructions/en.json');
-var instructionsFr = _dereq_('./instructions/fr.json');
-var instructionsNl = _dereq_('./instructions/nl.json');
-var instructionsZhHans = _dereq_('./instructions/zh-Hans.json');
+},{"./languages":4}],4:[function(_dereq_,module,exports){
+// Load all language files explicitly to allow integration
+// with bundling tools like webpack and browserify
+var instructionsDe = _dereq_('./languages/translations/de.json');
+var instructionsEn = _dereq_('./languages/translations/en.json');
+var instructionsEo = _dereq_('./languages/translations/eo.json');
+var instructionsEs = _dereq_('./languages/translations/es.json');
+var instructionsEsEs = _dereq_('./languages/translations/es-ES.json');
+var instructionsFr = _dereq_('./languages/translations/fr.json');
+var instructionsId = _dereq_('./languages/translations/id.json');
+var instructionsIt = _dereq_('./languages/translations/it.json');
+var instructionsNl = _dereq_('./languages/translations/nl.json');
+var instructionsPl = _dereq_('./languages/translations/pl.json');
+var instructionsPtBr = _dereq_('./languages/translations/pt-BR.json');
+var instructionsRo = _dereq_('./languages/translations/ro.json');
+var instructionsRu = _dereq_('./languages/translations/ru.json');
+var instructionsSv = _dereq_('./languages/translations/sv.json');
+var instructionsTr = _dereq_('./languages/translations/tr.json');
+var instructionsUk = _dereq_('./languages/translations/uk.json');
+var instructionsVi = _dereq_('./languages/translations/vi.json');
+var instructionsZhHans = _dereq_('./languages/translations/zh-Hans.json');
 
-module.exports = {
-    get: function(language) {
-        switch (language) {
-        case 'en':
-            return instructionsEn;
-        case 'de':
-            return instructionsDe;
-        case 'fr':
-            return instructionsFr;
-        case 'nl':
-            return instructionsNl;
-        case 'zh':
-        case 'zh-Hans':
-            return instructionsZhHans;
-        default:
-            throw 'invalid language ' + language;
-        }
-    }
+// Load all grammar files
+var grammarRu = _dereq_('./languages/grammar/ru.json');
+
+// Create a list of supported codes
+var instructions = {
+    'de': instructionsDe,
+    'en': instructionsEn,
+    'eo': instructionsEo,
+    'es': instructionsEs,
+    'es-ES': instructionsEsEs,
+    'fr': instructionsFr,
+    'id': instructionsId,
+    'it': instructionsIt,
+    'nl': instructionsNl,
+    'pl': instructionsPl,
+    'pt-BR': instructionsPtBr,
+    'ro': instructionsRo,
+    'ru': instructionsRu,
+    'sv': instructionsSv,
+    'tr': instructionsTr,
+    'uk': instructionsUk,
+    'vi': instructionsVi,
+    'zh-Hans': instructionsZhHans
 };
 
-},{"./instructions/de.json":4,"./instructions/en.json":5,"./instructions/fr.json":6,"./instructions/nl.json":7,"./instructions/zh-Hans.json":8}],4:[function(_dereq_,module,exports){
+// Create list of supported grammar
+var grammars = {
+    'ru': grammarRu
+};
+
+function parseLanguageIntoCodes (language) {
+    var match = language.match(/(\w\w)(?:-(\w\w\w\w))?(?:-(\w\w))?/i);
+    var locale = [];
+    if (match[1]) {
+        match[1] = match[1].toLowerCase();
+        locale.push(match[1]);
+    }
+    if (match[2]) {
+        match[2] = match[2][0].toUpperCase() + match[2].substring(1).toLowerCase();
+        locale.push(match[2]);
+    }
+    if (match[3]) {
+        match[3] = match[3].toUpperCase();
+        locale.push(match[3]);
+    }
+
+    return {
+        locale: locale.join('-'),
+        language: match[1],
+        script: match[2],
+        region: match[3]
+    };
+}
+
+module.exports = {
+    supportedCodes: Object.keys(instructions),
+    parsedSupportedCodes: Object.keys(instructions).map(function(language) {
+        return parseLanguageIntoCodes(language);
+    }),
+    instructions: instructions,
+    grammars: grammars,
+    parseLanguageIntoCodes: parseLanguageIntoCodes
+};
+
+},{"./languages/grammar/ru.json":5,"./languages/translations/de.json":6,"./languages/translations/en.json":7,"./languages/translations/eo.json":8,"./languages/translations/es-ES.json":9,"./languages/translations/es.json":10,"./languages/translations/fr.json":11,"./languages/translations/id.json":12,"./languages/translations/it.json":13,"./languages/translations/nl.json":14,"./languages/translations/pl.json":15,"./languages/translations/pt-BR.json":16,"./languages/translations/ro.json":17,"./languages/translations/ru.json":18,"./languages/translations/sv.json":19,"./languages/translations/tr.json":20,"./languages/translations/uk.json":21,"./languages/translations/vi.json":22,"./languages/translations/zh-Hans.json":23}],5:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "regExpFlags": ""
+    },
+    "v5": {
+        "accusative": [
+            ["^ (\\S+)ая [Аа]ллея ", " $1ую аллею "],
+            ["^ (\\S+)ья [Аа]ллея ", " $1ью аллею "],
+            ["^ (\\S+)яя [Аа]ллея ", " $1юю аллею "],
+            ["^ (\\d+)-я (\\S+)ая [Аа]ллея ", " $1-ю $2ую аллею "],
+            ["^ [Аа]ллея ", " аллею "],
+
+            ["^ (\\S+)ая-(\\S+)ая [Уу]лица ", " $1ую-$2ую улицу "],
+            ["^ (\\S+)ая [Уу]лица ", " $1ую улицу "],
+            ["^ (\\S+)ья [Уу]лица ", " $1ью улицу "],
+            ["^ (\\S+)яя [Уу]лица ", " $1юю улицу "],
+            ["^ (\\d+)-я (\\S+)ая [Уу]лица ", " $1-ю $2ую улицу "],
+            ["^ (\\S+)ая (\\S+)ая [Уу]лица ", " $1ую $2ую улицу "],
+            ["^ (\\S+[вн])а [Уу]лица ", " $1у улицу "],
+            ["^ (\\S+)ая (\\S+[вн])а [Уу]лица ", " $1ую $2у улицу "],
+            ["^ Даньславля [Уу]лица ", " Даньславлю улицу "],
+            ["^ Добрыня [Уу]лица ", " Добрыню улицу "],
+            ["^ Людогоща [Уу]лица ", " Людогощу улицу "],
+            ["^ [Уу]лица ", " улицу "],
+
+            ["^ (\\d+)-я [Лл]иния ", " $1-ю линию "],
+            ["^ (\\d+)-(\\d+)-я [Лл]иния ", " $1-$2-ю линию "],
+            ["^ (\\S+)ая [Лл]иния ", " $1ую линию "],
+            ["^ (\\S+)ья [Лл]иния ", " $1ью линию "],
+            ["^ (\\S+)яя [Лл]иния ", " $1юю линию "],
+            ["^ (\\d+)-я (\\S+)ая [Лл]иния ", " $1-ю $2ую линию "],
+            ["^ [Лл]иния ", " линию "],
+
+            ["^ (\\d+)-(\\d+)-я [Лл]инии ", " $1-$2-ю линии "],
+
+            ["^ (\\S+)ая [Нн]абережная ", " $1ую набережную "],
+            ["^ (\\S+)ья [Нн]абережная ", " $1ью набережную "],
+            ["^ (\\S+)яя [Нн]абережная ", " $1юю набережную "],
+            ["^ (\\d+)-я (\\S+)ая [Нн]абережная ", " $1-ю $2ую набережную "],
+            ["^ [Нн]абережная ", " набережную "],
+
+            ["^ (\\S+)ая [Пп]лощадь ", " $1ую площадь "],
+            ["^ (\\S+)ья [Пп]лощадь ", " $1ью площадь "],
+            ["^ (\\S+)яя [Пп]лощадь ", " $1юю площадь "],
+            ["^ (\\S+[вн])а [Пп]лощадь ", " $1у площадь "],
+            ["^ (\\d+)-я (\\S+)ая [Пп]лощадь ", " $1-ю $2ую площадь "],
+            ["^ [Пп]лощадь ", " площадь "],
+
+            ["^ (\\S+)ая [Ээ]стакада ", " $1ую эстакаду "],
+            ["^ (\\S+)ья [Ээ]стакада ", " $1ью эстакаду "],
+            ["^ (\\S+)яя [Ээ]стакада ", " $1юю эстакаду "],
+            ["^ (\\d+)-я (\\S+)ая [Ээ]стакада ", " $1-ю $2ую эстакаду "],
+            ["^ [Ээ]стакада ", " эстакаду "],
+
+            ["^ (\\S+)ая [Мм]агистраль ", " $1ую магистраль "],
+            ["^ (\\S+)ья [Мм]агистраль ", " $1ью магистраль "],
+            ["^ (\\S+)яя [Мм]агистраль ", " $1юю магистраль "],
+            ["^ (\\d+)-я (\\S+)ая [Мм]агистраль ", " $1-ю $2ую магистраль "],
+            ["^ [Мм]агистраль ", " магистраль "],
+
+            ["^ (\\S+)ая [Рр]азвязка ", " $1ую развязку "],
+            ["^ (\\S+)ья [Рр]азвязка ", " $1ью развязку "],
+            ["^ (\\S+)яя [Рр]азвязка ", " $1юю развязку "],
+            ["^ (\\d+)-я (\\S+)ая [Рр]азвязка ", " $1-ю $2ую развязку "],
+            ["^ [Рр]азвязка ", " развязку "],
+
+            ["^ (\\S+)ая [Тт]расса ", " $1ую трассу "],
+            ["^ (\\S+)ья [Тт]расса ", " $1ью трассу "],
+            ["^ (\\S+)яя [Тт]расса ", " $1юю трассу "],
+            ["^ (\\d+)-я (\\S+)ая [Тт]расса ", " $1-ю $2ую трассу "],
+            ["^ [Тт]расса ", " трассу "],
+
+            ["^ (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1ую $2дорогу "],
+            ["^ (\\S+)ья ([Аа]вто)?[Дд]орога ", " $1ью $2дорогу "],
+            ["^ (\\S+)яя ([Аа]вто)?[Дд]орога ", " $1юю $2дорогу "],
+            ["^ (\\d+)-я (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1-ю $2ую $3дорогу "],
+            ["^ ([Аа]вто)?[Дд]орога ", " $1дорогу "],
+
+            ["^ (\\S+)ая [Дд]орожка ", " $1ую дорожку "],
+            ["^ (\\S+)ья [Дд]орожка ", " $1ью дорожку "],
+            ["^ (\\S+)яя [Дд]орожка ", " $1юю дорожку "],
+            ["^ (\\d+)-я (\\S+)ая [Дд]орожка ", " $1-ю $2ую дорожку "],
+            ["^ [Дд]орожка ", " дорожку "],
+
+            ["^ (\\S+)ая [Кк]оса ", " $1ую косу "]
+        ],
+        "dative": [
+            ["^ (\\S+)ая [Аа]ллея ", " $1ой аллее "],
+            ["^ (\\S+)ья [Аа]ллея ", " $1ьей аллее "],
+            ["^ (\\S+)яя [Аа]ллея ", " $1ей аллее "],
+            ["^ (\\d+)-я (\\S+)ая [Аа]ллея ", " $1-й $2ой аллее "],
+            ["^ [Аа]ллея ", " аллее "],
+
+            ["^ (\\S+)ая-(\\S+)ая [Уу]лица ", " $1ой-$2ой улице "],
+            ["^ (\\S+)ая [Уу]лица ", " $1ой улице "],
+            ["^ (\\S+)ья [Уу]лица ", " $1ьей улице "],
+            ["^ (\\S+)яя [Уу]лица ", " $1ей улице "],
+            ["^ (\\d+)-я (\\S+)ая [Уу]лица ", " $1-й $2ой улице "],
+            ["^ (\\S+)ая (\\S+)ая [Уу]лица ", " $1ой $2ой улице "],
+            ["^ (\\S+[вн])а [Уу]лица ", " $1ой улице "],
+            ["^ (\\S+)ая (\\S+[вн])а [Уу]лица ", " $1ой $2ой улице "],
+            ["^ Даньславля [Уу]лица ", " Даньславлей улице "],
+            ["^ Добрыня [Уу]лица ", " Добрыней улице "],
+            ["^ Людогоща [Уу]лица ", " Людогощей улице "],
+            ["^ [Уу]лица ", " улице "],
+
+            ["^ (\\d+)-я [Лл]иния ", " $1-й линии "],
+            ["^ (\\d+)-(\\d+)-я [Лл]иния ", " $1-$2-й линии "],
+            ["^ (\\S+)ая [Лл]иния ", " $1ой линии "],
+            ["^ (\\S+)ья [Лл]иния ", " $1ьей линии "],
+            ["^ (\\S+)яя [Лл]иния ", " $1ей линии "],
+            ["^ (\\d+)-я (\\S+)ая [Лл]иния ", " $1-й $2ой линии "],
+            ["^ [Лл]иния ", " линии "],
+
+            ["^ (\\d+)-(\\d+)-я [Лл]инии ", " $1-$2-й линиям "],
+
+            ["^ (\\S+)ая [Нн]абережная ", " $1ой набережной "],
+            ["^ (\\S+)ья [Нн]абережная ", " $1ьей набережной "],
+            ["^ (\\S+)яя [Нн]абережная ", " $1ей набережной "],
+            ["^ (\\d+)-я (\\S+)ая [Нн]абережная ", " $1-й $2ой набережной "],
+            ["^ [Нн]абережная ", " набережной "],
+
+            ["^ (\\S+)ая [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\S+)ья [Пп]лощадь ", " $1ьей площади "],
+            ["^ (\\S+)яя [Пп]лощадь ", " $1ей площади "],
+            ["^ (\\S+[вн])а [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\d+)-я (\\S+)ая [Пп]лощадь ", " $1-й $2ой площади "],
+            ["^ [Пп]лощадь ", " площади "],
+
+            ["^ (\\S+)ая [Ээ]стакада ", " $1ой эстакаде "],
+            ["^ (\\S+)ья [Ээ]стакада ", " $1ьей эстакаде "],
+            ["^ (\\S+)яя [Ээ]стакада ", " $1ей эстакаде "],
+            ["^ (\\d+)-я (\\S+)ая [Ээ]стакада ", " $1-й $2ой эстакаде "],
+            ["^ [Ээ]стакада ", " эстакаде "],
+
+            ["^ (\\S+)ая [Мм]агистраль ", " $1ой магистрали "],
+            ["^ (\\S+)ья [Мм]агистраль ", " $1ьей магистрали "],
+            ["^ (\\S+)яя [Мм]агистраль ", " $1ей магистрали "],
+            ["^ (\\d+)-я (\\S+)ая [Мм]агистраль ", " $1-й $2ой магистрали "],
+            ["^ [Мм]агистраль ", " магистрали "],
+
+            ["^ (\\S+)ая [Рр]азвязка ", " $1ой развязке "],
+            ["^ (\\S+)ья [Рр]азвязка ", " $1ьей развязке "],
+            ["^ (\\S+)яя [Рр]азвязка ", " $1ей развязке "],
+            ["^ (\\d+)-я (\\S+)ая [Рр]азвязка ", " $1-й $2ой развязке "],
+            ["^ [Рр]азвязка ", " развязке "],
+
+            ["^ (\\S+)ая [Тт]расса ", " $1ой трассе "],
+            ["^ (\\S+)ья [Тт]расса ", " $1ьей трассе "],
+            ["^ (\\S+)яя [Тт]расса ", " $1ей трассе "],
+            ["^ (\\d+)-я (\\S+)ая [Тт]расса ", " $1-й $2ой трассе "],
+            ["^ [Тт]расса ", " трассе "],
+
+            ["^ (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1ой $2дороге "],
+            ["^ (\\S+)ья ([Аа]вто)?[Дд]орога ", " $1ьей $2дороге "],
+            ["^ (\\S+)яя ([Аа]вто)?[Дд]орога ", " $1ей $2дороге "],
+            ["^ (\\d+)-я (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1-й $2ой $3дороге "],
+            ["^ ([Аа]вто)?[Дд]орога ", " $1дороге "],
+
+            ["^ (\\S+)ая [Дд]орожка ", " $1ой дорожке "],
+            ["^ (\\S+)ья [Дд]орожка ", " $1ьей дорожке "],
+            ["^ (\\S+)яя [Дд]орожка ", " $1ей дорожке "],
+            ["^ (\\d+)-я (\\S+)ая [Дд]орожка ", " $1-й $2ой дорожке "],
+            ["^ [Дд]орожка ", " дорожке "],
+
+            ["^ (\\S+)во [Пп]оле ", " $1ву полю "],
+            ["^ (\\S+)ая [Кк]оса ", " $1ой косе "],
+            ["^ (\\S+)[иоы]й [Пп]роток ", " $1ому протоку "],
+
+            ["^ (\\S+н)ий [Бб]ульвар ", " $1ему бульвару "],
+            ["^ (\\S+)[иоы]й [Бб]ульвар ", " $1ому бульвару "],
+            ["^ (\\S+[иы]н) [Бб]ульвар ", " $1у бульвару "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Бб]ульвар ", " $1ому $2ему бульвару "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Бб]ульвар ", " $1ему $2ому бульвару "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Бб]ульвар ", " $1ому $2ому бульвару "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Бб]ульвар ", " $1ому $2у бульвару "],
+            ["^ (\\d+)-й (\\S+н)ий [Бб]ульвар ", " $1-му $2ему бульвару "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Бб]ульвар ", " $1-му $2ому бульвару "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Бб]ульвар ", " $1-му $2у бульвару "],
+            ["^ [Бб]ульвар ", " бульвару "],
+
+            ["^ [Дд]убл[её]р ", " дублёру "],
+
+            ["^ (\\S+н)ий [Зз]аезд ", " $1ему заезду "],
+            ["^ (\\S+)[иоы]й [Зз]аезд ", " $1ому заезду "],
+            ["^ (\\S+[еёо]в) [Зз]аезд ", " $1у заезду "],
+            ["^ (\\S+[иы]н) [Зз]аезд ", " $1у заезду "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Зз]аезд ", " $1ому $2ему заезду "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Зз]аезд ", " $1ему $2ому заезду "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Зз]аезд ", " $1ому $2ому заезду "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Зз]аезд ", " $1ому $2у заезду "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Зз]аезд ", " $1ому $2у заезду "],
+            ["^ (\\d+)-й (\\S+н)ий [Зз]аезд ", " $1-му $2ему заезду "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Зз]аезд ", " $1-му $2ому заезду "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Зз]аезд ", " $1-му $2у заезду "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Зз]аезд ", " $1-му $2у заезду "],
+            ["^ [Зз]аезд ", " заезду "],
+
+            ["^ (\\S+н)ий [Мм]ост ", " $1ему мосту "],
+            ["^ (\\S+)[иоы]й [Мм]ост ", " $1ому мосту "],
+            ["^ (\\S+[еёо]в) [Мм]ост ", " $1у мосту "],
+            ["^ (\\S+[иы]н) [Мм]ост ", " $1у мосту "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Мм]ост ", " $1ому $2ему мосту "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Мм]ост ", " $1ему $2ому мосту "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Мм]ост ", " $1ому $2ому мосту "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Мм]ост ", " $1ому $2у мосту "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Мм]ост ", " $1ому $2у мосту "],
+            ["^ (\\d+)-й (\\S+н)ий [Мм]ост ", " $1-му $2ему мосту "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Мм]ост ", " $1-му $2ому мосту "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Мм]ост ", " $1-му $2у мосту "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Мм]ост ", " $1-му $2у мосту "],
+            ["^ [Мм]ост ", " мосту "],
+
+            ["^ (\\S+н)ий [Оо]бход ", " $1ему обходу "],
+            ["^ (\\S+)[иоы]й [Оо]бход ", " $1ому обходу "],
+            ["^ [Оо]бход ", " обходу "],
+
+            ["^ (\\S+н)ий [Пп]арк ", " $1ему парку "],
+            ["^ (\\S+)[иоы]й [Пп]арк ", " $1ому парку "],
+            ["^ (\\S+[иы]н) [Пп]арк ", " $1у парку "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]арк ", " $1ому $2ему парку "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]арк ", " $1ему $2ому парку "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]арк ", " $1ому $2ому парку "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]арк ", " $1ому $2у парку "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]арк ", " $1-му $2ему парку "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]арк ", " $1-му $2ому парку "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]арк ", " $1-му $2у парку "],
+            ["^ [Пп]арк ", " парку "],
+
+            ["^ (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1ому-$2ому переулку "],
+            ["^ (\\d+)-й (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1-му $2ому-$3ому переулку "],
+            ["^ (\\S+н)ий [Пп]ереулок ", " $1ему переулку "],
+            ["^ (\\S+)[иоы]й [Пп]ереулок ", " $1ому переулку "],
+            ["^ (\\S+[еёо]в) [Пп]ереулок ", " $1у переулку "],
+            ["^ (\\S+[иы]н) [Пп]ереулок ", " $1у переулку "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]ереулок ", " $1ому $2ему переулку "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]ереулок ", " $1ему $2ому переулку "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]ереулок ", " $1ому $2ому переулку "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]ереулок ", " $1ому $2у переулку "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]ереулок ", " $1ому $2у переулку "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]ереулок ", " $1-му $2ему переулку "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]ереулок ", " $1-му $2ому переулку "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]ереулок ", " $1-му $2у переулку "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]ереулок ", " $1-му $2у переулку "],
+            ["^ [Пп]ереулок ", " переулку "],
+
+            ["^ [Пп]одъезд ", " подъезду "],
+
+            ["^ (\\S+[еёо]в)-(\\S+)[иоы]й [Пп]роезд ", " $1у-$2ому проезду "],
+            ["^ (\\S+н)ий [Пп]роезд ", " $1ему проезду "],
+            ["^ (\\S+)[иоы]й [Пп]роезд ", " $1ому проезду "],
+            ["^ (\\S+[еёо]в) [Пп]роезд ", " $1у проезду "],
+            ["^ (\\S+[иы]н) [Пп]роезд ", " $1у проезду "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роезд ", " $1ому $2ему проезду "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роезд ", " $1ему $2ому проезду "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роезд ", " $1ому $2ому проезду "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]роезд ", " $1ому $2у проезду "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роезд ", " $1ому $2у проезду "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роезд ", " $1-му $2ему проезду "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роезд ", " $1-му $2ому проезду "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]роезд ", " $1-му $2у проезду "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роезд ", " $1-му $2у проезду "],
+            ["^ [Пп]роезд ", " проезду "],
+
+            ["^ (\\S+н)ий [Пп]роспект ", " $1ему проспекту "],
+            ["^ (\\S+)[иоы]й [Пп]роспект ", " $1ому проспекту "],
+            ["^ (\\S+[иы]н) [Пп]роспект ", " $1у проспекту "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роспект ", " $1ому $2ему проспекту "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роспект ", " $1ему $2ому проспекту "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роспект ", " $1ому $2ому проспекту "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роспект ", " $1ому $2у проспекту "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роспект ", " $1-му $2ему проспекту "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роспект ", " $1-му $2ому проспекту "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роспект ", " $1-му $2у проспекту "],
+            ["^ [Пп]роспект ", " проспекту "],
+
+            ["^ (\\S+н)ий [Пп]утепровод ", " $1ему путепроводу "],
+            ["^ (\\S+)[иоы]й [Пп]утепровод ", " $1ому путепроводу "],
+            ["^ (\\S+[иы]н) [Пп]утепровод ", " $1у путепроводу "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]утепровод ", " $1ому $2ему путепроводу "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]утепровод ", " $1ему $2ому путепроводу "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]утепровод ", " $1ому $2ому путепроводу "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]утепровод ", " $1ому $2у путепроводу "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]утепровод ", " $1-му $2ему путепроводу "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]утепровод ", " $1-му $2ому путепроводу "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]утепровод ", " $1-му $2у путепроводу "],
+            ["^ [Пп]утепровод ", " путепроводу "],
+
+            ["^ (\\S+н)ий [Сс]пуск ", " $1ему спуску "],
+            ["^ (\\S+)[иоы]й [Сс]пуск ", " $1ому спуску "],
+            ["^ (\\S+[еёо]в) [Сс]пуск ", " $1у спуску "],
+            ["^ (\\S+[иы]н) [Сс]пуск ", " $1у спуску "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]пуск ", " $1ому $2ему спуску "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]пуск ", " $1ему $2ому спуску "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]пуск ", " $1ому $2ому спуску "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Сс]пуск ", " $1ому $2у спуску "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]пуск ", " $1ому $2у спуску "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]пуск ", " $1-му $2ему спуску "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]пуск ", " $1-му $2ому спуску "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Сс]пуск ", " $1-му $2у спуску "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]пуск ", " $1-му $2у спуску "],
+            ["^ [Сс]пуск ", " спуску "],
+
+            ["^ (\\S+н)ий [Сс]ъезд ", " $1ему съезду "],
+            ["^ (\\S+)[иоы]й [Сс]ъезд ", " $1ому съезду "],
+            ["^ (\\S+[иы]н) [Сс]ъезд ", " $1у съезду "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]ъезд ", " $1ому $2ему съезду "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]ъезд ", " $1ему $2ому съезду "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]ъезд ", " $1ому $2ому съезду "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]ъезд ", " $1ому $2у съезду "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]ъезд ", " $1-му $2ему съезду "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]ъезд ", " $1-му $2ому съезду "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]ъезд ", " $1-му $2у съезду "],
+            ["^ [Сс]ъезд ", " съезду "],
+
+            ["^ (\\S+н)ий [Тт][уо]ннель ", " $1ему тоннелю "],
+            ["^ (\\S+)[иоы]й [Тт][уо]ннель ", " $1ому тоннелю "],
+            ["^ (\\S+[иы]н) [Тт][уо]ннель ", " $1у тоннелю "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт][уо]ннель ", " $1ому $2ему тоннелю "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт][уо]ннель ", " $1ему $2ому тоннелю "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт][уо]ннель ", " $1ому $2ому тоннелю "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт][уо]ннель ", " $1ому $2у тоннелю "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт][уо]ннель ", " $1-му $2ему тоннелю "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт][уо]ннель ", " $1-му $2ому тоннелю "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт][уо]ннель ", " $1-му $2у тоннелю "],
+            ["^ [Тт][уо]ннель ", " тоннелю "],
+
+            ["^ (\\S+н)ий [Тт]ракт ", " $1ему тракту "],
+            ["^ (\\S+)[иоы]й [Тт]ракт ", " $1ому тракту "],
+            ["^ (\\S+[еёо]в) [Тт]ракт ", " $1у тракту "],
+            ["^ (\\S+[иы]н) [Тт]ракт ", " $1у тракту "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]ракт ", " $1ому $2ему тракту "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]ракт ", " $1ему $2ому тракту "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]ракт ", " $1ому $2ому тракту "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]ракт ", " $1ому $2у тракту "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]ракт ", " $1ому $2у тракту "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]ракт ", " $1-му $2ему тракту "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]ракт ", " $1-му $2ому тракту "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]ракт ", " $1-му $2у тракту "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]ракт ", " $1-му $2у тракту "],
+            ["^ [Тт]ракт ", " тракту "],
+
+            ["^ (\\S+н)ий [Тт]упик ", " $1ему тупику "],
+            ["^ (\\S+)[иоы]й [Тт]упик ", " $1ому тупику "],
+            ["^ (\\S+[еёо]в) [Тт]упик ", " $1у тупику "],
+            ["^ (\\S+[иы]н) [Тт]упик ", " $1у тупику "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]упик ", " $1ому $2ему тупику "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]упик ", " $1ему $2ому тупику "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]упик ", " $1ому $2ому тупику "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]упик ", " $1ому $2у тупику "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]упик ", " $1ому $2у тупику "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]упик ", " $1-му $2ему тупику "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]упик ", " $1-му $2ому тупику "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]упик ", " $1-му $2у тупику "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]упик ", " $1-му $2у тупику "],
+            ["^ [Тт]упик ", " тупику "],
+
+            ["^ (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1му $2кольцу "],
+            ["^ (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1му $2кольцу "],
+            ["^ (\\S+[ео])е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1му $2му $3кольцу "],
+            ["^ (\\S+ье) (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1му $2му $3кольцу "],
+            ["^ (\\d+)-е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1му $2му $3кольцу "],
+            ["^ (\\d+)-е (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1му $2му $3кольцу "],
+            ["^ ([Пп]олу)?[Кк]ольцо ", " $1кольцу "],
+
+            ["^ (\\S+[ео])е [Шш]оссе ", " $1му шоссе "],
+            ["^ (\\S+ье) [Шш]оссе ", " $1му шоссе "],
+            ["^ (\\S+[ео])е (\\S+[ео])е [Шш]оссе ", " $1му $2му шоссе "],
+            ["^ (\\S+ье) (\\S+[ео])е [Шш]оссе ", " $1му $2му шоссе "],
+            ["^ (\\d+)-е (\\S+[ео])е [Шш]оссе ", " $1му $2му шоссе "],
+            ["^ (\\d+)-е (\\S+ье) [Шш]оссе ", " $1му $2му шоссе "],
+
+            [" Третому ", " Третьему "],
+            [" третому ", " третьему "],
+            ["жому ", "жьему "],
+            ["жой ", "жей "],
+            ["чому ", "чьему "],
+            ["чой ", "чей "]
+        ],
+        "genitive": [
+            ["^ (\\S+)ая [Аа]ллея ", " $1ой аллеи "],
+            ["^ (\\S+)ья [Аа]ллея ", " $1ьей аллеи "],
+            ["^ (\\S+)яя [Аа]ллея ", " $1ей аллеи "],
+            ["^ (\\d+)-я (\\S+)ая [Аа]ллея ", " $1-й $2ой аллеи "],
+            ["^ [Аа]ллея ", " аллеи "],
+
+            ["^ (\\S+)ая-(\\S+)ая [Уу]лица ", " $1ой-$2ой улицы "],
+            ["^ (\\S+)ая [Уу]лица ", " $1ой улицы "],
+            ["^ (\\S+)ья [Уу]лица ", " $1ьей улицы "],
+            ["^ (\\S+)яя [Уу]лица ", " $1ей улицы "],
+            ["^ (\\d+)-я (\\S+)ая [Уу]лица ", " $1-й $2ой улицы "],
+            ["^ (\\S+)ая (\\S+)ая [Уу]лица ", " $1ой $2ой улицы "],
+            ["^ (\\S+[вн])а [Уу]лица ", " $1ой улицы "],
+            ["^ (\\S+)ая (\\S+[вн])а [Уу]лица ", " $1ой $2ой улицы "],
+            ["^ Даньславля [Уу]лица ", " Даньславлей улицы "],
+            ["^ Добрыня [Уу]лица ", " Добрыней улицы "],
+            ["^ Людогоща [Уу]лица ", " Людогощей улицы "],
+            ["^ [Уу]лица ", " улицы "],
+
+            ["^ (\\d+)-я [Лл]иния ", " $1-й линии "],
+            ["^ (\\d+)-(\\d+)-я [Лл]иния ", " $1-$2-й линии "],
+            ["^ (\\S+)ая [Лл]иния ", " $1ой линии "],
+            ["^ (\\S+)ья [Лл]иния ", " $1ьей линии "],
+            ["^ (\\S+)яя [Лл]иния ", " $1ей линии "],
+            ["^ (\\d+)-я (\\S+)ая [Лл]иния ", " $1-й $2ой линии "],
+            ["^ [Лл]иния ", " линии "],
+
+            ["^ (\\d+)-(\\d+)-я [Лл]инии ", " $1-$2-й линий "],
+
+            ["^ (\\S+)ая [Нн]абережная ", " $1ой набережной "],
+            ["^ (\\S+)ья [Нн]абережная ", " $1ьей набережной "],
+            ["^ (\\S+)яя [Нн]абережная ", " $1ей набережной "],
+            ["^ (\\d+)-я (\\S+)ая [Нн]абережная ", " $1-й $2ой набережной "],
+            ["^ [Нн]абережная ", " набережной "],
+
+            ["^ (\\S+)ая [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\S+)ья [Пп]лощадь ", " $1ьей площади "],
+            ["^ (\\S+)яя [Пп]лощадь ", " $1ей площади "],
+            ["^ (\\S+[вн])а [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\d+)-я (\\S+)ая [Пп]лощадь ", " $1-й $2ой площади "],
+            ["^ [Пп]лощадь ", " площади "],
+
+            ["^ (\\S+)ая [Ээ]стакада ", " $1ой эстакады "],
+            ["^ (\\S+)ья [Ээ]стакада ", " $1ьей эстакады "],
+            ["^ (\\S+)яя [Ээ]стакада ", " $1ей эстакады "],
+            ["^ (\\d+)-я (\\S+)ая [Ээ]стакада ", " $1-й $2ой эстакады "],
+            ["^ [Ээ]стакада ", " эстакады "],
+
+            ["^ (\\S+)ая [Мм]агистраль ", " $1ой магистрали "],
+            ["^ (\\S+)ья [Мм]агистраль ", " $1ьей магистрали "],
+            ["^ (\\S+)яя [Мм]агистраль ", " $1ей магистрали "],
+            ["^ (\\d+)-я (\\S+)ая [Мм]агистраль ", " $1-й $2ой магистрали "],
+            ["^ [Мм]агистраль ", " магистрали "],
+
+            ["^ (\\S+)ая [Рр]азвязка ", " $1ой развязки "],
+            ["^ (\\S+)ья [Рр]азвязка ", " $1ьей развязки "],
+            ["^ (\\S+)яя [Рр]азвязка ", " $1ей развязки "],
+            ["^ (\\d+)-я (\\S+)ая [Рр]азвязка ", " $1-й $2ой развязки "],
+            ["^ [Рр]азвязка ", " развязки "],
+
+            ["^ (\\S+)ая [Тт]расса ", " $1ой трассы "],
+            ["^ (\\S+)ья [Тт]расса ", " $1ьей трассы "],
+            ["^ (\\S+)яя [Тт]расса ", " $1ей трассы "],
+            ["^ (\\d+)-я (\\S+)ая [Тт]расса ", " $1-й $2ой трассы "],
+            ["^ [Тт]расса ", " трассы "],
+
+            ["^ (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1ой $2дороги "],
+            ["^ (\\S+)ья ([Аа]вто)?[Дд]орога ", " $1ьей $2дороги "],
+            ["^ (\\S+)яя ([Аа]вто)?[Дд]орога ", " $1ей $2дороги "],
+            ["^ (\\d+)-я (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1-й $2ой $3дороги "],
+            ["^ ([Аа]вто)?[Дд]орога ", " $1дороги "],
+
+            ["^ (\\S+)ая [Дд]орожка ", " $1ой дорожки "],
+            ["^ (\\S+)ья [Дд]орожка ", " $1ьей дорожки "],
+            ["^ (\\S+)яя [Дд]орожка ", " $1ей дорожки "],
+            ["^ (\\d+)-я (\\S+)ая [Дд]орожка ", " $1-й $2ой дорожки "],
+            ["^ [Дд]орожка ", " дорожки "],
+
+            ["^ (\\S+)во [Пп]оле ", " $1ва поля "],
+            ["^ (\\S+)ая [Кк]оса ", " $1ой косы "],
+            ["^ (\\S+)[иоы]й [Пп]роток ", " $1ого протока "],
+
+            ["^ (\\S+н)ий [Бб]ульвар ", " $1его бульвара "],
+            ["^ (\\S+)[иоы]й [Бб]ульвар ", " $1ого бульвара "],
+            ["^ (\\S+[иы]н) [Бб]ульвар ", " $1ого бульвара "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Бб]ульвар ", " $1ого $2его бульвара "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Бб]ульвар ", " $1его $2ого бульвара "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Бб]ульвар ", " $1ого $2ого бульвара "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Бб]ульвар ", " $1ого $2ого бульвара "],
+            ["^ (\\d+)-й (\\S+н)ий [Бб]ульвар ", " $1-го $2его бульвара "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Бб]ульвар ", " $1-го $2ого бульвара "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Бб]ульвар ", " $1-го $2ого бульвара "],
+            ["^ [Бб]ульвар ", " бульвара "],
+
+            ["^ [Дд]убл[её]р ", " дублёра "],
+
+            ["^ (\\S+н)ий [Зз]аезд ", " $1его заезда "],
+            ["^ (\\S+)[иоы]й [Зз]аезд ", " $1ого заезда "],
+            ["^ (\\S+[еёо]в) [Зз]аезд ", " $1а заезда "],
+            ["^ (\\S+[иы]н) [Зз]аезд ", " $1а заезда "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Зз]аезд ", " $1ого $2его заезда "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Зз]аезд ", " $1его $2ого заезда "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Зз]аезд ", " $1ого $2ого заезда "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Зз]аезд ", " $1ого $2а заезда "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Зз]аезд ", " $1ого $2а заезда "],
+            ["^ (\\d+)-й (\\S+н)ий [Зз]аезд ", " $1-го $2его заезда "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Зз]аезд ", " $1-го $2ого заезда "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Зз]аезд ", " $1-го $2а заезда "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Зз]аезд ", " $1-го $2а заезда "],
+            ["^ [Зз]аезд ", " заезда "],
+
+            ["^ (\\S+н)ий [Мм]ост ", " $1его моста "],
+            ["^ (\\S+)[иоы]й [Мм]ост ", " $1ого моста "],
+            ["^ (\\S+[еёо]в) [Мм]ост ", " $1а моста "],
+            ["^ (\\S+[иы]н) [Мм]ост ", " $1а моста "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Мм]ост ", " $1ого $2его моста "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Мм]ост ", " $1его $2ого моста "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Мм]ост ", " $1ого $2ого моста "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Мм]ост ", " $1ого $2а моста "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Мм]ост ", " $1ого $2а моста "],
+            ["^ (\\d+)-й (\\S+н)ий [Мм]ост ", " $1-го $2его моста "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Мм]ост ", " $1-го $2ого моста "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Мм]ост ", " $1-го $2а моста "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Мм]ост ", " $1-го $2а моста "],
+            ["^ [Мм]ост ", " моста "],
+
+            ["^ (\\S+н)ий [Оо]бход ", " $1его обхода "],
+            ["^ (\\S+)[иоы]й [Оо]бход ", " $1ого обхода "],
+            ["^ [Оо]бход ", " обхода "],
+
+            ["^ (\\S+н)ий [Пп]арк ", " $1его парка "],
+            ["^ (\\S+)[иоы]й [Пп]арк ", " $1ого парка "],
+            ["^ (\\S+[иы]н) [Пп]арк ", " $1ого парка "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]арк ", " $1ого $2его парка "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]арк ", " $1его $2ого парка "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]арк ", " $1ого $2ого парка "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]арк ", " $1ого $2ого парка "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]арк ", " $1-го $2его парка "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]арк ", " $1-го $2ого парка "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]арк ", " $1-го $2ого парка "],
+            ["^ [Пп]арк ", " парка "],
+
+            ["^ (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1ого-$2ого переулка "],
+            ["^ (\\d+)-й (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1-го $2ого-$3ого переулка "],
+            ["^ (\\S+н)ий [Пп]ереулок ", " $1его переулка "],
+            ["^ (\\S+)[иоы]й [Пп]ереулок ", " $1ого переулка "],
+            ["^ (\\S+[еёо]в) [Пп]ереулок ", " $1а переулка "],
+            ["^ (\\S+[иы]н) [Пп]ереулок ", " $1а переулка "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]ереулок ", " $1ого $2его переулка "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]ереулок ", " $1его $2ого переулка "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]ереулок ", " $1ого $2ого переулка "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]ереулок ", " $1ого $2а переулка "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]ереулок ", " $1ого $2а переулка "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]ереулок ", " $1-го $2его переулка "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]ереулок ", " $1-го $2ого переулка "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]ереулок ", " $1-го $2а переулка "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]ереулок ", " $1-го $2а переулка "],
+            ["^ [Пп]ереулок ", " переулка "],
+
+            ["^ [Пп]одъезд ", " подъезда "],
+
+            ["^ (\\S+[еёо]в)-(\\S+)[иоы]й [Пп]роезд ", " $1а-$2ого проезда "],
+            ["^ (\\S+н)ий [Пп]роезд ", " $1его проезда "],
+            ["^ (\\S+)[иоы]й [Пп]роезд ", " $1ого проезда "],
+            ["^ (\\S+[еёо]в) [Пп]роезд ", " $1а проезда "],
+            ["^ (\\S+[иы]н) [Пп]роезд ", " $1а проезда "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роезд ", " $1ого $2его проезда "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роезд ", " $1его $2ого проезда "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роезд ", " $1ого $2ого проезда "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]роезд ", " $1ого $2а проезда "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роезд ", " $1ого $2а проезда "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роезд ", " $1-го $2его проезда "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роезд ", " $1-го $2ого проезда "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]роезд ", " $1-го $2а проезда "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роезд ", " $1-го $2а проезда "],
+            ["^ [Пп]роезд ", " проезда "],
+
+            ["^ (\\S+н)ий [Пп]роспект ", " $1его проспекта "],
+            ["^ (\\S+)[иоы]й [Пп]роспект ", " $1ого проспекта "],
+            ["^ (\\S+[иы]н) [Пп]роспект ", " $1ого проспекта "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роспект ", " $1ого $2его проспекта "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роспект ", " $1его $2ого проспекта "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роспект ", " $1ого $2ого проспекта "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роспект ", " $1ого $2ого проспекта "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роспект ", " $1-го $2его проспекта "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роспект ", " $1-го $2ого проспекта "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роспект ", " $1-го $2ого проспекта "],
+            ["^ [Пп]роспект ", " проспекта "],
+
+            ["^ (\\S+н)ий [Пп]утепровод ", " $1его путепровода "],
+            ["^ (\\S+)[иоы]й [Пп]утепровод ", " $1ого путепровода "],
+            ["^ (\\S+[иы]н) [Пп]утепровод ", " $1ого путепровода "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]утепровод ", " $1ого $2его путепровода "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]утепровод ", " $1его $2ого путепровода "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]утепровод ", " $1ого $2ого путепровода "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]утепровод ", " $1ого $2ого путепровода "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]утепровод ", " $1-го $2его путепровода "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]утепровод ", " $1-го $2ого путепровода "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]утепровод ", " $1-го $2ого путепровода "],
+            ["^ [Пп]утепровод ", " путепровода "],
+
+            ["^ (\\S+н)ий [Сс]пуск ", " $1его спуска "],
+            ["^ (\\S+)[иоы]й [Сс]пуск ", " $1ого спуска "],
+            ["^ (\\S+[еёо]в) [Сс]пуск ", " $1а спуска "],
+            ["^ (\\S+[иы]н) [Сс]пуск ", " $1а спуска "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]пуск ", " $1ого $2его спуска "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]пуск ", " $1его $2ого спуска "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]пуск ", " $1ого $2ого спуска "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Сс]пуск ", " $1ого $2а спуска "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]пуск ", " $1ого $2а спуска "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]пуск ", " $1-го $2его спуска "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]пуск ", " $1-го $2ого спуска "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Сс]пуск ", " $1-го $2а спуска "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]пуск ", " $1-го $2а спуска "],
+            ["^ [Сс]пуск ", " спуска "],
+
+            ["^ (\\S+н)ий [Сс]ъезд ", " $1его съезда "],
+            ["^ (\\S+)[иоы]й [Сс]ъезд ", " $1ого съезда "],
+            ["^ (\\S+[иы]н) [Сс]ъезд ", " $1ого съезда "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]ъезд ", " $1ого $2его съезда "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]ъезд ", " $1его $2ого съезда "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]ъезд ", " $1ого $2ого съезда "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]ъезд ", " $1ого $2ого съезда "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]ъезд ", " $1-го $2его съезда "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]ъезд ", " $1-го $2ого съезда "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]ъезд ", " $1-го $2ого съезда "],
+            ["^ [Сс]ъезд ", " съезда "],
+
+            ["^ (\\S+н)ий [Тт][уо]ннель ", " $1его тоннеля "],
+            ["^ (\\S+)[иоы]й [Тт][уо]ннель ", " $1ого тоннеля "],
+            ["^ (\\S+[иы]н) [Тт][уо]ннель ", " $1ого тоннеля "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт][уо]ннель ", " $1ого $2его тоннеля "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт][уо]ннель ", " $1его $2ого тоннеля "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт][уо]ннель ", " $1ого $2ого тоннеля "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт][уо]ннель ", " $1ого $2ого тоннеля "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт][уо]ннель ", " $1-го $2его тоннеля "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт][уо]ннель ", " $1-го $2ого тоннеля "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт][уо]ннель ", " $1-го $2ого тоннеля "],
+            ["^ [Тт][уо]ннель ", " тоннеля "],
+
+            ["^ (\\S+н)ий [Тт]ракт ", " $1ем тракта "],
+            ["^ (\\S+)[иоы]й [Тт]ракт ", " $1ого тракта "],
+            ["^ (\\S+[еёо]в) [Тт]ракт ", " $1а тракта "],
+            ["^ (\\S+[иы]н) [Тт]ракт ", " $1а тракта "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]ракт ", " $1ого $2его тракта "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]ракт ", " $1его $2ого тракта "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]ракт ", " $1ого $2ого тракта "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]ракт ", " $1ого $2а тракта "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]ракт ", " $1ого $2а тракта "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]ракт ", " $1-го $2его тракта "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]ракт ", " $1-го $2ого тракта "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]ракт ", " $1-го $2а тракта "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]ракт ", " $1-го $2а тракта "],
+            ["^ [Тт]ракт ", " тракта "],
+
+            ["^ (\\S+н)ий [Тт]упик ", " $1его тупика "],
+            ["^ (\\S+)[иоы]й [Тт]упик ", " $1ого тупика "],
+            ["^ (\\S+[еёо]в) [Тт]упик ", " $1а тупика "],
+            ["^ (\\S+[иы]н) [Тт]упик ", " $1а тупика "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]упик ", " $1ого $2его тупика "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]упик ", " $1его $2ого тупика "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]упик ", " $1ого $2ого тупика "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]упик ", " $1ого $2а тупика "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]упик ", " $1ого $2а тупика "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]упик ", " $1-го $2его тупика "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]упик ", " $1-го $2ого тупика "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]упик ", " $1-го $2а тупика "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]упик ", " $1-го $2а тупика "],
+            ["^ [Тт]упик ", " тупика "],
+
+            ["^ (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1го $2кольца "],
+            ["^ (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1го $2кольца "],
+            ["^ (\\S+[ео])е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1го $2го $3кольца "],
+            ["^ (\\S+ье) (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1го $2го $3кольца "],
+            ["^ (\\d+)-е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1го $2го $3кольца "],
+            ["^ (\\d+)-е (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1го $2го $3кольца "],
+            ["^ ([Пп]олу)?[Кк]ольцо ", " $1кольца "],
+
+            ["^ (\\S+[ео])е [Шш]оссе ", " $1го шоссе "],
+            ["^ (\\S+ье) [Шш]оссе ", " $1го шоссе "],
+            ["^ (\\S+[ео])е (\\S+[ео])е [Шш]оссе ", " $1го $2го шоссе "],
+            ["^ (\\S+ье) (\\S+[ео])е [Шш]оссе ", " $1го $2го шоссе "],
+            ["^ (\\d+)-е (\\S+[ео])е [Шш]оссе ", " $1го $2го шоссе "],
+            ["^ (\\d+)-е (\\S+ье) [Шш]оссе ", " $1го $2го шоссе "],
+
+            [" Третого ", " Третьего "],
+            [" третого ", " третьего "],
+            ["жого ", "жьего "],
+            ["чого ", "чьего "]
+        ],
+        "prepositional": [
+            ["^ (\\S+)ая [Аа]ллея ", " $1ой аллее "],
+            ["^ (\\S+)ья [Аа]ллея ", " $1ьей аллее "],
+            ["^ (\\S+)яя [Аа]ллея ", " $1ей аллее "],
+            ["^ (\\d+)-я (\\S+)ая [Аа]ллея ", " $1-й $2ой аллее "],
+            ["^ [Аа]ллея ", " аллее "],
+
+            ["^ (\\S+)ая-(\\S+)ая [Уу]лица ", " $1ой-$2ой улице "],
+            ["^ (\\S+)ая [Уу]лица ", " $1ой улице "],
+            ["^ (\\S+)ья [Уу]лица ", " $1ьей улице "],
+            ["^ (\\S+)яя [Уу]лица ", " $1ей улице "],
+            ["^ (\\d+)-я (\\S+)ая [Уу]лица ", " $1-й $2ой улице "],
+            ["^ (\\S+)ая (\\S+)ая [Уу]лица ", " $1ой $2ой улице "],
+            ["^ (\\S+[вн])а [Уу]лица ", " $1ой улице "],
+            ["^ (\\S+)ая (\\S+[вн])а [Уу]лица ", " $1ой $2ой улице "],
+            ["^ Даньславля [Уу]лица ", " Даньславлей улице "],
+            ["^ Добрыня [Уу]лица ", " Добрыней улице "],
+            ["^ Людогоща [Уу]лица ", " Людогощей улице "],
+            ["^ [Уу]лица ", " улице "],
+
+            ["^ (\\d+)-я [Лл]иния ", " $1-й линии "],
+            ["^ (\\d+)-(\\d+)-я [Лл]иния ", " $1-$2-й линии "],
+            ["^ (\\S+)ая [Лл]иния ", " $1ой линии "],
+            ["^ (\\S+)ья [Лл]иния ", " $1ьей линии "],
+            ["^ (\\S+)яя [Лл]иния ", " $1ей линии "],
+            ["^ (\\d+)-я (\\S+)ая [Лл]иния ", " $1-й $2ой линии "],
+            ["^ [Лл]иния ", " линии "],
+
+            ["^ (\\d+)-(\\d+)-я [Лл]инии ", " $1-$2-й линиях "],
+
+            ["^ (\\S+)ая [Нн]абережная ", " $1ой набережной "],
+            ["^ (\\S+)ья [Нн]абережная ", " $1ьей набережной "],
+            ["^ (\\S+)яя [Нн]абережная ", " $1ей набережной "],
+            ["^ (\\d+)-я (\\S+)ая [Нн]абережная ", " $1-й $2ой набережной "],
+            ["^ [Нн]абережная ", " набережной "],
+
+            ["^ (\\S+)ая [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\S+)ья [Пп]лощадь ", " $1ьей площади "],
+            ["^ (\\S+)яя [Пп]лощадь ", " $1ей площади "],
+            ["^ (\\S+[вн])а [Пп]лощадь ", " $1ой площади "],
+            ["^ (\\d+)-я (\\S+)ая [Пп]лощадь ", " $1-й $2ой площади "],
+            ["^ [Пп]лощадь ", " площади "],
+
+            ["^ (\\S+)ая [Ээ]стакада ", " $1ой эстакаде "],
+            ["^ (\\S+)ья [Ээ]стакада ", " $1ьей эстакаде "],
+            ["^ (\\S+)яя [Ээ]стакада ", " $1ей эстакаде "],
+            ["^ (\\d+)-я (\\S+)ая [Ээ]стакада ", " $1-й $2ой эстакаде "],
+            ["^ [Ээ]стакада ", " эстакаде "],
+
+            ["^ (\\S+)ая [Мм]агистраль ", " $1ой магистрали "],
+            ["^ (\\S+)ья [Мм]агистраль ", " $1ьей магистрали "],
+            ["^ (\\S+)яя [Мм]агистраль ", " $1ей магистрали "],
+            ["^ (\\d+)-я (\\S+)ая [Мм]агистраль ", " $1-й $2ой магистрали "],
+            ["^ [Мм]агистраль ", " магистрали "],
+
+            ["^ (\\S+)ая [Рр]азвязка ", " $1ой развязке "],
+            ["^ (\\S+)ья [Рр]азвязка ", " $1ьей развязке "],
+            ["^ (\\S+)яя [Рр]азвязка ", " $1ей развязке "],
+            ["^ (\\d+)-я (\\S+)ая [Рр]азвязка ", " $1-й $2ой развязке "],
+            ["^ [Рр]азвязка ", " развязке "],
+
+            ["^ (\\S+)ая [Тт]расса ", " $1ой трассе "],
+            ["^ (\\S+)ья [Тт]расса ", " $1ьей трассе "],
+            ["^ (\\S+)яя [Тт]расса ", " $1ей трассе "],
+            ["^ (\\d+)-я (\\S+)ая [Тт]расса ", " $1-й $2ой трассе "],
+            ["^ [Тт]расса ", " трассе "],
+
+            ["^ (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1ой $2дороге "],
+            ["^ (\\S+)ья ([Аа]вто)?[Дд]орога ", " $1ьей $2дороге "],
+            ["^ (\\S+)яя ([Аа]вто)?[Дд]орога ", " $1ей $2дороге "],
+            ["^ (\\d+)-я (\\S+)ая ([Аа]вто)?[Дд]орога ", " $1-й $2ой $3дороге "],
+            ["^ ([Аа]вто)?[Дд]орога ", " $1дороге "],
+
+            ["^ (\\S+)ая [Дд]орожка ", " $1ой дорожке "],
+            ["^ (\\S+)ья [Дд]орожка ", " $1ьей дорожке "],
+            ["^ (\\S+)яя [Дд]орожка ", " $1ей дорожке "],
+            ["^ (\\d+)-я (\\S+)ая [Дд]орожка ", " $1-й $2ой дорожке "],
+            ["^ [Дд]орожка ", " дорожке "],
+
+            ["^ (\\S+)во [Пп]оле ", " $1ве поле "],
+            ["^ (\\S+)ая [Кк]оса ", " $1ой косе "],
+            ["^ (\\S+)[иоы]й [Пп]роток ", " $1ом протоке "],
+
+            ["^ (\\S+н)ий [Бб]ульвар ", " $1ем бульваре "],
+            ["^ (\\S+)[иоы]й [Бб]ульвар ", " $1ом бульваре "],
+            ["^ (\\S+[иы]н) [Бб]ульвар ", " $1ом бульваре "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Бб]ульвар ", " $1ом $2ем бульваре "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Бб]ульвар ", " $1ем $2ом бульваре "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Бб]ульвар ", " $1ом $2ом бульваре "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Бб]ульвар ", " $1ом $2ом бульваре "],
+            ["^ (\\d+)-й (\\S+н)ий [Бб]ульвар ", " $1-м $2ем бульваре "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Бб]ульвар ", " $1-м $2ом бульваре "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Бб]ульвар ", " $1-м $2ом бульваре "],
+            ["^ [Бб]ульвар ", " бульваре "],
+
+            ["^ [Дд]убл[её]р ", " дублёре "],
+
+            ["^ (\\S+н)ий [Зз]аезд ", " $1ем заезде "],
+            ["^ (\\S+)[иоы]й [Зз]аезд ", " $1ом заезде "],
+            ["^ (\\S+[еёо]в) [Зз]аезд ", " $1ом заезде "],
+            ["^ (\\S+[иы]н) [Зз]аезд ", " $1ом заезде "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Зз]аезд ", " $1ом $2ем заезде "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Зз]аезд ", " $1ем $2ом заезде "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Зз]аезд ", " $1ом $2ом заезде "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Зз]аезд ", " $1ом $2ом заезде "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Зз]аезд ", " $1ом $2ом заезде "],
+            ["^ (\\d+)-й (\\S+н)ий [Зз]аезд ", " $1-м $2ем заезде "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Зз]аезд ", " $1-м $2ом заезде "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Зз]аезд ", " $1-м $2ом заезде "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Зз]аезд ", " $1-м $2ом заезде "],
+            ["^ [Зз]аезд ", " заезде "],
+
+            ["^ (\\S+н)ий [Мм]ост ", " $1ем мосту "],
+            ["^ (\\S+)[иоы]й [Мм]ост ", " $1ом мосту "],
+            ["^ (\\S+[еёо]в) [Мм]ост ", " $1ом мосту "],
+            ["^ (\\S+[иы]н) [Мм]ост ", " $1ом мосту "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Мм]ост ", " $1ом $2ем мосту "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Мм]ост ", " $1ем $2ом мосту "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Мм]ост ", " $1ом $2ом мосту "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Мм]ост ", " $1ом $2ом мосту "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Мм]ост ", " $1ом $2ом мосту "],
+            ["^ (\\d+)-й (\\S+н)ий [Мм]ост ", " $1-м $2ем мосту "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Мм]ост ", " $1-м $2ом мосту "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Мм]ост ", " $1-м $2ом мосту "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Мм]ост ", " $1-м $2ом мосту "],
+            ["^ [Мм]ост ", " мосту "],
+
+            ["^ (\\S+н)ий [Оо]бход ", " $1ем обходе "],
+            ["^ (\\S+)[иоы]й [Оо]бход ", " $1ом обходе "],
+            ["^ [Оо]бход ", " обходе "],
+
+            ["^ (\\S+н)ий [Пп]арк ", " $1ем парке "],
+            ["^ (\\S+)[иоы]й [Пп]арк ", " $1ом парке "],
+            ["^ (\\S+[иы]н) [Пп]арк ", " $1ом парке "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]арк ", " $1ом $2ем парке "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]арк ", " $1ем $2ом парке "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]арк ", " $1ом $2ом парке "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]арк ", " $1ом $2ом парке "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]арк ", " $1-м $2ем парке "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]арк ", " $1-м $2ом парке "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]арк ", " $1-м $2ом парке "],
+            ["^ [Пп]арк ", " парке "],
+
+            ["^ (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1ом-$2ом переулке "],
+            ["^ (\\d+)-й (\\S+)[иоы]й-(\\S+)[иоы]й [Пп]ереулок ", " $1-м $2ом-$3ом переулке "],
+            ["^ (\\S+н)ий [Пп]ереулок ", " $1ем переулке "],
+            ["^ (\\S+)[иоы]й [Пп]ереулок ", " $1ом переулке "],
+            ["^ (\\S+[еёо]в) [Пп]ереулок ", " $1ом переулке "],
+            ["^ (\\S+[иы]н) [Пп]ереулок ", " $1ом переулке "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]ереулок ", " $1ом $2ем переулке "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]ереулок ", " $1ем $2ом переулке "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]ереулок ", " $1ом $2ом переулке "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]ереулок ", " $1ом $2ом переулке "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]ереулок ", " $1ом $2ом переулке "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]ереулок ", " $1-м $2ем переулке "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]ереулок ", " $1-м $2ом переулке "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]ереулок ", " $1-м $2ом переулке "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]ереулок ", " $1-м $2ом переулке "],
+            ["^ [Пп]ереулок ", " переулке "],
+
+            ["^ [Пп]одъезд ", " подъезде "],
+
+            ["^ (\\S+[еёо]в)-(\\S+)[иоы]й [Пп]роезд ", " $1ом-$2ом проезде "],
+            ["^ (\\S+н)ий [Пп]роезд ", " $1ем проезде "],
+            ["^ (\\S+)[иоы]й [Пп]роезд ", " $1ом проезде "],
+            ["^ (\\S+[еёо]в) [Пп]роезд ", " $1ом проезде "],
+            ["^ (\\S+[иы]н) [Пп]роезд ", " $1ом проезде "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роезд ", " $1ом $2ем проезде "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роезд ", " $1ем $2ом проезде "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роезд ", " $1ом $2ом проезде "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Пп]роезд ", " $1ом $2ом проезде "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роезд ", " $1ом $2ом проезде "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роезд ", " $1-м $2ем проезде "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роезд ", " $1-м $2ом проезде "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Пп]роезд ", " $1-м $2ом проезде "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роезд ", " $1-м $2ом проезде "],
+            ["^ [Пп]роезд ", " проезде "],
+
+            ["^ (\\S+н)ий [Пп]роспект ", " $1ем проспекте "],
+            ["^ (\\S+)[иоы]й [Пп]роспект ", " $1ом проспекте "],
+            ["^ (\\S+[иы]н) [Пп]роспект ", " $1ом проспекте "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]роспект ", " $1ом $2ем проспекте "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]роспект ", " $1ем $2ом проспекте "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]роспект ", " $1ом $2ом проспекте "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]роспект ", " $1ом $2ом проспекте "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]роспект ", " $1-м $2ем проспекте "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]роспект ", " $1-м $2ом проспекте "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]роспект ", " $1-м $2ом проспекте "],
+            ["^ [Пп]роспект ", " проспекте "],
+
+            ["^ (\\S+н)ий [Пп]утепровод ", " $1ем путепроводе "],
+            ["^ (\\S+)[иоы]й [Пп]утепровод ", " $1ом путепроводе "],
+            ["^ (\\S+[иы]н) [Пп]утепровод ", " $1ом путепроводе "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Пп]утепровод ", " $1ом $2ем путепроводе "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Пп]утепровод ", " $1ем $2ом путепроводе "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Пп]утепровод ", " $1ом $2ом путепроводе "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Пп]утепровод ", " $1ом $2ом путепроводе "],
+            ["^ (\\d+)-й (\\S+н)ий [Пп]утепровод ", " $1-м $2ем путепроводе "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Пп]утепровод ", " $1-м $2ом путепроводе "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Пп]утепровод ", " $1-м $2ом путепроводе "],
+            ["^ [Пп]утепровод ", " путепроводе "],
+
+            ["^ (\\S+н)ий [Сс]пуск ", " $1ем спуске "],
+            ["^ (\\S+)[иоы]й [Сс]пуск ", " $1ом спуске "],
+            ["^ (\\S+[еёо]в) [Сс]пуск ", " $1ом спуске "],
+            ["^ (\\S+[иы]н) [Сс]пуск ", " $1ом спуске "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]пуск ", " $1ом $2ем спуске "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]пуск ", " $1ем $2ом спуске "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]пуск ", " $1ом $2ом спуске "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Сс]пуск ", " $1ом $2ом спуске "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]пуск ", " $1ом $2ом спуске "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]пуск ", " $1-м $2ем спуске "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]пуск ", " $1-м $2ом спуске "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Сс]пуск ", " $1-м $2ом спуске "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]пуск ", " $1-м $2ом спуске "],
+            ["^ [Сс]пуск ", " спуске "],
+
+            ["^ (\\S+н)ий [Сс]ъезд ", " $1ем съезде "],
+            ["^ (\\S+)[иоы]й [Сс]ъезд ", " $1ом съезде "],
+            ["^ (\\S+[иы]н) [Сс]ъезд ", " $1ом съезде "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Сс]ъезд ", " $1ом $2ем съезде "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Сс]ъезд ", " $1ем $2ом съезде "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Сс]ъезд ", " $1ом $2ом съезде "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Сс]ъезд ", " $1ом $2ом съезде "],
+            ["^ (\\d+)-й (\\S+н)ий [Сс]ъезд ", " $1-м $2ем съезде "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Сс]ъезд ", " $1-м $2ом съезде "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Сс]ъезд ", " $1-м $2ом съезде "],
+            ["^ [Сс]ъезд ", " съезде "],
+
+            ["^ (\\S+н)ий [Тт][уо]ннель ", " $1ем тоннеле "],
+            ["^ (\\S+)[иоы]й [Тт][уо]ннель ", " $1ом тоннеле "],
+            ["^ (\\S+[иы]н) [Тт][уо]ннель ", " $1ом тоннеле "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт][уо]ннель ", " $1ом $2ем тоннеле "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт][уо]ннель ", " $1ем $2ом тоннеле "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт][уо]ннель ", " $1ом $2ом тоннеле "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт][уо]ннель ", " $1ом $2ом тоннеле "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт][уо]ннель ", " $1-м $2ем тоннеле "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт][уо]ннель ", " $1-м $2ом тоннеле "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт][уо]ннель ", " $1-м $2ом тоннеле "],
+            ["^ [Тт][уо]ннель ", " тоннеле "],
+
+            ["^ (\\S+н)ий [Тт]ракт ", " $1ем тракте "],
+            ["^ (\\S+)[иоы]й [Тт]ракт ", " $1ом тракте "],
+            ["^ (\\S+[еёо]в) [Тт]ракт ", " $1ом тракте "],
+            ["^ (\\S+[иы]н) [Тт]ракт ", " $1ом тракте "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]ракт ", " $1ом $2ем тракте "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]ракт ", " $1ем $2ом тракте "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]ракт ", " $1ом $2ом тракте "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]ракт ", " $1ом $2ом тракте "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]ракт ", " $1ом $2ом тракте "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]ракт ", " $1-м $2ем тракте "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]ракт ", " $1-м $2ом тракте "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]ракт ", " $1-м $2ом тракте "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]ракт ", " $1-м $2ом тракте "],
+            ["^ [Тт]ракт ", " тракте "],
+
+            ["^ (\\S+н)ий [Тт]упик ", " $1ем тупике "],
+            ["^ (\\S+)[иоы]й [Тт]упик ", " $1ом тупике "],
+            ["^ (\\S+[еёо]в) [Тт]упик ", " $1ом тупике "],
+            ["^ (\\S+[иы]н) [Тт]упик ", " $1ом тупике "],
+            ["^ (\\S+)[иоы]й (\\S+н)ий [Тт]упик ", " $1ом $2ем тупике "],
+            ["^ (\\S+н)ий (\\S+)[иоы]й [Тт]упик ", " $1ем $2ом тупике "],
+            ["^ (\\S+)[иоы]й (\\S+)[иоы]й [Тт]упик ", " $1ом $2ом тупике "],
+            ["^ (\\S+)[иоы]й (\\S+[еёо]в) [Тт]упик ", " $1ом $2ом тупике "],
+            ["^ (\\S+)[иоы]й (\\S+[иы]н) [Тт]упик ", " $1ом $2ом тупике "],
+            ["^ (\\d+)-й (\\S+н)ий [Тт]упик ", " $1-м $2ем тупике "],
+            ["^ (\\d+)-й (\\S+)[иоы]й [Тт]упик ", " $1-м $2ом тупике "],
+            ["^ (\\d+)-й (\\S+[еёо]в) [Тт]упик ", " $1-м $2ом тупике "],
+            ["^ (\\d+)-й (\\S+[иы]н) [Тт]упик ", " $1-м $2ом тупике "],
+            ["^ [Тт]упик ", " тупике "],
+
+            ["^ (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1м $2кольце "],
+            ["^ (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1м $2кольце "],
+            ["^ (\\S+[ео])е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1м $2м $3кольце "],
+            ["^ (\\S+ье) (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1м $2м $3кольце "],
+            ["^ (\\d+)-е (\\S+[ео])е ([Пп]олу)?[Кк]ольцо ", " $1м $2м $3кольце "],
+            ["^ (\\d+)-е (\\S+ье) ([Пп]олу)?[Кк]ольцо ", " $1м $2м $3кольце "],
+            ["^ ([Пп]олу)?[Кк]ольцо ", " $1кольце "],
+
+            ["^ (\\S+[ео])е [Шш]оссе ", " $1м шоссе "],
+            ["^ (\\S+ье) [Шш]оссе ", " $1м шоссе "],
+            ["^ (\\S+[ео])е (\\S+[ео])е [Шш]оссе ", " $1м $2м шоссе "],
+            ["^ (\\S+ье) (\\S+[ео])е [Шш]оссе ", " $1м $2м шоссе "],
+            ["^ (\\d+)-е (\\S+[ео])е [Шш]оссе ", " $1м $2м шоссе "],
+            ["^ (\\d+)-е (\\S+ье) [Шш]оссе ", " $1м $2м шоссе "],
+
+            [" Третом ", " Третьем "],
+            [" третом ", " третьем "],
+            ["жом ", "жьем "],
+            ["чом ", "чьем "]
+        ]
+    }
+}
+
+},{}],6:[function(_dereq_,module,exports){
 module.exports={
     "meta": {
         "capitalizeFirstLetter": true
@@ -351,40 +1659,64 @@ module.exports={
                 "destination": "Fähre nehmen Richtung {destination}"
             }
         },
+        "phrase": {
+            "two linked by distance": "{instruction_one} danach in {distance} {instruction_two}",
+            "two linked": "{instruction_one} danach {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
         "arrive": {
             "default": {
                 "default": "Sie haben Ihr {nth} Ziel erreicht"
             },
             "left": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links"
             },
             "right": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts"
             },
             "sharp left": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links"
             },
             "sharp right": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts"
             },
             "slight right": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich rechts"
             },
             "slight left": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links von Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich links"
             },
             "straight": {
-                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich direkt vor Ihnen"
+                "default": "Sie haben Ihr {nth} Ziel erreicht, es befindet sich geradeaus"
             }
         },
         "continue": {
             "default": {
-                "default": "{modifier} weiterfahren",
+                "default": "{modifier} abbiegen",
                 "name": "{modifier} weiterfahren auf {way_name}",
-                "destination": "{modifier} weiterfahren Richtung {destination}"
+                "destination": "{modifier} abbiegen Richtung {destination}",
+                "exit": "{modifier} abbiegen auf {way_name}"
+            },
+            "straight": {
+                "default": "Geradeaus weiterfahren",
+                "name": "Geradeaus weiterfahren auf {way_name}",
+                "destination": "Weiterfahren in Richtung {destination}",
+                "distance": "Geradeaus weiterfahren für {distance}",
+                "namedistance": "Geradeaus weiterfahren auf {way_name} für {distance}"
+            },
+            "sharp left": {
+                "default": "Scharf links",
+                "name": "Scharf links weiterfahren auf {way_name}",
+                "destination": "Scharf links Richtung {destination}"
+            },
+            "sharp right": {
+                "default": "Scharf rechts",
+                "name": "Scharf rechts weiterfahren auf {way_name}",
+                "destination": "Scharf rechts Richtung {destination}"
             },
             "slight left": {
-                "default": "Leicht links weiter",
+                "default": "Leicht links",
                 "name": "Leicht links weiter auf {way_name}",
                 "destination": "Leicht links weiter Richtung {destination}"
             },
@@ -402,7 +1734,8 @@ module.exports={
         "depart": {
             "default": {
                 "default": "Fahren Sie Richtung {direction}",
-                "name": "Fahren Sie Richtung {direction} auf {way_name}"
+                "name": "Fahren Sie Richtung {direction} auf {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
             }
         },
         "end of road": {
@@ -492,6 +1825,11 @@ module.exports={
                 "name": "{modifier} weiterfahren auf {way_name}",
                 "destination": "{modifier} weiterfahren Richtung {destination}"
             },
+            "straight": {
+                "default": "Geradeaus weiterfahren",
+                "name": "Weiterfahren auf {way_name}",
+                "destination": "Weiterfahren in Richtung {destination}"
+            },
             "sharp left": {
                 "default": "Scharf links",
                 "name": "Scharf links auf {way_name}",
@@ -522,7 +1860,7 @@ module.exports={
             "default": {
                 "default": "{modifier} weiterfahren",
                 "name": "{modifier} weiterfahren auf {way_name}",
-                "destination" : "{modifier} weiterfahren Richtung {destination}"
+                "destination": "{modifier} weiterfahren Richtung {destination}"
             },
             "uturn": {
                 "default": "180°-Wendung",
@@ -532,94 +1870,108 @@ module.exports={
         },
         "off ramp": {
             "default": {
-                "default": "Rampe nehmen",
-                "name": "Rampe nehmen auf {way_name}",
-                "destination": "Rampe nehmen Richtung {destination}"
+                "default": "Ausfahrt nehmen",
+                "name": "Ausfahrt nehmen auf {way_name}",
+                "destination": "Ausfahrt nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} nehmen",
+                "exit_destination": "Ausfahrt {exit} nehmen Richtung {destination}"
             },
             "left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt links nehmen",
+                "name": "Ausfahrt links nehmen auf {way_name}",
+                "destination": "Ausfahrt links nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} links nehmen",
+                "exit_destination": "Ausfahrt {exit} links nehmen Richtung {destination}"
             },
             "right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt rechts nehmen",
+                "name": "Ausfahrt rechts nehmen Richtung {way_name}",
+                "destination": "Ausfahrt rechts nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} rechts nehmen",
+                "exit_destination": "Ausfahrt {exit} nehmen Richtung {destination}"
             },
             "sharp left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt links nehmen",
+                "name": "Ausfahrt links Seite nehmen auf {way_name}",
+                "destination": "Ausfahrt links nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} links nehmen",
+                "exit_destination": "Ausfahrt{exit} links nehmen Richtung {destination}"
             },
             "sharp right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt rechts nehmen",
+                "name": "Ausfahrt rechts nehmen auf {way_name}",
+                "destination": "Ausfahrt rechts nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} rechts nehmen",
+                "exit_destination": "Ausfahrt {exit} nehmen Richtung {destination}"
             },
             "slight left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt links nehmen",
+                "name": "Ausfahrt links nehmen auf {way_name}",
+                "destination": "Ausfahrt links nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} nehmen",
+                "exit_destination": "Ausfahrt {exit} links nehmen Richtung {destination}"
             },
             "slight right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Ausfahrt rechts nehmen",
+                "name": "Ausfahrt rechts nehmen auf {way_name}",
+                "destination": "Ausfahrt rechts nehmen Richtung {destination}",
+                "exit": "Ausfahrt {exit} rechts nehmen",
+                "exit_destination": "Ausfahrt {exit} nehmen Richtung {destination}"
             }
         },
         "on ramp": {
             "default": {
-                "default": "Rampe nehmen",
-                "name": "Rampe nehmen auf {way_name}",
-                "destination": "Rampe nehmen Richtung {destination}"
+                "default": "Auffahrt nehmen",
+                "name": "Auffahrt nehmen auf {way_name}",
+                "destination": "Auffahrt nehmen Richtung {destination}"
             },
             "left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Auffahrt links nehmen",
+                "name": "Auffahrt links nehmen auf {way_name}",
+                "destination": "Auffahrt links nehmen Richtung {destination}"
             },
             "right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Auffahrt rechts nehmen",
+                "name": "Auffahrt rechts nehmen auf {way_name}",
+                "destination": "Auffahrt rechts nehmen Richtung {destination}"
             },
             "sharp left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Auffahrt links nehmen",
+                "name": "Auffahrt links nehmen auf {way_name}",
+                "destination": "Auffahrt links nehmen Richtung {destination}"
             },
             "sharp right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Auffahrt rechts nehmen",
+                "name": "Auffahrt rechts nehmen auf {way_name}",
+                "destination": "Auffahrt rechts nehmen Richtung {destination}"
             },
             "slight left": {
-                "default": "Rampe auf der linken Seite nehmen",
-                "name": "Rampe auf der linken Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der linken Seite nehmen Richtung {destination}"
+                "default": "Auffahrt links Seite nehmen",
+                "name": "Auffahrt links nehmen auf {way_name}",
+                "destination": "Auffahrt links nehmen Richtung {destination}"
             },
             "slight right": {
-                "default": "Rampe auf der rechten Seite nehmen",
-                "name": "Rampe auf der rechten Seite nehmen auf {way_name}",
-                "destination": "Rampe auf der rechten Seite nehmen Richtung {destination}"
+                "default": "Auffahrt rechts nehmen",
+                "name": "Auffahrt rechts nehmen auf {way_name}",
+                "destination": "Auffahrt rechts nehmen Richtung {destination}"
             }
         },
         "rotary": {
             "default": {
                 "default": {
                     "default": "In den Kreisverkehr fahren",
-                    "name": "In den Kreisverkehr fahren und auf {way_name} verlassen",
-                    "destination": "In den Kreisverkehr fahren und Richtung {destination} verlassen"
+                    "name": "Im Kreisverkehr die Ausfahrt auf {way_name} nehmen",
+                    "destination": "Im Kreisverkehr die Ausfahrt Richtung {destination} nehmen"
                 },
                 "name": {
                     "default": "In {rotary_name} fahren",
-                    "name": "In {rotary_name} fahren und auf {way_name} verlassen",
-                    "destination": "In {rotary_name} fahren und Richtung {destination} verlassen"
+                    "name": "In {rotary_name} die Ausfahrt auf {way_name} nehmen",
+                    "destination": "In {rotary_name} die Ausfahrt Richtung {destination} nehmen"
                 },
                 "exit": {
-                    "default": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen",
-                    "name": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen auf {way_name}",
-                    "destination": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen Richtung {destination}"
+                    "default": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen",
+                    "name": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen auf {way_name}",
+                    "destination": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen Richtung {destination}"
                 },
                 "name_exit": {
                     "default": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen",
@@ -631,14 +1983,14 @@ module.exports={
         "roundabout": {
             "default": {
                 "exit": {
-                    "default": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen",
-                    "name": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen auf {way_name}",
-                    "destination": "In den Kreisverkehr fahren und {exit_number} Ausfahrt nehmen Richtung {destination}"
+                    "default": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen",
+                    "name": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen auf {way_name}",
+                    "destination": "Im Kreisverkehr die {exit_number} Ausfahrt nehmen Richtung {destination}"
                 },
                 "default": {
                     "default": "In den Kreisverkehr fahren",
-                    "name": "In den Kreisverkehr fahren und auf {way_name} verlassen",
-                    "destination": "In den Kreisverkehr fahren und Richtung {destination} verlassen"
+                    "name": "Im Kreisverkehr die Ausfahrt auf {way_name} nehmen",
+                    "destination": "Im Kreisverkehr die Ausfahrt Richtung {destination} nehmen"
                 }
             }
         },
@@ -649,12 +2001,12 @@ module.exports={
                 "destination": "Am Kreisverkehr {modifier} Richtung {destination}"
             },
             "left": {
-                "default": "Am Kreisverkehr links",
+                "default": "Am Kreisverkehr links abbiegen",
                 "name": "Am Kreisverkehr links auf {way_name}",
                 "destination": "Am Kreisverkehr links Richtung {destination}"
             },
             "right": {
-                "default": "Am Kreisverkehr rechts",
+                "default": "Am Kreisverkehr rechts abbiegen",
                 "name": "Am Kreisverkehr rechts auf {way_name}",
                 "destination": "Am Kreisverkehr rechts Richtung {destination}"
             },
@@ -662,6 +2014,50 @@ module.exports={
                 "default": "Am Kreisverkehr geradeaus weiterfahren",
                 "name": "Am Kreisverkehr geradeaus weiterfahren auf {way_name}",
                 "destination": "Am Kreisverkehr geradeaus weiterfahren Richtung {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "{modifier} abbiegen",
+                "name": "{modifier} abbiegen auf {way_name}",
+                "destination": "{modifier} abbiegen Richtung {destination}"
+            },
+            "left": {
+                "default": "Links abbiegen",
+                "name": "Links abbiegen auf {way_name}",
+                "destination": "Links abbiegen Richtung {destination}"
+            },
+            "right": {
+                "default": "Rechts abbiegen",
+                "name": "Rechts abbiegen auf {way_name}",
+                "destination": "Rechts abbiegen Richtung {destination}"
+            },
+            "straight": {
+                "default": "Geradeaus weiterfahren",
+                "name": "Geradeaus weiterfahren auf {way_name}",
+                "destination": "Geradeaus weiterfahren Richtung {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "{modifier} abbiegen",
+                "name": "{modifier} abbiegen auf {way_name}",
+                "destination": "{modifier} abbiegen Richtung {destination}"
+            },
+            "left": {
+                "default": "Links abbiegen",
+                "name": "Links abbiegen auf {way_name}",
+                "destination": "Links abbiegen Richtung {destination}"
+            },
+            "right": {
+                "default": "Rechts abbiegen",
+                "name": "Rechts abbiegen auf {way_name}",
+                "destination": "Rechts abbiegen Richtung {destination}"
+            },
+            "straight": {
+                "default": "Geradeaus weiterfahren",
+                "name": "Geradeaus weiterfahren auf {way_name}",
+                "destination": "Geradeaus weiterfahren Richtung {destination}"
             }
         },
         "turn": {
@@ -697,7 +2093,7 @@ module.exports={
     }
 }
 
-},{}],5:[function(_dereq_,module,exports){
+},{}],7:[function(_dereq_,module,exports){
 module.exports={
     "meta": {
         "capitalizeFirstLetter": true
@@ -750,6 +2146,12 @@ module.exports={
                 "destination": "Take the ferry towards {destination}"
             }
         },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, then, in {distance}, {instruction_two}",
+            "two linked": "{instruction_one}, then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
         "arrive": {
             "default": {
                 "default": "You have arrived at your {nth} destination"
@@ -778,30 +2180,49 @@ module.exports={
         },
         "continue": {
             "default": {
-                "default": "Continue {modifier}",
-                "name": "Continue {modifier} onto {way_name}",
-                "destination": "Continue {modifier} towards {destination}"
+                "default": "Turn {modifier}",
+                "name": "Turn {modifier} to stay on {way_name}",
+                "destination": "Turn {modifier} towards {destination}",
+                "exit": "Turn {modifier} onto {way_name}"
+            },
+            "straight": {
+                "default": "Continue straight",
+                "name": "Continue straight to stay on {way_name}",
+                "destination": "Continue towards {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Make a sharp left",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Make a sharp left towards {destination}"
+            },
+            "sharp right": {
+                "default": "Make a sharp right",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Make a sharp right towards {destination}"
             },
             "slight left": {
-                "default": "Continue slightly left",
-                "name": "Continue slightly left onto {way_name}",
-                "destination": "Continue slightly left towards {destination}"
+                "default": "Make a slight left",
+                "name": "Make a slight left to stay on {way_name}",
+                "destination": "Make a slight left towards {destination}"
             },
             "slight right": {
-                "default": "Continue slightly right",
-                "name": "Continue slightly right onto {way_name}",
-                "destination": "Continue slightly right towards {destination}"
+                "default": "Make a slight right",
+                "name": "Make a slight right to stay on {way_name}",
+                "destination": "Make a slight right towards {destination}"
             },
             "uturn": {
                 "default": "Make a U-turn",
-                "name": "Make a U-turn onto {way_name}",
+                "name": "Make a U-turn and continue on {way_name}",
                 "destination": "Make a U-turn towards {destination}"
             }
         },
         "depart": {
             "default": {
                 "default": "Head {direction}",
-                "name": "Head {direction} on {way_name}"
+                "name": "Head {direction} on {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
             }
         },
         "end of road": {
@@ -891,6 +2312,11 @@ module.exports={
                 "name": "Continue {modifier} onto {way_name}",
                 "destination": "Continue {modifier} towards {destination}"
             },
+            "straight": {
+                "default": "Continue straight",
+                "name": "Continue onto {way_name}",
+                "destination": "Continue towards {destination}"
+            },
             "sharp left": {
                 "default": "Take a sharp left",
                 "name": "Take a sharp left onto {way_name}",
@@ -921,7 +2347,7 @@ module.exports={
             "default": {
                 "default": "Continue {modifier}",
                 "name": "Continue {modifier} onto {way_name}",
-                "destination" : "Continue {modifier} towards {destination}"
+                "destination": "Continue {modifier} towards {destination}"
             },
             "uturn": {
                 "default": "Make a U-turn",
@@ -933,37 +2359,51 @@ module.exports={
             "default": {
                 "default": "Take the ramp",
                 "name": "Take the ramp onto {way_name}",
-                "destination": "Take the ramp towards {destination}"
+                "destination": "Take the ramp towards {destination}",
+                "exit": "Take exit {exit}",
+                "exit_destination": "Take exit {exit} towards {destination}"
             },
             "left": {
                 "default": "Take the ramp on the left",
                 "name": "Take the ramp on the left onto {way_name}",
-                "destination": "Take the ramp on the left towards {destination}"
+                "destination": "Take the ramp on the left towards {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "right": {
                 "default": "Take the ramp on the right",
                 "name": "Take the ramp on the right onto {way_name}",
-                "destination": "Take the ramp on the right towards {destination}"
+                "destination": "Take the ramp on the right towards {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "sharp left": {
                 "default": "Take the ramp on the left",
                 "name": "Take the ramp on the left onto {way_name}",
-                "destination": "Take the ramp on the left towards {destination}"
+                "destination": "Take the ramp on the left towards {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "sharp right": {
                 "default": "Take the ramp on the right",
                 "name": "Take the ramp on the right onto {way_name}",
-                "destination": "Take the ramp on the right towards {destination}"
+                "destination": "Take the ramp on the right towards {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "slight left": {
                 "default": "Take the ramp on the left",
                 "name": "Take the ramp on the left onto {way_name}",
-                "destination": "Take the ramp on the left towards {destination}"
+                "destination": "Take the ramp on the left towards {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "slight right": {
                 "default": "Take the ramp on the right",
                 "name": "Take the ramp on the right onto {way_name}",
-                "destination": "Take the ramp on the right towards {destination}"
+                "destination": "Take the ramp on the right towards {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             }
         },
         "on ramp": {
@@ -1006,9 +2446,9 @@ module.exports={
         "rotary": {
             "default": {
                 "default": {
-                    "default": "Enter the rotary",
-                    "name": "Enter the rotary and exit onto {way_name}",
-                    "destination": "Enter the rotary and exit towards {destination}"
+                    "default": "Enter the traffic circle",
+                    "name": "Enter the traffic circle and exit onto {way_name}",
+                    "destination": "Enter the traffic circle and exit towards {destination}"
                 },
                 "name": {
                     "default": "Enter {rotary_name}",
@@ -1016,9 +2456,9 @@ module.exports={
                     "destination": "Enter {rotary_name} and exit towards {destination}"
                 },
                 "exit": {
-                    "default": "Enter the rotary and take the {exit_number} exit",
-                    "name": "Enter the rotary and take the {exit_number} exit onto {way_name}",
-                    "destination": "Enter the rotary and take the {exit_number} exit towards {destination}"
+                    "default": "Enter the traffic circle and take the {exit_number} exit",
+                    "name": "Enter the traffic circle and take the {exit_number} exit onto {way_name}",
+                    "destination": "Enter the traffic circle and take the {exit_number} exit towards {destination}"
                 },
                 "name_exit": {
                     "default": "Enter {rotary_name} and take the {exit_number} exit",
@@ -1030,14 +2470,14 @@ module.exports={
         "roundabout": {
             "default": {
                 "exit": {
-                    "default": "Enter the roundabout and take the {exit_number} exit",
-                    "name": "Enter the roundabout and take the {exit_number} exit onto {way_name}",
-                    "destination": "Enter the roundabout and take the {exit_number} exit towards {destination}"
+                    "default": "Enter the traffic circle and take the {exit_number} exit",
+                    "name": "Enter the traffic circle and take the {exit_number} exit onto {way_name}",
+                    "destination": "Enter the traffic circle and take the {exit_number} exit towards {destination}"
                 },
                 "default": {
-                    "default": "Enter the roundabout",
-                    "name": "Enter the roundabout and exit onto {way_name}",
-                    "destination": "Enter the roundabout and exit towards {destination}"
+                    "default": "Enter the traffic circle",
+                    "name": "Enter the traffic circle and exit onto {way_name}",
+                    "destination": "Enter the traffic circle and exit towards {destination}"
                 }
             }
         },
@@ -1061,6 +2501,50 @@ module.exports={
                 "default": "At the roundabout continue straight",
                 "name": "At the roundabout continue straight onto {way_name}",
                 "destination": "At the roundabout continue straight towards {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Make a {modifier}",
+                "name": "Make a {modifier} onto {way_name}",
+                "destination": "Make a {modifier} towards {destination}"
+            },
+            "left": {
+                "default": "Turn left",
+                "name": "Turn left onto {way_name}",
+                "destination": "Turn left towards {destination}"
+            },
+            "right": {
+                "default": "Turn right",
+                "name": "Turn right onto {way_name}",
+                "destination": "Turn right towards {destination}"
+            },
+            "straight": {
+                "default": "Go straight",
+                "name": "Go straight onto {way_name}",
+                "destination": "Go straight towards {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Make a {modifier}",
+                "name": "Make a {modifier} onto {way_name}",
+                "destination": "Make a {modifier} towards {destination}"
+            },
+            "left": {
+                "default": "Turn left",
+                "name": "Turn left onto {way_name}",
+                "destination": "Turn left towards {destination}"
+            },
+            "right": {
+                "default": "Turn right",
+                "name": "Turn right onto {way_name}",
+                "destination": "Turn right towards {destination}"
+            },
+            "straight": {
+                "default": "Go straight",
+                "name": "Go straight onto {way_name}",
+                "destination": "Go straight towards {destination}"
             }
         },
         "turn": {
@@ -1096,7 +2580,1465 @@ module.exports={
     }
 }
 
-},{}],6:[function(_dereq_,module,exports){
+},{}],8:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1-a",
+                "2": "2-a",
+                "3": "3-a",
+                "4": "4-a",
+                "5": "5-a",
+                "6": "6-a",
+                "7": "7-a",
+                "8": "8-a",
+                "9": "9-a",
+                "10": "10-a"
+            },
+            "direction": {
+                "north": "norden",
+                "northeast": "nord-orienten",
+                "east": "orienten",
+                "southeast": "sud-orienten",
+                "south": "suden",
+                "southwest": "sud-okcidenten",
+                "west": "okcidenten",
+                "northwest": "nord-okcidenten"
+            },
+            "modifier": {
+                "left": "maldekstren",
+                "right": "dekstren",
+                "sharp left": "maldekstregen",
+                "sharp right": "dekstregen",
+                "slight left": "maldekstreten",
+                "slight right": "dekstreten",
+                "straight": "rekten",
+                "uturn": "turniĝu malantaŭen"
+            },
+            "lanes": {
+                "xo": "Veturu dekstre",
+                "ox": "Veturu maldekstre",
+                "xox": "Veturu meze",
+                "oxo": "Veturu dekstre aŭ maldekstre"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Enpramiĝu",
+                "name": "Enpramiĝu {way_name}",
+                "destination": "Enpramiĝu direkte al {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} kaj post {distance} {instruction_two}",
+            "two linked": "{instruction_one} kaj sekve {instruction_two}",
+            "one in distance": "Post {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Vi atingis vian {nth} celon"
+            },
+            "left": {
+                "default": "Vi atingis vian {nth} celon ĉe maldekstre"
+            },
+            "right": {
+                "default": "Vi atingis vian {nth} celon ĉe dekstre"
+            },
+            "sharp left": {
+                "default": "Vi atingis vian {nth} celon ĉe maldekstre"
+            },
+            "sharp right": {
+                "default": "Vi atingis vian {nth} celon ĉe dekstre"
+            },
+            "slight right": {
+                "default": "Vi atingis vian {nth} celon ĉe dekstre"
+            },
+            "slight left": {
+                "default": "Vi atingis vian {nth} celon ĉe maldekstre"
+            },
+            "straight": {
+                "default": "Vi atingis vian {nth} celon"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Veturu {modifier}",
+                "name": "Veturu {modifier} al {way_name}",
+                "destination": "Veturu {modifier} direkte al {destination}",
+                "exit": "Veturu {modifier} direkte al {way_name}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}",
+                "distance": "Veturu rekten dum {distance}",
+                "namedistance": "Veturu rekten al {way_name} dum {distance}"
+            },
+            "sharp left": {
+                "default": "Turniĝu ege maldekstren",
+                "name": "Turniĝu ege maldekstren al {way_name}",
+                "destination": "Turniĝu ege maldekstren direkte al {destination}"
+            },
+            "sharp right": {
+                "default": "Turniĝu ege dekstren",
+                "name": "Turniĝu ege dekstren al {way_name}",
+                "destination": "Turniĝu ege dekstren direkte al {destination}"
+            },
+            "slight left": {
+                "default": "Turniĝu ete maldekstren",
+                "name": "Turniĝu ete maldekstren al {way_name}",
+                "destination": "Turniĝu ete maldekstren direkte al {destination}"
+            },
+            "slight right": {
+                "default": "Turniĝu ete dekstren",
+                "name": "Turniĝu ete dekstren al {way_name}",
+                "destination": "Turniĝu ete dekstren direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen",
+                "name": "Turniĝu malantaŭen al {way_name}",
+                "destination": "Turniĝu malantaŭen direkte al {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Direktiĝu {direction}",
+                "name": "Direktiĝu {direction} al {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Veturu {modifier}",
+                "name": "Veturu {modifier} direkte al {way_name}",
+                "destination": "Veturu {modifier} direkte al {destination}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen ĉe fino de la vojo",
+                "name": "Turniĝu malantaŭen al {way_name} ĉe fino de la vojo",
+                "destination": "Turniĝu malantaŭen direkte al {destination} ĉe fino de la vojo"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Daŭru {modifier} ĉe la vojforko",
+                "name": "Pluu {modifier} ĉe la vojforko al {way_name}",
+                "destination": "Pluu {modifier} ĉe la vojforko direkte al {destination}"
+            },
+            "slight left": {
+                "default": "Maldekstren ĉe la vojforko",
+                "name": "Maldekstren ĉe la vojforko al {way_name}",
+                "destination": "Maldekstren ĉe la vojforko direkte al {destination}"
+            },
+            "slight right": {
+                "default": "Dekstren ĉe la vojforko",
+                "name": "Dekstren ĉe la vojforko al {way_name}",
+                "destination": "Dekstren ĉe la vojforko direkte al {destination}"
+            },
+            "sharp left": {
+                "default": "Ege maldekstren ĉe la vojforko",
+                "name": "Ege maldekstren ĉe la vojforko al {way_name}",
+                "destination": "Ege maldekstren ĉe la vojforko direkte al {destination}"
+            },
+            "sharp right": {
+                "default": "Ege dekstren ĉe la vojforko",
+                "name": "Ege dekstren ĉe la vojforko al {way_name}",
+                "destination": "Ege dekstren ĉe la vojforko direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen",
+                "name": "Turniĝu malantaŭen al {way_name}",
+                "destination": "Turniĝu malantaŭen direkte al {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Enveturu {modifier}",
+                "name": "Enveturu {modifier} al {way_name}",
+                "destination": "Enveturu {modifier} direkte al {destination}"
+            },
+            "slight left": {
+                "default": "Enveturu de maldekstre",
+                "name": "Enveturu de maldekstre al {way_name}",
+                "destination": "Enveturu de maldekstre direkte al {destination}"
+            },
+            "slight right": {
+                "default": "Enveturu de dekstre",
+                "name": "Enveturu de dekstre al {way_name}",
+                "destination": "Enveturu de dekstre direkte al {destination}"
+            },
+            "sharp left": {
+                "default": "Enveturu de maldekstre",
+                "name": "Enveture de maldekstre al {way_name}",
+                "destination": "Enveturu de maldekstre direkte al {destination}"
+            },
+            "sharp right": {
+                "default": "Enveturu de dekstre",
+                "name": "Enveturu de dekstre al {way_name}",
+                "destination": "Enveturu de dekstre direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen",
+                "name": "Turniĝu malantaŭen al {way_name}",
+                "destination": "Turniĝu malantaŭen direkte al {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Pluu {modifier}",
+                "name": "Pluu {modifier} al {way_name}",
+                "destination": "Pluu {modifier} direkte al {destination}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}"
+            },
+            "sharp left": {
+                "default": "Turniĝu ege maldekstren",
+                "name": "Turniĝu ege maldekstren al {way_name}",
+                "destination": "Turniĝu ege maldekstren direkte al {destination}"
+            },
+            "sharp right": {
+                "default": "Turniĝu ege dekstren",
+                "name": "Turniĝu ege dekstren al {way_name}",
+                "destination": "Turniĝu ege dekstren direkte al {destination}"
+            },
+            "slight left": {
+                "default": "Pluu ete maldekstren",
+                "name": "Pluu ete maldekstren al {way_name}",
+                "destination": "Pluu ete maldekstren direkte al {destination}"
+            },
+            "slight right": {
+                "default": "Pluu ete dekstren",
+                "name": "Pluu ete dekstren al {way_name}",
+                "destination": "Pluu ete dekstren direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen",
+                "name": "Turniĝu malantaŭen al {way_name}",
+                "destination": "Turniĝu malantaŭen direkte al {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Pluu {modifier}",
+                "name": "Pluu {modifier} al {way_name}",
+                "destination": "Pluu {modifier} direkte al {destination}"
+            },
+            "uturn": {
+                "default": "Turniĝu malantaŭen",
+                "name": "Turniĝu malantaŭen al {way_name}",
+                "destination": "Turniĝu malantaŭen direkte al {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Direktiĝu al enveturejo",
+                "name": "Direktiĝu al enveturejo al {way_name}",
+                "destination": "Direktiĝu al enveturejo direkte al {destination}",
+                "exit": "Direktiĝu al elveturejo {exit}",
+                "exit_destination": "Direktiĝu al elveturejo {exit} direkte al {destination}"
+            },
+            "left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}",
+                "exit": "Direktiĝu al elveturejo {exit} ĉe maldekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe maldekstre direkte al {destination}"
+            },
+            "right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}",
+                "exit": "Direktiĝu al {exit} elveturejo ĉe ldekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe dekstre direkte al {destination}"
+            },
+            "sharp left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}",
+                "exit": "Direktiĝu al {exit} elveturejo ĉe maldekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe maldekstre direkte al {destination}"
+            },
+            "sharp right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}",
+                "exit": "Direktiĝu al elveturejo {exit} ĉe dekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe dekstre direkte al {destination}"
+            },
+            "slight left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}",
+                "exit": "Direktiĝu al {exit} elveturejo ĉe maldekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe maldekstre direkte al {destination}"
+            },
+            "slight right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}",
+                "exit": "Direktiĝu al {exit} elveturejo ĉe ldekstre",
+                "exit_destination": "Direktiĝu al elveturejo {exit} ĉe dekstre direkte al {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Direktiĝu al enveturejo",
+                "name": "Direktiĝu al enveturejo al {way_name}",
+                "destination": "Direktiĝu al enveturejo direkte al {destination}"
+            },
+            "left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}"
+            },
+            "right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}"
+            },
+            "sharp left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}"
+            },
+            "sharp right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}"
+            },
+            "slight left": {
+                "default": "Direktiĝu al enveturejo ĉe maldekstre",
+                "name": "Direktiĝu al enveturejo ĉe maldekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe maldekstre al {destination}"
+            },
+            "slight right": {
+                "default": "Direktiĝu al enveturejo ĉe dekstre",
+                "name": "Direktiĝu al enveturejo ĉe dekstre al {way_name}",
+                "destination": "Direktiĝu al enveturejo ĉe dekstre al {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Enveturu trafikcirklegon",
+                    "name": "Enveturu trafikcirklegon kaj elveturu al {way_name}",
+                    "destination": "Enveturu trafikcirklegon kaj elveturu direkte al {destination}"
+                },
+                "name": {
+                    "default": "Enveturu {rotary_name}",
+                    "name": "Enveturu {rotary_name} kaj elveturu al {way_name}",
+                    "destination": "Enveturu {rotary_name} kaj elveturu direkte al {destination}"
+                },
+                "exit": {
+                    "default": "Enveturu trafikcirklegon kaj sekve al {exit_number} elveturejo",
+                    "name": "Enveturu trafikcirklegon kaj sekve al {exit_number} elveturejo al {way_name}",
+                    "destination": "Enveturu trafikcirklegon kaj sekve al {exit_number} elveturejo direkte al {destination}"
+                },
+                "name_exit": {
+                    "default": "Enveturu {rotary_name} kaj sekve al {exit_number} elveturejo",
+                    "name": "Enveturu {rotary_name} kaj sekve al {exit_number} elveturejo al {way_name}",
+                    "destination": "Enveturu {rotary_name} kaj sekve al {exit_number} elveturejo direkte al {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Enveturu trafikcirklon kaj sekve al {exit_number} elveturejo",
+                    "name": "Enveturu trafikcirklon kaj sekve al {exit_number} elveturejo al {way_name}",
+                    "destination": "Enveturu trafikcirklon kaj sekve al {exit_number} elveturejo direkte al {destination}"
+                },
+                "default": {
+                    "default": "Enveturu trafikcirklon",
+                    "name": "Enveturu trafikcirklon kaj elveturu al {way_name}",
+                    "destination": "Enveturu trafikcirklon kaj elveturu direkte al {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Ĉe la trafikcirklo veturu {modifier}",
+                "name": "Ĉe la trafikcirklo veturu {modifier} al {way_name}",
+                "destination": "Ĉe la trafikcirklo veturu {modifier} direkte al {destination}"
+            },
+            "left": {
+                "default": "Ĉe la trafikcirklo turniĝu maldekstren",
+                "name": "Ĉe la trafikcirklo turniĝu maldekstren al {way_name}",
+                "destination": "Ĉe la trafikcirklo turniĝu maldekstren direkte al {destination}"
+            },
+            "right": {
+                "default": "Ĉe la trafikcirklo turniĝu dekstren",
+                "name": "Ĉe la trafikcirklo turniĝu dekstren al {way_name}",
+                "destination": "Ĉe la trafikcirklo turniĝu dekstren direkte al {destination}"
+            },
+            "straight": {
+                "default": "Ĉe la trafikcirklo veturu rekten",
+                "name": "Ĉe la trafikcirklo veturu rekten al {way_name}",
+                "destination": "Ĉe la trafikcirklo veturu rekten direkte al {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Veturu {modifier}",
+                "name": "Veturu {modifier} al {way_name}",
+                "destination": "Veturu {modifier} direkte al {destination}"
+            },
+            "left": {
+                "default": "Turniĝu maldekstren",
+                "name": "Turniĝu maldekstren al {way_name}",
+                "destination": "Turniĝu maldekstren direkte al {destination}"
+            },
+            "right": {
+                "default": "Turniĝu dekstren",
+                "name": "Turniĝu dekstren al {way_name}",
+                "destination": "Turniĝu dekstren direkte al {destination}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "{modifier}",
+                "name": "{modifier} al {way_name}",
+                "destination": "Veturu {modifier} direkte al {destination}"
+            },
+            "left": {
+                "default": "Turniĝu maldekstren",
+                "name": "Turniĝu maldekstren al {way_name}",
+                "destination": "Turniĝu maldekstren direkte al {destination}"
+            },
+            "right": {
+                "default": "Turniĝu dekstren",
+                "name": "Turniĝu dekstren al {way_name}",
+                "destination": "Turniĝu dekstren direkte al {destination}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Veturu {modifier}",
+                "name": "Veturu {modifier} al {way_name}",
+                "destination": "Veturu {modifier} direkte al {destination}"
+            },
+            "left": {
+                "default": "Turniĝu maldekstren",
+                "name": "Turniĝu maldekstren al {way_name}",
+                "destination": "Turniĝu maldekstren direkte al {destination}"
+            },
+            "right": {
+                "default": "Turniĝu dekstren",
+                "name": "Turniĝu dekstren al {way_name}",
+                "destination": "Turniĝu dekstren direkte al {destination}"
+            },
+            "straight": {
+                "default": "Veturu rekten",
+                "name": "Veturu rekten al {way_name}",
+                "destination": "Veturu rekten direkte al {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Pluu rekten"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],9:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1ª",
+                "2": "2ª",
+                "3": "3ª",
+                "4": "4ª",
+                "5": "5ª",
+                "6": "6ª",
+                "7": "7ª",
+                "8": "8ª",
+                "9": "9ª",
+                "10": "10ª"
+            },
+            "direction": {
+                "north": "norte",
+                "northeast": "noreste",
+                "east": "este",
+                "southeast": "sureste",
+                "south": "sur",
+                "southwest": "suroeste",
+                "west": "oeste",
+                "northwest": "noroeste"
+            },
+            "modifier": {
+                "left": "a la izquierda",
+                "right": "a la derecha",
+                "sharp left": "cerrada a la izquierda",
+                "sharp right": "cerrada a la derecha",
+                "slight left": "ligeramente a la izquierda",
+                "slight right": "ligeramente a la derecha",
+                "straight": "recto",
+                "uturn": "cambio de sentido"
+            },
+            "lanes": {
+                "xo": "Mantente a la derecha",
+                "ox": "Mantente a la izquierda",
+                "xox": "Mantente en el medio",
+                "oxo": "Mantente a la izquierda o a la derecha"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Coge el ferry",
+                "name": "Coge el ferry {way_name}",
+                "destination": "Coge el ferry hacia {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} y luego en {distance}, {instruction_two}",
+            "two linked": "{instruction_one} y luego {instruction_two}",
+            "one in distance": "A {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Has llegado a tu {nth} destino"
+            },
+            "left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "sharp left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "sharp right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "slight right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "slight left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "straight": {
+                "default": "Has llegado a tu {nth} destino, en frente"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Gire {modifier}",
+                "name": "Cruce {modifier} en {way_name}",
+                "destination": "Gire {modifier} hacia {destination}",
+                "exit": "Gire {modifier} en {way_name}"
+            },
+            "straight": {
+                "default": "Continúe recto",
+                "name": "Continúe en {way_name}",
+                "destination": "Continúe hacia {destination}",
+                "distance": "Continúe recto por {distance}",
+                "namedistance": "Continúe recto en {way_name} por {distance}"
+            },
+            "sharp left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Gire a la izquierda",
+                "name": "Doble levemente a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Gire a la izquierda",
+                "name": "Doble levemente a la derecha en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido y continúe en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Dirígete al {direction}",
+                "name": "Dirígete al {direction} por {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Al final de la calle gira {modifier}",
+                "name": "Al final de la calle gira {modifier} por {way_name}",
+                "destination": "Al final de la calle gira {modifier} hacia {destination}"
+            },
+            "straight": {
+                "default": "Al final de la calle continúa recto",
+                "name": "Al final de la calle continúa recto por {way_name}",
+                "destination": "Al final de la calle continúa recto hacia {destination}"
+            },
+            "uturn": {
+                "default": "Al final de la calle haz un cambio de sentido",
+                "name": "Al final de la calle haz un cambio de sentido en {way_name}",
+                "destination": "Al final de la calle haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Mantente {modifier} en el cruce",
+                "name": "Mantente {modifier} en el cruce por {way_name}",
+                "destination": "Mantente {modifier} en el cruce hacia {destination}"
+            },
+            "slight left": {
+                "default": "Mantente a la izquierda en el cruce",
+                "name": "Mantente a la izquierda en el cruce por {way_name}",
+                "destination": "Mantente a la izquierda en el cruce hacia {destination}"
+            },
+            "slight right": {
+                "default": "Mantente a la derecha en el cruce",
+                "name": "Mantente a la derecha en el cruce por {way_name}",
+                "destination": "Mantente a la derecha en el cruce hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Gira la izquierda en el cruce",
+                "name": "Gira a la izquierda en el cruce por {way_name}",
+                "destination": "Gira a la izquierda en el cruce hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gira a la derecha en el cruce",
+                "name": "Gira a la derecha en el cruce por {way_name}",
+                "destination": "Gira a la derecha en el cruce hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Incorpórate {modifier}",
+                "name": "Incorpórate {modifier} por {way_name}",
+                "destination": "Incorpórate {modifier} hacia {destination}"
+            },
+            "slight left": {
+                "default": "Incorpórate a la izquierda",
+                "name": "Incorpórate a la izquierda por {way_name}",
+                "destination": "Incorpórate a la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Incorpórate a la derecha",
+                "name": "Incorpórate a la derecha por {way_name}",
+                "destination": "Incorpórate a la derecha hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Incorpórate a la izquierda",
+                "name": "Incorpórate a la izquierda por {way_name}",
+                "destination": "Incorpórate a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Incorpórate a la derecha",
+                "name": "Incorpórate a la derecha por {way_name}",
+                "destination": "Incorpórate a la derecha hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Continúa {modifier}",
+                "name": "Continúa {modifier} por {way_name}",
+                "destination": "Continúa {modifier} hacia {destination}"
+            },
+            "straight": {
+                "default": "Continúa recto",
+                "name": "Continúa por {way_name}",
+                "destination": "Continúa hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Gira a la izquierda",
+                "name": "Gira a la izquierda por {way_name}",
+                "destination": "Gira a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gira a la derecha",
+                "name": "Gira a la derecha por {way_name}",
+                "destination": "Gira a la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Continúa ligeramente por la izquierda",
+                "name": "Continúa ligeramente por la izquierda por {way_name}",
+                "destination": "Continúa ligeramente por la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Continúa ligeramente por la derecha",
+                "name": "Continúa ligeramente por la derecha por {way_name}",
+                "destination": "Continúa ligeramente por la derecha hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Continúa {modifier}",
+                "name": "Continúa {modifier} por {way_name}",
+                "destination": "Continúa {modifier} hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Coge la cuesta abajo",
+                "name": "Coge la cuesta abajo por {way_name}",
+                "destination": "Coge la cuesta abajo hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit}",
+                "exit_destination": "Coge la cuesta abajo {exit} hacia {destination}"
+            },
+            "left": {
+                "default": "Coge la cuesta abajo de la izquierda",
+                "name": "Coge la cuesta abajo de la izquierda por {way_name}",
+                "destination": "Coge la cuesta abajo de la izquierda hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit} a tu izquierda",
+                "exit_destination": "Coge la cuesta abajo {exit} a tu izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Coge la cuesta abajo de la derecha",
+                "name": "Coge la cuesta abajo de la derecha por {way_name}",
+                "destination": "Coge la cuesta abajo de la derecha hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit}",
+                "exit_destination": "Coge la cuesta abajo {exit} hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Coge la cuesta abajo de la izquierda",
+                "name": "Coge la cuesta abajo de la izquierda por {way_name}",
+                "destination": "Coge la cuesta abajo de la izquierda hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit} a tu izquierda",
+                "exit_destination": "Coge la cuesta abajo {exit} a tu izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Coge la cuesta abajo de la derecha",
+                "name": "Coge la cuesta abajo de la derecha por {way_name}",
+                "destination": "Coge la cuesta abajo de la derecha hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit}",
+                "exit_destination": "Coge la cuesta abajo {exit} hacia {destination}"
+            },
+            "slight left": {
+                "default": "Coge la cuesta abajo de la izquierda",
+                "name": "Coge la cuesta abajo de la izquierda por {way_name}",
+                "destination": "Coge la cuesta abajo de la izquierda hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit} a tu izquierda",
+                "exit_destination": "Coge la cuesta abajo {exit} a tu izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Coge la cuesta abajo de la derecha",
+                "name": "Coge la cuesta abajo de la derecha por {way_name}",
+                "destination": "Coge la cuesta abajo de la derecha hacia {destination}",
+                "exit": "Coge la cuesta abajo {exit}",
+                "exit_destination": "Coge la cuesta abajo {exit} hacia {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Coge la cuesta",
+                "name": "Coge la cuesta por {way_name}",
+                "destination": "Coge la cuesta hacia {destination}"
+            },
+            "left": {
+                "default": "Coge la cuesta de la izquierda",
+                "name": "Coge la cuesta de la izquierda por {way_name}",
+                "destination": "Coge la cuesta de la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Coge la cuesta de la derecha",
+                "name": "Coge la cuesta de la derecha por {way_name}",
+                "destination": "Coge la cuesta de la derecha hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Coge la cuesta de la izquierda",
+                "name": "Coge la cuesta de la izquierda por {way_name}",
+                "destination": "Coge la cuesta de la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Coge la cuesta de la derecha",
+                "name": "Coge la cuesta de la derecha por {way_name}",
+                "destination": "Coge la cuesta de la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Coge la cuesta de la izquierda",
+                "name": "Coge la cuesta de la izquierda por {way_name}",
+                "destination": "Coge la cuesta de la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Coge la cuesta de la derecha",
+                "name": "Coge la cuesta de la derecha por {way_name}",
+                "destination": "Coge la cuesta de la derecha hacia {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Incorpórate en la rotonda",
+                    "name": "En la rotonda sal por {way_name}",
+                    "destination": "En la rotonda sal hacia {destination}"
+                },
+                "name": {
+                    "default": "En {rotary_name}",
+                    "name": "En {rotary_name} sal por {way_name}",
+                    "destination": "En {rotary_name} sal hacia {destination}"
+                },
+                "exit": {
+                    "default": "En la rotonda toma la {exit_number} salida",
+                    "name": "En la rotonda toma la {exit_number} salida por {way_name}",
+                    "destination": "En la rotonda toma la {exit_number} salida hacia {destination}"
+                },
+                "name_exit": {
+                    "default": "En {rotary_name} toma la {exit_number} salida",
+                    "name": "En {rotary_name} toma la {exit_number} salida por {way_name}",
+                    "destination": "En {rotary_name} toma la {exit_number} salida hacia {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Entra en la rotonda y toma la {exit_number} salida",
+                    "name": "Entra en la rotonda y toma la {exit_number} salida por {way_name}",
+                    "destination": "Entra en la rotonda y toma la {exit_number} salida hacia {destination}"
+                },
+                "default": {
+                    "default": "Entra en la rotonda",
+                    "name": "Entra en la rotonda y sal por {way_name}",
+                    "destination": "Entra en la rotonda y sal hacia {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "En la rotonda siga {modifier}",
+                "name": "En la rotonda siga {modifier} por {way_name}",
+                "destination": "En la rotonda siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "En la rotonda gira a la izquierda",
+                "name": "En la rotonda gira a la izquierda por {way_name}",
+                "destination": "En la rotonda gira a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "En la rotonda gira a la derecha",
+                "name": "En la rotonda gira a la derecha por {way_name}",
+                "destination": "En la rotonda gira a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "En la rotonda continúa recto",
+                "name": "En la rotonda continúa recto por {way_name}",
+                "destination": "En la rotonda continúa recto hacia {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} en {way_name}",
+                "destination": "Siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Ve recto",
+                "name": "Ve recto en {way_name}",
+                "destination": "Ve recto hacia {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} en {way_name}",
+                "destination": "Siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Ve recto",
+                "name": "Ve recto en {way_name}",
+                "destination": "Ve recto hacia {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Gira {modifier}",
+                "name": "Gira {modifier} por {way_name}",
+                "destination": "Gira {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gira a la izquierda",
+                "name": "Gira a la izquierda por {way_name}",
+                "destination": "Gira a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gira a la derecha",
+                "name": "Gira a la derecha por {way_name}",
+                "destination": "Gira a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Continúa recto",
+                "name": "Continúa recto por {way_name}",
+                "destination": "Continúa recto hacia {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Continúa recto"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],10:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1ª",
+                "2": "2ª",
+                "3": "3ª",
+                "4": "4ª",
+                "5": "5ª",
+                "6": "6ª",
+                "7": "7ª",
+                "8": "8ª",
+                "9": "9ª",
+                "10": "10ª"
+            },
+            "direction": {
+                "north": "norte",
+                "northeast": "noreste",
+                "east": "este",
+                "southeast": "sureste",
+                "south": "sur",
+                "southwest": "suroeste",
+                "west": "oeste",
+                "northwest": "noroeste"
+            },
+            "modifier": {
+                "left": "izquierda",
+                "right": "derecha",
+                "sharp left": "cerrada a la izquierda",
+                "sharp right": "cerrada a la derecha",
+                "slight left": "ligeramente a la izquierda",
+                "slight right": "ligeramente a la derecha",
+                "straight": "recto",
+                "uturn": "cambio de sentido"
+            },
+            "lanes": {
+                "xo": "Mantengase a la derecha",
+                "ox": "Mantengase a la izquierda",
+                "xox": "Mantengase en el medio",
+                "oxo": "Mantengase a la izquierda o derecha"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Coge el ferry",
+                "name": "Coge el ferry {way_name}",
+                "destination": "Coge el ferry a {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} y luego en {distance}, {instruction_two}",
+            "two linked": "{instruction_one} y luego {instruction_two}",
+            "one in distance": "A {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Has llegado a tu {nth} destino"
+            },
+            "left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "sharp left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "sharp right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "slight right": {
+                "default": "Has llegado a tu {nth} destino, a la derecha"
+            },
+            "slight left": {
+                "default": "Has llegado a tu {nth} destino, a la izquierda"
+            },
+            "straight": {
+                "default": "Has llegado a tu {nth} destino, en frente"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Gire a {modifier}",
+                "name": "Cruce a la{modifier}  en {way_name}",
+                "destination": "Gire a {modifier} hacia {destination}",
+                "exit": "Gire a {modifier} en {way_name}"
+            },
+            "straight": {
+                "default": "Continúe recto",
+                "name": "Continúe en {way_name}",
+                "destination": "Continúe hacia {destination}",
+                "distance": "Continúe recto por {distance}",
+                "namedistance": "Continúe recto en {way_name} por {distance}"
+            },
+            "sharp left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Gire a la izquierda",
+                "name": "Doble levemente a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Gire a la izquierda",
+                "name": "Doble levemente a la derecha en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido y continúe en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Ve a {direction}",
+                "name": "Ve a {direction} en {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Gire  a {modifier}",
+                "name": "Gire a {modifier} en {way_name}",
+                "destination": "Gire a {modifier} hacia {destination}"
+            },
+            "straight": {
+                "default": "Continúe recto",
+                "name": "Continúe recto en {way_name}",
+                "destination": "Continúe recto hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido al final de la via",
+                "name": "Haz un cambio de sentido en {way_name} al final de la via",
+                "destination": "Haz un cambio de sentido hacia {destination} al final de la via"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Mantengase  {modifier} en el cruce",
+                "name": "Mantengase  {modifier} en el cruce en {way_name}",
+                "destination": "Mantengase  {modifier} en el cruce hacia {destination}"
+            },
+            "slight left": {
+                "default": "Mantengase a la izquierda en el cruce",
+                "name": "Mantengase a la izquierda en el cruce en {way_name}",
+                "destination": "Mantengase a la izquierda en el cruce hacia {destination}"
+            },
+            "slight right": {
+                "default": "Mantengase a la derecha en el cruce",
+                "name": "Mantengase a la derecha en el cruce en {way_name}",
+                "destination": "Mantengase a la derecha en el cruce hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Gire a la izquierda en el cruce",
+                "name": "Gire a la izquierda en el cruce en {way_name}",
+                "destination": "Gire a la izquierda en el cruce hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gire a la derecha en el cruce",
+                "name": "Gire a la derecha en el cruce en {way_name}",
+                "destination": "Gire a la derecha en el cruce hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Gire  a {modifier}",
+                "name": "Gire a {modifier} en {way_name}",
+                "destination": "Gire a {modifier} hacia {destination}"
+            },
+            "slight left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Continúe {modifier}",
+                "name": "Continúe {modifier} en {way_name}",
+                "destination": "Continúe {modifier} hacia {destination}"
+            },
+            "straight": {
+                "default": "Continúe recto",
+                "name": "Continúe en {way_name}",
+                "destination": "Continúe hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Continúe ligeramente a la izquierda",
+                "name": "Continúe ligeramente a la izquierda en {way_name}",
+                "destination": "Continúe ligeramente a la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Continúe ligeramente a la derecha",
+                "name": "Continúe ligeramente a la derecha en {way_name}",
+                "destination": "Continúe ligeramente a la derecha hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Continúe {modifier}",
+                "name": "Continúe {modifier} en {way_name}",
+                "destination": "Continúe {modifier} hacia {destination}"
+            },
+            "uturn": {
+                "default": "Haz un cambio de sentido",
+                "name": "Haz un cambio de sentido en {way_name}",
+                "destination": "Haz un cambio de sentido hacia {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Tome la salida",
+                "name": "Tome la salida en {way_name}",
+                "destination": "Tome la salida hacia {destination}",
+                "exit": "Tome la salida {exit}",
+                "exit_destination": "Tome la salida {exit} hacia {destination}"
+            },
+            "left": {
+                "default": "Tome la salida en la izquierda",
+                "name": "Tome la salida en la izquierda en {way_name}",
+                "destination": "Tome la salida en la izquierda en {destination}",
+                "exit": "Tome la salida {exit} en la izquierda",
+                "exit_destination": "Tome la salida {exit} en la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Tome la salida en la derecha",
+                "name": "Tome la salida en la derecha en {way_name}",
+                "destination": "Tome la salida en la derecha hacia {destination}",
+                "exit": "Tome la salida {exit} en la derecha",
+                "exit_destination": "Tome la salida {exit} en la derecha hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Ve cuesta abajo en la izquierda",
+                "name": "Ve cuesta abajo en la izquierda en {way_name}",
+                "destination": "Ve cuesta abajo en la izquierda hacia {destination}",
+                "exit": "Tome la salida {exit} en la izquierda",
+                "exit_destination": "Tome la salida {exit} en la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Ve cuesta abajo en la derecha",
+                "name": "Ve cuesta abajo en la derecha en {way_name}",
+                "destination": "Ve cuesta abajo en la derecha hacia {destination}",
+                "exit": "Tome la salida {exit} en la derecha",
+                "exit_destination": "Tome la salida {exit} en la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Ve cuesta abajo en la izquierda",
+                "name": "Ve cuesta abajo en la izquierda en {way_name}",
+                "destination": "Ve cuesta abajo en la izquierda hacia {destination}",
+                "exit": "Tome la salida {exit} en la izquierda",
+                "exit_destination": "Tome la salida {exit} en la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Tome la salida en la derecha",
+                "name": "Tome la salida en la derecha en {way_name}",
+                "destination": "Tome la salida en la derecha hacia {destination}",
+                "exit": "Tome la salida {exit} en la derecha",
+                "exit_destination": "Tome la salida {exit} en la derecha hacia {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Tome la rampa",
+                "name": "Tome la rampa en {way_name}",
+                "destination": "Tome la rampa hacia {destination}"
+            },
+            "left": {
+                "default": "Tome la rampa en la izquierda",
+                "name": "Tome la rampa en la izquierda en {way_name}",
+                "destination": "Tome la rampa en la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Tome la rampa en la derecha",
+                "name": "Tome la rampa en la derecha en {way_name}",
+                "destination": "Tome la rampa en la derecha hacia {destination}"
+            },
+            "sharp left": {
+                "default": "Tome la rampa en la izquierda",
+                "name": "Tome la rampa en la izquierda en {way_name}",
+                "destination": "Tome la rampa en la izquierda hacia {destination}"
+            },
+            "sharp right": {
+                "default": "Tome la rampa en la derecha",
+                "name": "Tome la rampa en la derecha en {way_name}",
+                "destination": "Tome la rampa en la derecha hacia {destination}"
+            },
+            "slight left": {
+                "default": "Tome la rampa en la izquierda",
+                "name": "Tome la rampa en la izquierda en {way_name}",
+                "destination": "Tome la rampa en la izquierda hacia {destination}"
+            },
+            "slight right": {
+                "default": "Tome la rampa en la derecha",
+                "name": "Tome la rampa en la derecha en {way_name}",
+                "destination": "Tome la rampa en la derecha hacia {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Entra en la rotonda",
+                    "name": "Entra en la rotonda y sal en {way_name}",
+                    "destination": "Entra en la rotonda y sal hacia {destination}"
+                },
+                "name": {
+                    "default": "Entra en {rotary_name}",
+                    "name": "Entra en {rotary_name} y sal en {way_name}",
+                    "destination": "Entra en {rotary_name} y sal hacia {destination}"
+                },
+                "exit": {
+                    "default": "Entra en la rotonda y toma la {exit_number} salida",
+                    "name": "Entra en la rotonda y toma la {exit_number} salida a {way_name}",
+                    "destination": "Entra en la rotonda y toma la {exit_number} salida hacia {destination}"
+                },
+                "name_exit": {
+                    "default": "Entra en {rotary_name} y coge la {exit_number} salida",
+                    "name": "Entra en {rotary_name} y coge la {exit_number} salida en {way_name}",
+                    "destination": "Entra en {rotary_name} y coge la {exit_number} salida hacia {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Entra en la rotonda y toma la {exit_number} salida",
+                    "name": "Entra en la rotonda y toma la {exit_number} salida a {way_name}",
+                    "destination": "Entra en la rotonda y toma la {exit_number} salida hacia {destination}"
+                },
+                "default": {
+                    "default": "Entra en la rotonda",
+                    "name": "Entra en la rotonda y sal en {way_name}",
+                    "destination": "Entra en la rotonda y sal hacia {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "En la rotonda siga {modifier}",
+                "name": "En la rotonda siga {modifier} en {way_name}",
+                "destination": "En la rotonda siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "En la rotonda gira a la izquierda",
+                "name": "En la rotonda gira a la izquierda en {way_name}",
+                "destination": "En la rotonda gira a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "En la rotonda gira a la derecha",
+                "name": "En la rotonda gira a la derecha en {way_name}",
+                "destination": "En la rotonda gira a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "En la rotonda continúe recto",
+                "name": "En la rotonda continúe recto en {way_name}",
+                "destination": "En la rotonda continúe recto hacia {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} en {way_name}",
+                "destination": "Siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Ve recto",
+                "name": "Ve recto en {way_name}",
+                "destination": "Ve recto hacia {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} en {way_name}",
+                "destination": "Siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Ve recto",
+                "name": "Ve recto en {way_name}",
+                "destination": "Ve recto hacia {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} en {way_name}",
+                "destination": "Siga {modifier} hacia {destination}"
+            },
+            "left": {
+                "default": "Gire a la izquierda",
+                "name": "Gire a la izquierda en {way_name}",
+                "destination": "Gire a la izquierda hacia {destination}"
+            },
+            "right": {
+                "default": "Gire a la derecha",
+                "name": "Gire a la derecha en {way_name}",
+                "destination": "Gire a la derecha hacia {destination}"
+            },
+            "straight": {
+                "default": "Ve recto",
+                "name": "Ve recto en {way_name}",
+                "destination": "Ve recto hacia {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Continúe recto"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],11:[function(_dereq_,module,exports){
 module.exports={
     "meta": {
         "capitalizeFirstLetter": true
@@ -1110,7 +4052,7 @@ module.exports={
                 "4": "quatrième",
                 "5": "cinquième",
                 "6": "sixième",
-                "7": "setpième",
+                "7": "septième",
                 "8": "huitième",
                 "9": "neuvième",
                 "10": "dixième"
@@ -1149,6 +4091,12 @@ module.exports={
                 "destination": "Prendre le ferry en direction de {destination}"
             }
         },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
         "arrive": {
             "default": {
                 "default": "Vous êtes arrivés à votre {nth} destination"
@@ -1177,9 +4125,27 @@ module.exports={
         },
         "continue": {
             "default": {
-                "default": "Continuer {modifier}",
+                "default": "Tourner {modifier}",
                 "name": "Continuer {modifier} sur {way_name}",
-                "destination": "Continuer {modifier} en direction de {destination}"
+                "destination": "Tourner {modifier} en direction de {destination}",
+                "exit": "Tourner {modifier} sur {way_name}"
+            },
+            "straight": {
+                "default": "Continuer tout droit",
+                "name": "Continuer tout droit sur {way_name}",
+                "destination": "Continuer tout droit en direction de {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Prendre franchement à gauche",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Prendre franchement à gauche en direction de {destination}"
+            },
+            "sharp right": {
+                "default": "Prendre franchement à droite",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Prendre franchement à droite en direction de {destination}"
             },
             "slight left": {
                 "default": "Continuer légèrement à gauche",
@@ -1200,7 +4166,8 @@ module.exports={
         "depart": {
             "default": {
                 "default": "Rouler vers {direction}",
-                "name": "Rouler vers {direction} sur {way_name}"
+                "name": "Rouler vers {direction} sur {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
             }
         },
         "end of road": {
@@ -1237,14 +4204,14 @@ module.exports={
                 "destination": "Rester à droite à l'embranchement en direction de {destination}"
             },
             "sharp left": {
-                "default": "Prendre à gauche à l'embranchement",
-                "name": "Prendre à gauche à l'embranchement sur {way_name}",
-                "destination": "Prendre à gauche à l'embranchement en direction de {destination}"
+                "default": "Prendre franchement à gauche à l'embranchement",
+                "name": "Prendre franchement à gauche à l'embranchement sur {way_name}",
+                "destination": "Prendre franchement à gauche à l'embranchement en direction de {destination}"
             },
             "sharp right": {
-                "default": "Prendre à droite à l'embranchement",
-                "name": "Prendre à droite à l'embranchement sur {way_name}",
-                "destination": "Prendre à droite à l'embranchement en direction de {destination}"
+                "default": "Prendre franchement à droite à l'embranchement",
+                "name": "Prendre franchement à droite à l'embranchement sur {way_name}",
+                "destination": "Prendre franchement à droite à l'embranchement en direction de {destination}"
             },
             "uturn": {
                 "default": "Faire demi-tour",
@@ -1259,14 +4226,14 @@ module.exports={
                 "destination": "Rejoindre {modifier} en direction de {destination}"
             },
             "slight left": {
-                "default": "Rejoindre légèrement par la gauche",
-                "name": "Rejoindre {way_name} légèrement par la gauche",
-                "destination": "Rejoindre légèrement par la gauche la route en direction de {destination}"
+                "default": "Rejoindre par la gauche",
+                "name": "Rejoindre {way_name} par la gauche",
+                "destination": "Rejoindre par la gauche la route en direction de {destination}"
             },
             "slight right": {
-                "default": "Rejoindre légèrement par la droite",
-                "name": "Rejoindre {way_name} légèrement par la droite",
-                "destination": "Rejoindre légèrement par la droite la route en direction de {destination}"
+                "default": "Rejoindre par la droite",
+                "name": "Rejoindre {way_name} par la droite",
+                "destination": "Rejoindre par la droite la route en direction de {destination}"
             },
             "sharp left": {
                 "default": "Rejoindre par la gauche",
@@ -1279,9 +4246,9 @@ module.exports={
                 "destination": "Rejoindre par la droite la route en direction de {destination}"
             },
             "uturn": {
-                "default": "Fair demi-tour",
-                "name": "Fair demi-tour sur {way_name}",
-                "destination": "Fair demi-tour en direction de {destination}"
+                "default": "Faire demi-tour",
+                "name": "Faire demi-tour sur {way_name}",
+                "destination": "Faire demi-tour en direction de {destination}"
             }
         },
         "new name": {
@@ -1290,15 +4257,20 @@ module.exports={
                 "name": "Continuer {modifier} sur {way_name}",
                 "destination": "Continuer {modifier} en direction de {destination}"
             },
+            "straight": {
+                "default": "Continuer tout droit",
+                "name": "Continuer tout droit sur {way_name}",
+                "destination": "Continuer tout droit en direction de {destination}"
+            },
             "sharp left": {
-                "default": "Prendre à gauche",
-                "name": "Prendre à gauche sur {way_name}",
-                "destination": "Prendre à gauche en direction de {destination}"
+                "default": "Prendre franchement à gauche",
+                "name": "Prendre franchement à gauche sur {way_name}",
+                "destination": "Prendre franchement à gauche en direction de {destination}"
             },
             "sharp right": {
-                "default": "Prendre à droite",
-                "name": "Prendre à droite sur {way_name}",
-                "destination": "Prendre à droite en direction de {destination}"
+                "default": "Prendre franchement à droite",
+                "name": "Prendre franchement à droite sur {way_name}",
+                "destination": "Prendre franchement à droite en direction de {destination}"
             },
             "slight left": {
                 "default": "Continuer légèrement à gauche",
@@ -1311,58 +4283,72 @@ module.exports={
                 "destination": "Continuer légèrement à droite en direction de {destination}"
             },
             "uturn": {
-                "default": "Fair demi-tour",
-                "name": "Fair demi-tour sur {way_name}",
-                "destination": "Fair demi-tour en direction de {destination}"
+                "default": "Faire demi-tour",
+                "name": "Faire demi-tour sur {way_name}",
+                "destination": "Faire demi-tour en direction de {destination}"
             }
         },
         "notification": {
             "default": {
                 "default": "Continuer {modifier}",
                 "name": "Continuer {modifier} sur {way_name}",
-                "destination" : "Continuer {modifier} en direction de {destination}"
+                "destination": "Continuer {modifier} en direction de {destination}"
             },
             "uturn": {
-                "default": "Fair demi-tour",
-                "name": "Fair demi-tour sur {way_name}",
-                "destination": "Fair demi-tour en direction de {destination}"
+                "default": "Faire demi-tour",
+                "name": "Faire demi-tour sur {way_name}",
+                "destination": "Faire demi-tour en direction de {destination}"
             }
         },
         "off ramp": {
             "default": {
                 "default": "Prendre la sortie",
                 "name": "Prendre la sortie sur {way_name}",
-                "destination": "Prendre la sortie en direction de {destination}"
+                "destination": "Prendre la sortie en direction de {destination}",
+                "exit": "Take exit {exit}",
+                "exit_destination": "Take exit {exit} towards {destination}"
             },
             "left": {
                 "default": "Prendre la sortie à gauche",
                 "name": "Prendre la sortie à gauche sur {way_name}",
-                "destination": "Prendre la sortie à gauche en direction de {destination}"
+                "destination": "Prendre la sortie à gauche en direction de {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "right": {
                 "default": "Prendre la sortie à droite",
                 "name": "Prendre la sortie à droite sur {way_name}",
-                "destination": "Prendre la sortie à droite en direction de {destination}"
+                "destination": "Prendre la sortie à droite en direction de {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "sharp left": {
                 "default": "Prendre la sortie à gauche",
                 "name": "Prendre la sortie à gauche sur {way_name}",
-                "destination": "Prendre la sortie à gauche en direction de {destination}"
+                "destination": "Prendre la sortie à gauche en direction de {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "sharp right": {
                 "default": "Prendre la sortie à droite",
                 "name": "Prendre la sortie à droite sur {way_name}",
-                "destination": "Prendre la sortie à droite en direction de {destination}"
+                "destination": "Prendre la sortie à droite en direction de {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "slight left": {
                 "default": "Prendre la sortie à gauche",
                 "name": "Prendre la sortie à gauche sur {way_name}",
-                "destination": "Prendre la sortie à gauche en direction de {destination}"
+                "destination": "Prendre la sortie à gauche en direction de {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "slight right": {
                 "default": "Prendre la sortie à droite",
                 "name": "Prendre la sortie à droite sur {way_name}",
-                "destination": "Prendre la sortie à droite en direction de {destination}"
+                "destination": "Prendre la sortie à droite en direction de {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             }
         },
         "on ramp": {
@@ -1405,38 +4391,38 @@ module.exports={
         "rotary": {
             "default": {
                 "default": {
-                    "default": "Entrer dans le rond-point",
-                    "name": "Entrer dans le rond-point et sortir par {way_name}",
-                    "destination": "Entrer dans le rond-point et sortir en direction de {destination}"
+                    "default": "Prendre le rond-point",
+                    "name": "Prendre le rond-point et sortir par {way_name}",
+                    "destination": "Prendre le rond-point et sortir en direction de {destination}"
                 },
                 "name": {
-                    "default": "Entrer dans le rond-point {rotary_name}",
-                    "name": "Entrer dans le rond-point {rotary_name} et sortir par {way_name}",
-                    "destination": "Entrer dans le rond-point {rotary_name} et sortir en direction de {destination}"
+                    "default": "Prendre le rond-point {rotary_name}",
+                    "name": "Prendre le rond-point {rotary_name} et sortir par {way_name}",
+                    "destination": "Prendre le rond-point {rotary_name} et sortir en direction de {destination}"
                 },
                 "exit": {
-                    "default": "Entrer dans le rond-point et prendre la {exit_number} sortie",
-                    "name": "Entrer dans le rond-point et prendre la {exit_number} sortie sur {way_name}",
-                    "destination": "Entrer dans le rond-point et prendre la {exit_number} sortie en direction de {destination}"
+                    "default": "Prendre le rond-point et prendre la {exit_number} sortie",
+                    "name": "Prendre le rond-point et prendre la {exit_number} sortie sur {way_name}",
+                    "destination": "Prendre le rond-point et prendre la {exit_number} sortie en direction de {destination}"
                 },
                 "name_exit": {
-                    "default": "Entrer dans le rond-point {rotary_name} et prendre la {exit_number} sortie",
-                    "name": "Entrer dans le rond-point {rotary_name} et prendre la {exit_number} sortie sur {way_name}",
-                    "destination": "Entrer dans le rond-point {rotary_name} et prendre la {exit_number} sortie en direction de {destination}"
+                    "default": "Prendre le rond-point {rotary_name} et prendre la {exit_number} sortie",
+                    "name": "Prendre le rond-point {rotary_name} et prendre la {exit_number} sortie sur {way_name}",
+                    "destination": "Prendre le rond-point {rotary_name} et prendre la {exit_number} sortie en direction de {destination}"
                 }
             }
         },
         "roundabout": {
             "default": {
                 "exit": {
-                    "default": "Entrer dans le rond-point et prendre la {exit_number} sortie",
-                    "name": "Entrer dans le rond-point et prendre la {exit_number} sortie sur {way_name}",
-                    "destination": "Entrer dans le rond-point et prendre la {exit_number} sortie en direction de {destination}"
+                    "default": "Prendre le rond-point et prendre la {exit_number} sortie",
+                    "name": "Prendre le rond-point et prendre la {exit_number} sortie sur {way_name}",
+                    "destination": "Prendre le rond-point et prendre la {exit_number} sortie en direction de {destination}"
                 },
                 "default": {
-                    "default": "Entrer dans le rond-point",
-                    "name": "Entrer dans le rond-point et sortir par {way_name}",
-                    "destination": "Entrer dans le rond-point et sortir en direction de {destination}"
+                    "default": "Prendre le rond-point",
+                    "name": "Prendre le rond-point et sortir par {way_name}",
+                    "destination": "Prendre le rond-point et sortir en direction de {destination}"
                 }
             }
         },
@@ -1460,6 +4446,50 @@ module.exports={
                 "default": "Au rond-point, continuer tout droit",
                 "name": "Au rond-point, continuer tout droit sur {way_name}",
                 "destination": "Au rond-point, continuer tout droit en direction de {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Tourner {modifier}",
+                "name": "Tourner {modifier} sur {way_name}",
+                "destination": "Tourner {modifier} en direction de {destination}"
+            },
+            "left": {
+                "default": "Tourner à gauche",
+                "name": "Tourner à gauche sur {way_name}",
+                "destination": "Tourner à gauche en direction de {destination}"
+            },
+            "right": {
+                "default": "Tourner à droite",
+                "name": "Tourner à droite sur {way_name}",
+                "destination": "Tourner à droite en direction de {destination}"
+            },
+            "straight": {
+                "default": "Aller tout droit",
+                "name": "Aller tout droit sur {way_name}",
+                "destination": "Aller tout droit en direction de {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Tourner {modifier}",
+                "name": "Tourner {modifier} sur {way_name}",
+                "destination": "Tourner {modifier} en direction de {destination}"
+            },
+            "left": {
+                "default": "Tourner à gauche",
+                "name": "Tourner à gauche sur {way_name}",
+                "destination": "Tourner à gauche en direction de {destination}"
+            },
+            "right": {
+                "default": "Tourner à droite",
+                "name": "Tourner à droite sur {way_name}",
+                "destination": "Tourner à droite en direction de {destination}"
+            },
+            "straight": {
+                "default": "Aller tout droit",
+                "name": "Aller tout droit sur {way_name}",
+                "destination": "Aller tout droit en direction de {destination}"
             }
         },
         "turn": {
@@ -1489,22 +4519,13 @@ module.exports={
                 "default": "Continuer tout droit"
             },
             "default": {
-                "default": "{lane_instruction} pour continuer {modifier}"
-            },
-            "straight": {
                 "default": "{lane_instruction}"
-            },
-            "left": {
-                "default": "{lane_instruction} pour tourner à gauche"
-            },
-            "right": {
-                "default": "{lane_instruction} pour tourner à droite"
             }
         }
     }
 }
 
-},{}],7:[function(_dereq_,module,exports){
+},{}],12:[function(_dereq_,module,exports){
 module.exports={
     "meta": {
         "capitalizeFirstLetter": true
@@ -1512,16 +4533,989 @@ module.exports={
     "v5": {
         "constants": {
             "ordinalize": {
-                "1": "eerste",
-                "2": "tweede",
-                "3": "derde",
-                "4": "vierde",
-                "5": "vijfde",
-                "6": "zesde",
-                "7": "zevende",
-                "8": "achtste",
-                "9": "negende",
-                "10": "tiende"
+                "1": "1",
+                "2": "2",
+                "3": "3",
+                "4": "4",
+                "5": "5",
+                "6": "6",
+                "7": "7",
+                "8": "8",
+                "9": "9",
+                "10": "10"
+            },
+            "direction": {
+                "north": "utara",
+                "northeast": "timur laut",
+                "east": "timur",
+                "southeast": "tenggara",
+                "south": "selatan",
+                "southwest": "barat daya",
+                "west": "barat",
+                "northwest": "barat laut"
+            },
+            "modifier": {
+                "left": "kiri",
+                "right": "kanan",
+                "sharp left": "tajam kiri",
+                "sharp right": "tajam kanan",
+                "slight left": "agak ke kiri",
+                "slight right": "agak ke kanan",
+                "straight": "lurus",
+                "uturn": "putar balik"
+            },
+            "lanes": {
+                "xo": "Tetap di kanan",
+                "ox": "Tetap di kiri",
+                "xox": "Tetap di tengah",
+                "oxo": "Tetap di kiri atau kanan"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Naik ferry",
+                "name": "Naik ferry di {way_name}",
+                "destination": "Naik ferry menuju {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Anda telah tiba di tujuan ke-{nth}"
+            },
+            "left": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kiri"
+            },
+            "right": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kanan"
+            },
+            "sharp left": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kiri"
+            },
+            "sharp right": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kanan"
+            },
+            "slight right": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kanan"
+            },
+            "slight left": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, di sebelah kiri"
+            },
+            "straight": {
+                "default": "Anda telah tiba di tujuan ke-{nth}, lurus saja"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Belok {modifier}",
+                "name": "Terus {modifier} ke {way_name}",
+                "destination": "Belok {modifier} menuju {destination}",
+                "exit": "Belok {modifier} ke {way_name}"
+            },
+            "straight": {
+                "default": "Lurus terus",
+                "name": "Terus ke {way_name}",
+                "destination": "Terus menuju {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Belok kiri tajam",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Belok kiri tajam menuju {destination}"
+            },
+            "sharp right": {
+                "default": "Belok kanan tajam",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Belok kanan tajam menuju {destination}"
+            },
+            "slight left": {
+                "default": "Tetap agak di kiri",
+                "name": "Tetap agak di kiri ke {way_name}",
+                "destination": "Tetap agak di kiri menuju {destination}"
+            },
+            "slight right": {
+                "default": "Tetap agak di kanan",
+                "name": "Tetap agak di kanan ke {way_name}",
+                "destination": "Tetap agak di kanan menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik",
+                "name": "Putar balik ke arah {way_name}",
+                "destination": "Putar balik menuju {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Arah {direction}",
+                "name": "Arah {direction} di {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Belok {modifier}",
+                "name": "Belok {modifier} ke {way_name}",
+                "destination": "Belok {modifier} menuju {destination}"
+            },
+            "straight": {
+                "default": "Lurus terus",
+                "name": "Tetap lurus ke {way_name} ",
+                "destination": "Tetap lurus menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik di akhir jalan",
+                "name": "Putar balik di {way_name} di akhir jalan",
+                "destination": "Putar balik menuju {destination} di akhir jalan"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Tetap {modifier} di pertigaan",
+                "name": "Tetap {modifier} di pertigaan ke {way_name}",
+                "destination": "Tetap {modifier} di pertigaan menuju {destination}"
+            },
+            "slight left": {
+                "default": "Tetap di kiri pada pertigaan",
+                "name": "Tetap di kiri pada pertigaan ke arah {way_name}",
+                "destination": "Tetap di kiri pada pertigaan menuju {destination}"
+            },
+            "slight right": {
+                "default": "Tetap di kanan pada pertigaan",
+                "name": "Tetap di kanan pada pertigaan ke arah {way_name}",
+                "destination": "Tetap di kanan pada pertigaan menuju {destination}"
+            },
+            "sharp left": {
+                "default": "Belok kiri pada pertigaan",
+                "name": "Belok kiri pada pertigaan ke arah {way_name}",
+                "destination": "Belok kiri pada pertigaan menuju {destination}"
+            },
+            "sharp right": {
+                "default": "Belok kanan pada pertigaan",
+                "name": "Belok kanan pada pertigaan ke arah {way_name}",
+                "destination": "Belok kanan pada pertigaan menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik",
+                "name": "Putar balik ke arah {way_name}",
+                "destination": "Putar balik menuju {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Bergabung {modifier}",
+                "name": "Bergabung {modifier} ke arah {way_name}",
+                "destination": "Bergabung {modifier} menuju {destination}"
+            },
+            "slight left": {
+                "default": "Bergabung di kiri",
+                "name": "Bergabung di kiri ke arah {way_name}",
+                "destination": "Bergabung di kiri menuju {destination}"
+            },
+            "slight right": {
+                "default": "Bergabung di kanan",
+                "name": "Bergabung di kanan ke arah {way_name}",
+                "destination": "Bergabung di kanan menuju {destination}"
+            },
+            "sharp left": {
+                "default": "Bergabung di kiri",
+                "name": "Bergabung di kiri ke arah {way_name}",
+                "destination": "Bergabung di kiri menuju {destination}"
+            },
+            "sharp right": {
+                "default": "Bergabung di kanan",
+                "name": "Bergabung di kanan ke arah {way_name}",
+                "destination": "Bergabung di kanan menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik",
+                "name": "Putar balik ke arah {way_name}",
+                "destination": "Putar balik menuju {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Lanjutkan {modifier}",
+                "name": "Lanjutkan {modifier} menuju {way_name}",
+                "destination": "Lanjutkan {modifier} menuju {destination}"
+            },
+            "straight": {
+                "default": "Lurus terus",
+                "name": "Terus ke {way_name}",
+                "destination": "Terus menuju {destination}"
+            },
+            "sharp left": {
+                "default": "Belok kiri tajam",
+                "name": "Belok kiri tajam ke arah {way_name}",
+                "destination": "Belok kiri tajam menuju {destination}"
+            },
+            "sharp right": {
+                "default": "Belok kanan tajam",
+                "name": "Belok kanan tajam ke arah {way_name}",
+                "destination": "Belok kanan tajam menuju {destination}"
+            },
+            "slight left": {
+                "default": "Lanjut dengan agak ke kiri",
+                "name": "Lanjut dengan agak di kiri ke {way_name}",
+                "destination": "Tetap agak di kiri menuju {destination}"
+            },
+            "slight right": {
+                "default": "Tetap agak di kanan",
+                "name": "Tetap agak di kanan ke {way_name}",
+                "destination": "Tetap agak di kanan menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik",
+                "name": "Putar balik ke arah {way_name}",
+                "destination": "Putar balik menuju {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Lanjutkan {modifier}",
+                "name": "Lanjutkan {modifier} menuju {way_name}",
+                "destination": "Lanjutkan {modifier} menuju {destination}"
+            },
+            "uturn": {
+                "default": "Putar balik",
+                "name": "Putar balik ke arah {way_name}",
+                "destination": "Putar balik menuju {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Ambil jalan melandai",
+                "name": "Ambil jalan melandai ke {way_name}",
+                "destination": "Ambil jalan melandai menuju {destination}",
+                "exit": "Take exit {exit}",
+                "exit_destination": "Take exit {exit} towards {destination}"
+            },
+            "left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
+            },
+            "right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan menuju {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
+            },
+            "sharp left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
+            },
+            "sharp right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan menuju {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
+            },
+            "slight left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
+            },
+            "slight right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan  menuju {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Ambil jalan melandai",
+                "name": "Ambil jalan melandai ke {way_name}",
+                "destination": "Ambil jalan melandai menuju {destination}"
+            },
+            "left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}"
+            },
+            "right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan  menuju {destination}"
+            },
+            "sharp left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}"
+            },
+            "sharp right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan  menuju {destination}"
+            },
+            "slight left": {
+                "default": "Ambil jalan yang melandai di sebelah kiri",
+                "name": "Ambil jalan melandai di sebelah kiri ke arah {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kiri menuju {destination}"
+            },
+            "slight right": {
+                "default": "Ambil jalan melandai di sebelah kanan",
+                "name": "Ambil jalan melandai di sebelah kanan ke {way_name}",
+                "destination": "Ambil jalan melandai di sebelah kanan  menuju {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Masuk bundaran",
+                    "name": "Masuk bundaran dan keluar arah {way_name}",
+                    "destination": "Masuk bundaran dan keluar menuju {destination}"
+                },
+                "name": {
+                    "default": "Masuk {rotary_name}",
+                    "name": "Masuk {rotary_name} dan keluar arah {way_name}",
+                    "destination": "Masuk {rotary_name} dan keluar menuju {destination}"
+                },
+                "exit": {
+                    "default": "Masuk bundaran dan ambil jalan keluar {exit_number}",
+                    "name": "Masuk bundaran dan ambil jalan keluar {exit_number} arah {way_name}",
+                    "destination": "Masuk bundaran dan ambil jalan keluar {exit_number} menuju {destination}"
+                },
+                "name_exit": {
+                    "default": "Masuk {rotary_name} dan ambil jalan keluar {exit_number}",
+                    "name": "Masuk {rotary_name} dan ambil jalan keluar {exit_number} arah {way_name}",
+                    "destination": "Masuk {rotary_name} dan ambil jalan keluar {exit_number} menuju {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Masuk bundaran dan ambil jalan keluar {exit_number}",
+                    "name": "Masuk bundaran dan ambil jalan keluar {exit_number} arah {way_name}",
+                    "destination": "Masuk bundaran dan ambil jalan keluar {exit_number} menuju {destination}"
+                },
+                "default": {
+                    "default": "Masuk bundaran",
+                    "name": "Masuk bundaran dan keluar arah {way_name}",
+                    "destination": "Masuk bundaran dan keluar menuju {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Di bundaran, lakukan {modifier}",
+                "name": "Di bundaran, lakukan {modifier} ke arah {way_name}",
+                "destination": "Di bundaran, lakukan {modifier} menuju {destination}"
+            },
+            "left": {
+                "default": "Di bundaran belok kiri",
+                "name": "Di bundaran, belok kiri arah {way_name}",
+                "destination": "Di bundaran, belok kiri menuju {destination}"
+            },
+            "right": {
+                "default": "Di bundaran belok kanan",
+                "name": "Di bundaran belok kanan ke arah {way_name}",
+                "destination": "Di bundaran belok kanan menuju {destination}"
+            },
+            "straight": {
+                "default": "Di bundaran tetap lurus",
+                "name": "Di bundaran tetap lurus ke arah {way_name}",
+                "destination": "Di bundaran tetap lurus menuju {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Lakukan {modifier}",
+                "name": "Lakukan {modifier} ke arah {way_name}",
+                "destination": "Lakukan {modifier} menuju {destination}"
+            },
+            "left": {
+                "default": "Belok kiri",
+                "name": "Belok kiri ke {way_name}",
+                "destination": "Belok kiri menuju {destination}"
+            },
+            "right": {
+                "default": "Belok kanan",
+                "name": "Belok kanan ke {way_name}",
+                "destination": "Belok kanan menuju {destination}"
+            },
+            "straight": {
+                "default": "Lurus",
+                "name": "Lurus arah {way_name}",
+                "destination": "Lurus menuju {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Lakukan {modifier}",
+                "name": "Lakukan {modifier} ke arah {way_name}",
+                "destination": "Lakukan {modifier} menuju {destination}"
+            },
+            "left": {
+                "default": "Belok kiri",
+                "name": "Belok kiri ke {way_name}",
+                "destination": "Belok kiri menuju {destination}"
+            },
+            "right": {
+                "default": "Belok kanan",
+                "name": "Belok kanan ke {way_name}",
+                "destination": "Belok kanan menuju {destination}"
+            },
+            "straight": {
+                "default": "Lurus",
+                "name": "Lurus arah {way_name}",
+                "destination": "Lurus menuju {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Lakukan {modifier}",
+                "name": "Lakukan {modifier} ke arah {way_name}",
+                "destination": "Lakukan {modifier} menuju {destination}"
+            },
+            "left": {
+                "default": "Belok kiri",
+                "name": "Belok kiri ke {way_name}",
+                "destination": "Belok kiri menuju {destination}"
+            },
+            "right": {
+                "default": "Belok kanan",
+                "name": "Belok kanan ke {way_name}",
+                "destination": "Belok kanan menuju {destination}"
+            },
+            "straight": {
+                "default": "Lurus",
+                "name": "Lurus arah {way_name}",
+                "destination": "Lurus menuju {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Lurus terus"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+
+},{}],13:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1ª",
+                "2": "2ª",
+                "3": "3ª",
+                "4": "4ª",
+                "5": "5ª",
+                "6": "6ª",
+                "7": "7ª",
+                "8": "8ª",
+                "9": "9ª",
+                "10": "10ª"
+            },
+            "direction": {
+                "north": "nord",
+                "northeast": "nord-est",
+                "east": "est",
+                "southeast": "sud-est",
+                "south": "sud",
+                "southwest": "sud-ovest",
+                "west": "ovest",
+                "northwest": "nord-ovest"
+            },
+            "modifier": {
+                "left": "sinistra",
+                "right": "destra",
+                "sharp left": "sinistra",
+                "sharp right": "destra",
+                "slight left": "sinistra leggermente",
+                "slight right": "destra leggermente",
+                "straight": "dritto",
+                "uturn": "inversione a U"
+            },
+            "lanes": {
+                "xo": "Mantieni la destra",
+                "ox": "Mantieni la sinistra",
+                "xox": "Rimani in mezzo",
+                "oxo": "Mantieni la destra o la sinistra"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Prendi il traghetto",
+                "name": "Prendi il traghetto {way_name}",
+                "destination": "Prendi il traghetto verso {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, poi tra {distance},{instruction_two}",
+            "two linked": "{instruction_one}, poi {instruction_two}",
+            "one in distance": "tra {distance} {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Sei arrivato alla tua {nth} destinazione"
+            },
+            "left": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla sinistra"
+            },
+            "right": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla destra"
+            },
+            "sharp left": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla sinistra"
+            },
+            "sharp right": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla destra"
+            },
+            "slight right": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla destra"
+            },
+            "slight left": {
+                "default": "sei arrivato alla tua {nth} destinazione, sulla sinistra"
+            },
+            "straight": {
+                "default": "sei arrivato alla tua {nth} destinazione, si trova davanti a te"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Gira a {modifier}",
+                "name": "Gira a {modifier} per stare su {way_name}",
+                "destination": "Gira a {modifier} verso {destination}",
+                "exit": "Gira a {modifier} in {way_name}"
+            },
+            "straight": {
+                "default": "Continua dritto",
+                "name": "Continua dritto per stare su {way_name}",
+                "destination": "Continua verso {destination}",
+                "distance": "Continua dritto per {distance}",
+                "namedistance": "Continua su {way_name} per {distance}"
+            },
+            "sharp left": {
+                "default": "Svolta a sinistra",
+                "name": "Fai una stretta curva a sinistra per stare su {way_name}",
+                "destination": "Svolta a sinistra verso {destination}"
+            },
+            "sharp right": {
+                "default": "Svolta a destra",
+                "name": "Fau una stretta curva a destra per stare su {way_name}",
+                "destination": "Svolta a destra verso {destination}"
+            },
+            "slight left": {
+                "default": "Fai una leggera curva a sinistra",
+                "name": "Fai una leggera curva a sinistra per stare su {way_name}",
+                "destination": "Fai una leggera curva a sinistra verso {destination}"
+            },
+            "slight right": {
+                "default": "Fai una leggera curva a destra",
+                "name": "Fai una leggera curva a destra per stare su {way_name}",
+                "destination": "Fai una leggera curva a destra verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U",
+                "name": "Fai un'inversione ad U poi continua su {way_name}",
+                "destination": "Fai un'inversione a U verso {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Continua verso {direction}",
+                "name": "Continua verso {direction} in {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Gira a {modifier}",
+                "name": "Gira a {modifier} in {way_name}",
+                "destination": "Gira a {modifier} verso {destination}"
+            },
+            "straight": {
+                "default": "Continua dritto",
+                "name": "Continua dritto in {way_name}",
+                "destination": "Continua dritto verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U alla fine della strada",
+                "name": "Fai un'inversione a U in {way_name} alla fine della strada",
+                "destination": "Fai un'inversione a U verso {destination} alla fine della strada"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Mantieni la {modifier} al bivio",
+                "name": "Mantieni la {modifier} al bivio in {way_name}",
+                "destination": "Mantieni la {modifier} al bivio verso {destination}"
+            },
+            "slight left": {
+                "default": "Mantieni la sinistra al bivio",
+                "name": "Mantieni la sinistra al bivio in {way_name}",
+                "destination": "Mantieni la sinistra al bivio verso {destination}"
+            },
+            "slight right": {
+                "default": "Mantieni la destra al bivio",
+                "name": "Mantieni la destra al bivio in {way_name}",
+                "destination": "Mantieni la destra al bivio verso {destination}"
+            },
+            "sharp left": {
+                "default": "Svolta a sinistra al bivio",
+                "name": "Svolta a sinistra al bivio in {way_name}",
+                "destination": "Svolta a sinistra al bivio verso {destination}"
+            },
+            "sharp right": {
+                "default": "Svolta a destra al bivio",
+                "name": "Svolta a destra al bivio in {way_name}",
+                "destination": "Svolta a destra al bivio verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U",
+                "name": "Fai un'inversione a U in {way_name}",
+                "destination": "Fai un'inversione a U verso {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Immettiti a {modifier}",
+                "name": "Immettiti {modifier} in {way_name}",
+                "destination": "Immettiti {modifier} verso {destination}"
+            },
+            "slight left": {
+                "default": "Immettiti a sinistra",
+                "name": "Immettiti a sinistra in {way_name}",
+                "destination": "Immettiti a sinistra verso {destination}"
+            },
+            "slight right": {
+                "default": "Immettiti a destra",
+                "name": "Immettiti a destra in {way_name}",
+                "destination": "Immettiti a destra verso {destination}"
+            },
+            "sharp left": {
+                "default": "Immettiti a sinistra",
+                "name": "Immettiti a sinistra in {way_name}",
+                "destination": "Immettiti a sinistra verso {destination}"
+            },
+            "sharp right": {
+                "default": "Immettiti a destra",
+                "name": "Immettiti a destra in {way_name}",
+                "destination": "Immettiti a destra verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U",
+                "name": "Fai un'inversione a U in {way_name}",
+                "destination": "Fai un'inversione a U verso {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Continua a {modifier}",
+                "name": "Continua a {modifier} in {way_name}",
+                "destination": "Continua a {modifier} verso {destination}"
+            },
+            "straight": {
+                "default": "Continua dritto",
+                "name": "Continua in {way_name}",
+                "destination": "Continua verso {destination}"
+            },
+            "sharp left": {
+                "default": "Svolta a sinistra",
+                "name": "Svolta a sinistra in {way_name}",
+                "destination": "Svolta a sinistra verso {destination}"
+            },
+            "sharp right": {
+                "default": "Svolta a destra",
+                "name": "Svolta a destra in {way_name}",
+                "destination": "Svolta a destra verso {destination}"
+            },
+            "slight left": {
+                "default": "Continua leggermente a sinistra",
+                "name": "Continua leggermente a sinistra in {way_name}",
+                "destination": "Continua leggermente a sinistra verso {destination}"
+            },
+            "slight right": {
+                "default": "Continua leggermente a destra",
+                "name": "Continua leggermente a destra in {way_name} ",
+                "destination": "Continua leggermente a destra verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U",
+                "name": "Fai un'inversione a U in {way_name}",
+                "destination": "Fai un'inversione a U verso {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Continua a {modifier}",
+                "name": "Continua a {modifier} in {way_name}",
+                "destination": "Continua a {modifier} verso {destination}"
+            },
+            "uturn": {
+                "default": "Fai un'inversione a U",
+                "name": "Fai un'inversione a U in {way_name}",
+                "destination": "Fai un'inversione a U verso {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Prendi la rampa",
+                "name": "Prendi la rampa in {way_name}",
+                "destination": "Prendi la rampa verso {destination}",
+                "exit": "Prendi l'uscita {exit}",
+                "exit_destination": "Prendi l'uscita  {exit} verso {destination}"
+            },
+            "left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}",
+                "exit": "Prendi l'uscita {exit} a sinistra",
+                "exit_destination": "Prendi la {exit}  uscita a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}",
+                "exit": "Prendi la {exit} uscita a destra",
+                "exit_destination": "Prendi la {exit} uscita a destra verso {destination}"
+            },
+            "sharp left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}",
+                "exit": "Prendi l'uscita {exit} a sinistra",
+                "exit_destination": "Prendi la {exit}  uscita a sinistra verso {destination}"
+            },
+            "sharp right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}",
+                "exit": "Prendi la {exit} uscita a destra",
+                "exit_destination": "Prendi la {exit} uscita a destra verso {destination}"
+            },
+            "slight left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}",
+                "exit": "Prendi l'uscita {exit} a sinistra",
+                "exit_destination": "Prendi la {exit}  uscita a sinistra verso {destination}"
+            },
+            "slight right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}",
+                "exit": "Prendi la {exit} uscita a destra",
+                "exit_destination": "Prendi la {exit} uscita a destra verso {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Prendi la rampa",
+                "name": "Prendi la rampa in {way_name}",
+                "destination": "Prendi la rampa verso {destination}"
+            },
+            "left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}"
+            },
+            "sharp left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}"
+            },
+            "sharp right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}"
+            },
+            "slight left": {
+                "default": "Prendi la rampa a sinistra",
+                "name": "Prendi la rampa a sinistra in {way_name}",
+                "destination": "Prendi la rampa a sinistra verso {destination}"
+            },
+            "slight right": {
+                "default": "Prendi la rampa a destra",
+                "name": "Prendi la rampa a destra in {way_name}",
+                "destination": "Prendi la rampa a destra verso {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Immettiti nella rotonda",
+                    "name": "Immettiti nella ritonda ed esci in {way_name}",
+                    "destination": "Immettiti nella ritonda ed esci verso {destination}"
+                },
+                "name": {
+                    "default": "Immettiti in {rotary_name}",
+                    "name": "Immettiti in {rotary_name} ed esci su {way_name}",
+                    "destination": "Immettiti in {rotary_name} ed esci verso {destination}"
+                },
+                "exit": {
+                    "default": "Immettiti nella rotonda e prendi la {exit_number} uscita",
+                    "name": "Immettiti nella rotonda e prendi la {exit_number} uscita in {way_name}",
+                    "destination": "Immettiti nella rotonda e prendi la {exit_number} uscita verso   {destination}"
+                },
+                "name_exit": {
+                    "default": "Immettiti in {rotary_name} e prendi la {exit_number} uscita",
+                    "name": "Immettiti in {rotary_name} e prendi la {exit_number} uscita in {way_name}",
+                    "destination": "Immettiti in {rotary_name} e prendi la {exit_number}  uscita verso {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Immettiti nella rotonda e prendi la {exit_number} uscita",
+                    "name": "Immettiti nella rotonda e prendi la {exit_number} uscita in {way_name}",
+                    "destination": "Immettiti nella rotonda e prendi la {exit_number} uscita verso {destination}"
+                },
+                "default": {
+                    "default": "Entra nella rotonda",
+                    "name": "Entra nella rotonda e prendi l'uscita in {way_name}",
+                    "destination": "Entra nella rotonda e prendi l'uscita verso {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Alla rotonda fai una {modifier}",
+                "name": "Alla rotonda fai una {modifier} in {way_name}",
+                "destination": "Alla rotonda fai una {modifier} verso {destination}"
+            },
+            "left": {
+                "default": "Alla rotonda svolta a sinistra",
+                "name": "Alla rotonda svolta a sinistra in {way_name}",
+                "destination": "Alla rotonda svolta a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Alla rotonda svolta a destra",
+                "name": "Alla rotonda svolta a destra in {way_name}",
+                "destination": "Alla rotonda svolta a destra verso {destination}"
+            },
+            "straight": {
+                "default": "Alla rotonda prosegui dritto",
+                "name": "Alla rotonda prosegui dritto in {way_name}",
+                "destination": "Alla rotonda prosegui dritto verso {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Fai una {modifier}",
+                "name": "Fai una {modifier} in {way_name}",
+                "destination": "Fai una {modifier} verso {destination}"
+            },
+            "left": {
+                "default": "Svolta a sinistra",
+                "name": "Svolta a sinistra in {way_name}",
+                "destination": "Svolta a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Gira a destra",
+                "name": "Svolta a destra in {way_name}",
+                "destination": "Svolta a destra verso {destination}"
+            },
+            "straight": {
+                "default": "Prosegui dritto",
+                "name": "Continua su {way_name}",
+                "destination": "Continua verso {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Fai una {modifier}",
+                "name": "Fai una {modifier} in {way_name}",
+                "destination": "Fai una {modifier} verso {destination}"
+            },
+            "left": {
+                "default": "Svolta a sinistra",
+                "name": "Svolta a sinistra in {way_name}",
+                "destination": "Svolta a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Gira a destra",
+                "name": "Svolta a destra in {way_name}",
+                "destination": "Svolta a destra verso {destination}"
+            },
+            "straight": {
+                "default": "Prosegui dritto",
+                "name": "Continua su {way_name}",
+                "destination": "Continua verso {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Fai una {modifier}",
+                "name": "Fai una {modifier} in {way_name}",
+                "destination": "Fai una {modifier} verso {destination}"
+            },
+            "left": {
+                "default": "Svolta a sinistra",
+                "name": "Svolta a sinistra in {way_name}",
+                "destination": "Svolta a sinistra verso {destination}"
+            },
+            "right": {
+                "default": "Gira a destra",
+                "name": "Svolta a destra in {way_name}",
+                "destination": "Svolta a destra verso {destination}"
+            },
+            "straight": {
+                "default": "Prosegui dritto",
+                "name": "Continua su {way_name}",
+                "destination": "Continua verso {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Continua dritto"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],14:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1e",
+                "2": "2e",
+                "3": "3e",
+                "4": "4e",
+                "5": "5e",
+                "6": "6e",
+                "7": "7e",
+                "8": "8e",
+                "9": "9e",
+                "10": "10e"
             },
             "direction": {
                 "north": "noord",
@@ -1557,6 +5551,12 @@ module.exports={
                 "destination": "Neem het veer naar {destination}"
             }
         },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
         "arrive": {
             "default": {
                 "default": "Je bent gearriveerd op de {nth} bestemming."
@@ -1587,7 +5587,25 @@ module.exports={
             "default": {
                 "default": "Ga {modifier}",
                 "name": "Ga {modifier} naar {way_name}",
-                "destination": "Ga {modifier} richting {destination}"
+                "destination": "Ga {modifier} richting {destination}",
+                "exit": "Ga {modifier} naar {way_name}"
+            },
+            "straight": {
+                "default": "Ga rechtdoor",
+                "name": "Ga rechtdoor naar {way_name}",
+                "destination": "Ga rechtdoor richting {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Linksaf",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Linksaf richting {destination}"
+            },
+            "sharp right": {
+                "default": "Rechtsaf",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Rechtsaf richting {destination}"
             },
             "slight left": {
                 "default": "Links aanhouden",
@@ -1608,7 +5626,8 @@ module.exports={
         "depart": {
             "default": {
                 "default": "Vertrek in {direction}elijke richting",
-                "name": "Neem {way_name} in {direction}elijke richting"
+                "name": "Neem {way_name} in {direction}elijke richting",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
             }
         },
         "end of road": {
@@ -1650,9 +5669,9 @@ module.exports={
                 "destination": "Linksaf op de splitsing richting {destination}"
             },
             "sharp right": {
-              "default": "Rechtsaf op de splitsing",
-              "name": "Rechtsaf op de splitsing naar {way_name}",
-              "destination": "Rechtsaf op de splitsing richting {destination}"
+                "default": "Rechtsaf op de splitsing",
+                "name": "Rechtsaf op de splitsing naar {way_name}",
+                "destination": "Rechtsaf op de splitsing richting {destination}"
             },
             "uturn": {
                 "default": "Keer om",
@@ -1698,6 +5717,11 @@ module.exports={
                 "name": "Ga {modifier} naar {way_name}",
                 "destination": "Ga {modifier} richting {destination}"
             },
+            "straight": {
+                "default": "Ga in de aangegeven richting",
+                "name": "Ga rechtdoor naar {way_name}",
+                "destination": "Ga rechtdoor richting {destination}"
+            },
             "sharp left": {
                 "default": "Linksaf",
                 "name": "Linksaf naar {way_name}",
@@ -1728,7 +5752,7 @@ module.exports={
             "default": {
                 "default": "Ga {modifier}",
                 "name": "Ga {modifier} naar {way_name}",
-                "destination" : "Ga {modifier} richting {destination}"
+                "destination": "Ga {modifier} richting {destination}"
             },
             "uturn": {
                 "default": "Keer om",
@@ -1740,37 +5764,51 @@ module.exports={
             "default": {
                 "default": "Neem de afrit",
                 "name": "Neem de afrit naar {way_name}",
-                "destination": "Neem de afrit richting {destination}"
+                "destination": "Neem de afrit richting {destination}",
+                "exit": "Take exit {exit}",
+                "exit_destination": "Take exit {exit} towards {destination}"
             },
             "left": {
                 "default": "Neem de afrit links",
                 "name": "Neem de afrit links naar {way_name}",
-                "destination": "Neem de afrit links richting {destination}"
+                "destination": "Neem de afrit links richting {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "right": {
-              "default": "Neem de afrit rechts",
-              "name": "Neem de afrit rechts naar {way_name}",
-              "destination": "Neem de afrit rechts richting {destination}"
+                "default": "Neem de afrit rechts",
+                "name": "Neem de afrit rechts naar {way_name}",
+                "destination": "Neem de afrit rechts richting {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "sharp left": {
                 "default": "Neem de afrit links",
                 "name": "Neem de afrit links naar {way_name}",
-                "destination": "Neem de afrit links richting {destination}"
+                "destination": "Neem de afrit links richting {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "sharp right": {
                 "default": "Neem de afrit rechts",
                 "name": "Neem de afrit rechts naar {way_name}",
-                "destination": "Neem de afrit rechts richting {destination}"
+                "destination": "Neem de afrit rechts richting {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             },
             "slight left": {
                 "default": "Neem de afrit links",
                 "name": "Neem de afrit links naar {way_name}",
-                "destination": "Neem de afrit links richting {destination}"
+                "destination": "Neem de afrit links richting {destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "slight right": {
                 "default": "Neem de afrit rechts",
                 "name": "Neem de afrit rechts naar {way_name}",
-                "destination": "Neem de afrit rechts richting {destination}"
+                "destination": "Neem de afrit rechts richting {destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             }
         },
         "on ramp": {
@@ -1785,9 +5823,9 @@ module.exports={
                 "destination": "Neem de oprit links richting {destination}"
             },
             "right": {
-              "default": "Neem de oprit rechts",
-              "name": "Neem de oprit rechts naar {way_name}",
-              "destination": "Neem de oprit rechts richting {destination}"
+                "default": "Neem de oprit rechts",
+                "name": "Neem de oprit rechts naar {way_name}",
+                "destination": "Neem de oprit rechts richting {destination}"
             },
             "sharp left": {
                 "default": "Neem de oprit links",
@@ -1831,7 +5869,6 @@ module.exports={
                     "default": "Ga het knooppunt {rotary_name} op en neem afslag {exit_number}",
                     "name": "Ga het knooppunt {rotary_name} op en neem afslag {exit_number} naar {way_name}",
                     "destination": "Ga het knooppunt {rotary_name} op en neem afslag {exit_number} richting {destination}"
-
                 }
             }
         },
@@ -1871,6 +5908,50 @@ module.exports={
                 "destination": "Rechtdoor op de rotonde richting {destination}"
             }
         },
+        "exit roundabout": {
+            "default": {
+                "default": "Ga {modifier}",
+                "name": "Ga {modifier} naar {way_name}",
+                "destination": "Ga {modifier} richting {destination}"
+            },
+            "left": {
+                "default": "Ga linksaf",
+                "name": "Ga linksaf naar {way_name}",
+                "destination": "Ga linksaf richting {destination}"
+            },
+            "right": {
+                "default": "Ga rechtsaf",
+                "name": "Ga rechtsaf naar {way_name}",
+                "destination": "Ga rechtsaf richting {destination}"
+            },
+            "straight": {
+                "default": "Ga rechtdoor",
+                "name": "Ga rechtdoor naar {way_name}",
+                "destination": "Ga rechtdoor richting {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Ga {modifier}",
+                "name": "Ga {modifier} naar {way_name}",
+                "destination": "Ga {modifier} richting {destination}"
+            },
+            "left": {
+                "default": "Ga linksaf",
+                "name": "Ga linksaf naar {way_name}",
+                "destination": "Ga linksaf richting {destination}"
+            },
+            "right": {
+                "default": "Ga rechtsaf",
+                "name": "Ga rechtsaf naar {way_name}",
+                "destination": "Ga rechtsaf richting {destination}"
+            },
+            "straight": {
+                "default": "Ga rechtdoor",
+                "name": "Ga rechtdoor naar {way_name}",
+                "destination": "Ga rechtdoor richting {destination}"
+            }
+        },
         "turn": {
             "default": {
                 "default": "Ga {modifier}",
@@ -1898,22 +5979,3904 @@ module.exports={
                 "default": "Rechtdoor"
             },
             "default": {
-                "default": "{lane_instruction} ga {modifier}"
-            },
-            "straight": {
                 "default": "{lane_instruction}"
-            },
-            "left": {
-                "default": "{lane_instruction} om links te gaan"
-            },
-            "right": {
-                "default": "{lane_instruction} om rechts te gaan"
             }
         }
     }
 }
 
-},{}],8:[function(_dereq_,module,exports){
+},{}],15:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1.",
+                "2": "2.",
+                "3": "3.",
+                "4": "4.",
+                "5": "5.",
+                "6": "6.",
+                "7": "7.",
+                "8": "8.",
+                "9": "9.",
+                "10": "10."
+            },
+            "direction": {
+                "north": "północ",
+                "northeast": "północny wschód",
+                "east": "wschód",
+                "southeast": "południowy wschód",
+                "south": "południe",
+                "southwest": "południowy zachód",
+                "west": "zachód",
+                "northwest": "północny zachód"
+            },
+            "modifier": {
+                "left": "lewo",
+                "right": "prawo",
+                "sharp left": "ostro w lewo",
+                "sharp right": "ostro w prawo",
+                "slight left": "łagodnie w lewo",
+                "slight right": "łagodnie w prawo",
+                "straight": "prosto",
+                "uturn": "zawróć"
+            },
+            "lanes": {
+                "xo": "Trzymaj się prawej strony",
+                "ox": "Trzymaj się lewej strony",
+                "xox": "Trzymaj się środka",
+                "oxo": "Trzymaj się lewej lub prawej strony"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Weź prom",
+                "name": "Weź prom {way_name}",
+                "destination": "Weź prom w kierunku {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, następnie za {distance} {instruction_two}",
+            "two linked": "{instruction_one}, następnie {instruction_two}",
+            "one in distance": "Za {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Dojechano do miejsca docelowego {nth}"
+            },
+            "left": {
+                "default": "Dojechano do miejsca docelowego {nth}, po lewej stronie"
+            },
+            "right": {
+                "default": "Dojechano do miejsca docelowego {nth}, po prawej stronie"
+            },
+            "sharp left": {
+                "default": "Dojechano do miejsca docelowego {nth}, po lewej stronie"
+            },
+            "sharp right": {
+                "default": "Dojechano do miejsca docelowego {nth}, po prawej stronie"
+            },
+            "slight right": {
+                "default": "Dojechano do miejsca docelowego {nth}, po prawej stronie"
+            },
+            "slight left": {
+                "default": "Dojechano do miejsca docelowego {nth}, po lewej stronie"
+            },
+            "straight": {
+                "default": "Dojechano do miejsca docelowego {nth} , prosto"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Skręć {modifier}",
+                "name": "Skręć w {modifier}, aby pozostać na {way_name}",
+                "destination": "Skręć {modifier} w kierunku {destination}",
+                "exit": "Skręć {modifier} na {way_name}"
+            },
+            "straight": {
+                "default": "Kontynuuj prosto",
+                "name": "Jedź dalej prosto, aby pozostać na {way_name}",
+                "destination": "Kontynuuj w kierunku {destination}",
+                "distance": "Jedź dalej prosto przez {distance}",
+                "namedistance": "Jedź dalej {way_name} przez {distance}"
+            },
+            "sharp left": {
+                "default": "Skręć ostro w lewo",
+                "name": "Skręć w lewo w ostry zakręt, aby pozostać na {way_name}",
+                "destination": "Skręć ostro w lewo w kierunku {destination}"
+            },
+            "sharp right": {
+                "default": "Skręć ostro w prawo",
+                "name": "Skręć w prawo w ostry zakręt, aby pozostać na {way_name}",
+                "destination": "Skręć ostro w prawo w kierunku {destination}"
+            },
+            "slight left": {
+                "default": "Skręć w lewo w łagodny zakręt",
+                "name": "Skręć w lewo w łagodny zakręt, aby pozostać na {way_name}",
+                "destination": "Skręć w lewo w łagodny zakręt na {destination}"
+            },
+            "slight right": {
+                "default": "Skręć w prawo w łagodny zakręt",
+                "name": "Skręć w prawo w łagodny zakręt, aby pozostać na {way_name}",
+                "destination": "Skręć w prawo w łagodny zakręt na {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć",
+                "name": "Zawróć i jedź dalej {way_name}",
+                "destination": "Zawróć w kierunku {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Kieruj się {direction}",
+                "name": "Kieruj się {direction} na {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Skręć {modifier}",
+                "name": "Skręć {modifier} na {way_name}",
+                "destination": "Skręć {modifier} w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Kontynuuj prosto",
+                "name": "Kontynuuj prosto na {way_name}",
+                "destination": "Kontynuuj prosto w kierunku {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć na końcu ulicy",
+                "name": "Zawróć na końcu ulicy na {way_name}",
+                "destination": "Zawróć na końcu ulicy w kierunku {destination}"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Na rozwidleniu trzymaj się {modifier}",
+                "name": "Na rozwidleniu trzymaj się {modifier} na {way_name}",
+                "destination": "Na rozwidleniu trzymaj się {modifier} w kierunku {destination}"
+            },
+            "slight left": {
+                "default": "Na rozwidleniu trzymaj się lewej strony",
+                "name": "Na rozwidleniu trzymaj się lewej strony w {way_name}",
+                "destination": "Na rozwidleniu trzymaj się lewej strony w kierunku {destination}"
+            },
+            "slight right": {
+                "default": "Na rozwidleniu trzymaj się prawej strony",
+                "name": "Na rozwidleniu trzymaj się prawej strony na {way_name}",
+                "destination": "Na rozwidleniu trzymaj się prawej strony w kierunku {destination}"
+            },
+            "sharp left": {
+                "default": "Na rozwidleniu skręć ostro w lewo",
+                "name": "Na rozwidleniu skręć ostro w lew na {way_name}",
+                "destination": "Na rozwidleniu skręć ostro w lewo w kierunku {destination}"
+            },
+            "sharp right": {
+                "default": "Na rozwidleniu skręć ostro w prawo",
+                "name": "Na rozwidleniu skręć ostro w prawo na {way_name}",
+                "destination": "Na rozwidleniu skręć ostro w prawo w kierunku {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć",
+                "name": "Zawróć na {way_name}",
+                "destination": "Zawróć w kierunku {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Włącz się {modifier}",
+                "name": "Włącz się {modifier} na {way_name}",
+                "destination": "Włącz się {modifier} w kierunku {destination}"
+            },
+            "slight left": {
+                "default": "Włącz się z lewej strony",
+                "name": "Włącz się z lewej strony na {way_name}",
+                "destination": "Włącz się z lewej strony w kierunku {destination}"
+            },
+            "slight right": {
+                "default": "Włącz się z prawej strony",
+                "name": "Włącz się z prawej strony na {way_name}",
+                "destination": "Włącz się z prawej strony w kierunku {destination}"
+            },
+            "sharp left": {
+                "default": "Włącz się z lewej strony",
+                "name": "Włącz się z lewej strony na {way_name}",
+                "destination": "Włącz się z lewej strony w kierunku {destination}"
+            },
+            "sharp right": {
+                "default": "Włącz się z prawej strony",
+                "name": "Włącz się z prawej strony na {way_name}",
+                "destination": "Włącz się z prawej strony w kierunku {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć",
+                "name": "Zawróć na {way_name}",
+                "destination": "Zawróć w kierunku {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Kontynuuj {modifier}",
+                "name": "Kontynuuj {modifier} na {way_name}",
+                "destination": "Kontynuuj {modifier} w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Kontynuuj prosto",
+                "name": "Kontynuuj na {way_name}",
+                "destination": "Kontynuuj w kierunku {destination}"
+            },
+            "sharp left": {
+                "default": "Skręć ostro w lewo",
+                "name": "Skręć ostro w lewo w {way_name}",
+                "destination": "Skręć ostro w lewo w kierunku {destination}"
+            },
+            "sharp right": {
+                "default": "Skręć ostro w prawo",
+                "name": "Skręć ostro w prawo na {way_name}",
+                "destination": "Skręć ostro w prawo w kierunku {destination}"
+            },
+            "slight left": {
+                "default": "Kontynuuj łagodnie w lewo",
+                "name": "Kontynuuj łagodnie w lewo na {way_name}",
+                "destination": "Kontynuuj łagodnie w lewo w kierunku {destination}"
+            },
+            "slight right": {
+                "default": "Kontynuuj łagodnie w prawo",
+                "name": "Kontynuuj łagodnie w prawo na {way_name}",
+                "destination": "Kontynuuj łagodnie w prawo w kierunku {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć",
+                "name": "Zawróć na {way_name}",
+                "destination": "Zawróć w kierunku {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Kontynuuj {modifier}",
+                "name": "Kontynuuj {modifier} na {way_name}",
+                "destination": "Kontynuuj {modifier} w kierunku {destination}"
+            },
+            "uturn": {
+                "default": "Zawróć",
+                "name": "Zawróć na {way_name}",
+                "destination": "Zawróć w kierunku {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Zjedź",
+                "name": "Weź zjazd na {way_name}",
+                "destination": "Weź zjazd w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit}",
+                "exit_destination": "Zjedź zjazdem {exit} na {destination}"
+            },
+            "left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po lewej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po lewej stronie na {destination}"
+            },
+            "right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po prawej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po prawej stronie na {destination}"
+            },
+            "sharp left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po lewej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po lewej stronie na {destination}"
+            },
+            "sharp right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po prawej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po prawej stronie na {destination}"
+            },
+            "slight left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po lewej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po lewej stronie na {destination}"
+            },
+            "slight right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}",
+                "exit": "Zjedź zjazdem {exit} po prawej stronie",
+                "exit_destination": "Zjedź zjazdem {exit} po prawej stronie na {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Weź zjazd",
+                "name": "Weź zjazd na {way_name}",
+                "destination": "Weź zjazd w kierunku {destination}"
+            },
+            "left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}"
+            },
+            "right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}"
+            },
+            "sharp left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}"
+            },
+            "sharp right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}"
+            },
+            "slight left": {
+                "default": "Weź zjazd po lewej",
+                "name": "Weź zjazd po lewej na {way_name}",
+                "destination": "Weź zjazd po lewej w kierunku {destination}"
+            },
+            "slight right": {
+                "default": "Weź zjazd po prawej",
+                "name": "Weź zjazd po prawej na {way_name}",
+                "destination": "Weź zjazd po prawej w kierunku {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Wjedź na rondo",
+                    "name": "Wjedź na rondo i skręć na {way_name}",
+                    "destination": "Wjedź na rondo i skręć w kierunku {destination}"
+                },
+                "name": {
+                    "default": "Wjedź na {rotary_name}",
+                    "name": "Wjedź na {rotary_name} i skręć na {way_name}",
+                    "destination": "Wjedź na {rotary_name} i skręć w kierunku {destination}"
+                },
+                "exit": {
+                    "default": "Wjedź na rondo i wyjedź {exit_number} zjazdem",
+                    "name": "Wjedź na rondo i wyjedź {exit_number} zjazdem na {way_name}",
+                    "destination": "Wjedź na rondo i wyjedź {exit_number} zjazdem w kierunku {destination}"
+                },
+                "name_exit": {
+                    "default": "Wjedź na {rotary_name} i wyjedź {exit_number} zjazdem",
+                    "name": "Wjedź na {rotary_name} i wyjedź {exit_number} zjazdem na {way_name}",
+                    "destination": "Wjedź na {rotary_name} i wyjedź {exit_number} zjazdem w kierunku {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Wjedź na rondo i wyjedź {exit_number} zjazdem",
+                    "name": "Wjedź na rondo i wyjedź {exit_number} zjazdem na {way_name}",
+                    "destination": "Wjedź na rondo i wyjedź {exit_number} zjazdem w kierunku {destination}"
+                },
+                "default": {
+                    "default": "Wjedź na rondo",
+                    "name": "Wjedź na rondo i wyjedź na {way_name}",
+                    "destination": "Wjedź na rondo i wyjedź w kierunku {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Na rondzie weź {modifier}",
+                "name": "Na rondzie weź {modifier} na {way_name}",
+                "destination": "Na rondzie weź {modifier} w kierunku {destination}"
+            },
+            "left": {
+                "default": "Na rondzie skręć w lewo",
+                "name": "Na rondzie skręć lewo na {way_name}",
+                "destination": "Na rondzie skręć w lewo w kierunku {destination}"
+            },
+            "right": {
+                "default": "Na rondzie skręć w prawo",
+                "name": "Na rondzie skręć w prawo na {way_name}",
+                "destination": "Na rondzie skręć w prawo w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Na rondzie kontynuuj prosto",
+                "name": "Na rondzie kontynuuj prosto na {way_name}",
+                "destination": "Na rondzie kontynuuj prosto w kierunku {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "{modifier}",
+                "name": "{modifier} na {way_name}",
+                "destination": "{modifier} w kierunku {destination}"
+            },
+            "left": {
+                "default": "Skręć w lewo",
+                "name": "Skręć w lewo na {way_name}",
+                "destination": "Skręć w lewo w kierunku {destination}"
+            },
+            "right": {
+                "default": "Skręć w prawo",
+                "name": "Skręć w prawo na {way_name}",
+                "destination": "Skręć w prawo w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Jedź prosto",
+                "name": "Jedź prosto na {way_name}",
+                "destination": "Jedź prosto w kierunku {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "{modifier}",
+                "name": "{modifier} na {way_name}",
+                "destination": "{modifier} w kierunku {destination}"
+            },
+            "left": {
+                "default": "Skręć w lewo",
+                "name": "Skręć w lewo na {way_name}",
+                "destination": "Skręć w lewo w kierunku {destination}"
+            },
+            "right": {
+                "default": "Skręć w prawo",
+                "name": "Skręć w prawo na {way_name}",
+                "destination": "Skręć w prawo w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Jedź prosto",
+                "name": "Jedź prosto na {way_name}",
+                "destination": "Jedź prosto w kierunku {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "{modifier}",
+                "name": "{modifier} na {way_name}",
+                "destination": "{modifier} w kierunku {destination}"
+            },
+            "left": {
+                "default": "Skręć w lewo",
+                "name": "Skręć w lewo na {way_name}",
+                "destination": "Skręć w lewo w kierunku {destination}"
+            },
+            "right": {
+                "default": "Skręć w prawo",
+                "name": "Skręć w prawo na {way_name}",
+                "destination": "Skręć w prawo w kierunku {destination}"
+            },
+            "straight": {
+                "default": "Jedź prosto",
+                "name": "Jedź prosto na {way_name}",
+                "destination": "Jedź prosto w kierunku {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Kontynuuj prosto"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],16:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1º",
+                "2": "2º",
+                "3": "3º",
+                "4": "4º",
+                "5": "5º",
+                "6": "6º",
+                "7": "7º",
+                "8": "8º",
+                "9": "9º",
+                "10": "10º"
+            },
+            "direction": {
+                "north": "norte",
+                "northeast": "nordeste",
+                "east": "leste",
+                "southeast": "sudeste",
+                "south": "sul",
+                "southwest": "sudoeste",
+                "west": "oeste",
+                "northwest": "noroeste"
+            },
+            "modifier": {
+                "left": "à esquerda",
+                "right": "à direita",
+                "sharp left": "acentuadamente à esquerda",
+                "sharp right": "acentuadamente à direita",
+                "slight left": "ligeiramente à esquerda",
+                "slight right": "ligeiramente à direita",
+                "straight": "reto",
+                "uturn": "retorno"
+            },
+            "lanes": {
+                "xo": "Mantenha-se à direita",
+                "ox": "Mantenha-se à esquerda",
+                "xox": "Mantenha-se ao centro",
+                "oxo": "Mantenha-se à esquerda ou direita"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Pegue a balsa",
+                "name": "Pegue a balsa {way_name}",
+                "destination": "Pegue a balsa sentido {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Você chegou ao seu {nth} destino"
+            },
+            "left": {
+                "default": "Você chegou ao seu {nth} destino, à esquerda"
+            },
+            "right": {
+                "default": "Você chegou ao seu {nth} destino, à direita"
+            },
+            "sharp left": {
+                "default": "Você chegou ao seu {nth} destino, à esquerda"
+            },
+            "sharp right": {
+                "default": "Você chegou ao seu {nth} destino, à direita"
+            },
+            "slight right": {
+                "default": "Você chegou ao seu {nth} destino, à direita"
+            },
+            "slight left": {
+                "default": "Você chegou ao seu {nth} destino, à esquerda"
+            },
+            "straight": {
+                "default": "Você chegou ao seu {nth} destino, em frente"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Vire {modifier}",
+                "name": "Continue {modifier} em {way_name}",
+                "destination": "Vire {modifier} sentido {destination}",
+                "exit": "Vire {modifier} em {way_name}"
+            },
+            "straight": {
+                "default": "Continue reto",
+                "name": "Continue em {way_name}",
+                "destination": "Continue até {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Vire acentuadamente à esquerda",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Vire acentuadamente à esquerda sentido {destination}"
+            },
+            "sharp right": {
+                "default": "Vire acentuadamente à direita",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Vire acentuadamente à direita sentido {destination}"
+            },
+            "slight left": {
+                "default": "Continue ligeiramente à esquerda",
+                "name": "Continue ligeiramente à esquerda em {way_name}",
+                "destination": "Continue ligeiramente à esquerda sentido {destination}"
+            },
+            "slight right": {
+                "default": "Continue ligeiramente à direita",
+                "name": "Continue ligeiramente à direita em {way_name}",
+                "destination": "Continue ligeiramente à direita sentido {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno",
+                "name": "Faça o retorno em {way_name}",
+                "destination": "Faça o retorno sentido {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Siga {direction}",
+                "name": "Siga {direction} em {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Vire {modifier}",
+                "name": "Vire {modifier} em {way_name}",
+                "destination": "Vire {modifier} sentido {destination}"
+            },
+            "straight": {
+                "default": "Continue reto",
+                "name": "Continue reto em {way_name}",
+                "destination": "Continue reto sentido {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno no fim da rua",
+                "name": "Faça o retorno em {way_name} no fim da rua",
+                "destination": "Faça o retorno sentido {destination} no fim da rua"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Mantenha-se {modifier} na bifurcação",
+                "name": "Mantenha-se {modifier} na bifurcação em {way_name}",
+                "destination": "Mantenha-se {modifier} na bifurcação sentido {destination}"
+            },
+            "slight left": {
+                "default": "Mantenha-se à esquerda na bifurcação",
+                "name": "Mantenha-se à esquerda na bifurcação em {way_name}",
+                "destination": "Mantenha-se à esquerda na bifurcação sentido {destination}"
+            },
+            "slight right": {
+                "default": "Mantenha-se à direita na bifurcação",
+                "name": "Mantenha-se à direita na bifurcação em {way_name}",
+                "destination": "Mantenha-se à direita na bifurcação sentido {destination}"
+            },
+            "sharp left": {
+                "default": "Vire acentuadamente à esquerda na bifurcação",
+                "name": "Vire acentuadamente à esquerda na bifurcação em {way_name}",
+                "destination": "Vire acentuadamente à esquerda na bifurcação sentido {destination}"
+            },
+            "sharp right": {
+                "default": "Vire acentuadamente à direita na bifurcação",
+                "name": "Vire acentuadamente à direita na bifurcação em {way_name}",
+                "destination": "Vire acentuadamente à direita na bifurcação sentido {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno",
+                "name": "Faça o retorno em {way_name}",
+                "destination": "Faça o retorno sentido {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Entre {modifier}",
+                "name": "Entre {modifier} na {way_name}",
+                "destination": "Entre {modifier} em direção à {destination}"
+            },
+            "slight left": {
+                "default": "Entre à esquerda",
+                "name": "Entre à esquerda na {way_name}",
+                "destination": "Entre à esquerda em direção à {destination}"
+            },
+            "slight right": {
+                "default": "Entre à direita",
+                "name": "Entre à direita na {way_name}",
+                "destination": "Entre à direita em direção à {destination}"
+            },
+            "sharp left": {
+                "default": "Entre à esquerda",
+                "name": "Entre à esquerda na {way_name}",
+                "destination": "Entre à esquerda em direção à {destination}"
+            },
+            "sharp right": {
+                "default": "Entre à direita",
+                "name": "Entre à direita na {way_name}",
+                "destination": "Entre à direita em direção à {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno",
+                "name": "Faça o retorno em {way_name}",
+                "destination": "Faça o retorno sentido {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Continue {modifier}",
+                "name": "Continue {modifier} em {way_name}",
+                "destination": "Continue {modifier} sentido {destination}"
+            },
+            "straight": {
+                "default": "Continue em frente",
+                "name": "Continue em {way_name}",
+                "destination": "Continue em direção à {destination}"
+            },
+            "sharp left": {
+                "default": "Vire acentuadamente à esquerda",
+                "name": "Vire acentuadamente à esquerda em {way_name}",
+                "destination": "Vire acentuadamente à esquerda sentido {destination}"
+            },
+            "sharp right": {
+                "default": "Vire acentuadamente à direita",
+                "name": "Vire acentuadamente à direita em {way_name}",
+                "destination": "Vire acentuadamente à direita sentido {destination}"
+            },
+            "slight left": {
+                "default": "Continue ligeiramente à esquerda",
+                "name": "Continue ligeiramente à esquerda em {way_name}",
+                "destination": "Continue ligeiramente à esquerda sentido {destination}"
+            },
+            "slight right": {
+                "default": "Continue ligeiramente à direita",
+                "name": "Continue ligeiramente à direita em {way_name}",
+                "destination": "Continue ligeiramente à direita sentido {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno",
+                "name": "Faça o retorno em {way_name}",
+                "destination": "Faça o retorno sentido {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Continue {modifier}",
+                "name": "Continue {modifier} em {way_name}",
+                "destination": "Continue {modifier} sentido {destination}"
+            },
+            "uturn": {
+                "default": "Faça o retorno",
+                "name": "Faça o retorno em {way_name}",
+                "destination": "Faça o retorno sentido {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Pegue a rampa",
+                "name": "Pegue a rampa em {way_name}",
+                "destination": "Pegue a rampa sentido {destination}",
+                "exit": "Pegue a saída {exit}",
+                "exit_destination": "Pegue a saída {exit} em direção à {destination}"
+            },
+            "left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}",
+                "exit": "Pegue a saída {exit} à esquerda",
+                "exit_destination": "Pegue a saída {exit}  à esquerda em direção à {destination}"
+            },
+            "right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentido {destination}",
+                "exit": "Pegue a saída {exit} à direita",
+                "exit_destination": "Pegue a saída {exit} à direita em direção à {destination}"
+            },
+            "sharp left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}",
+                "exit": "Pegue a saída {exit} à esquerda",
+                "exit_destination": "Pegue a saída {exit}  à esquerda em direção à {destination}"
+            },
+            "sharp right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentido {destination}",
+                "exit": "Pegue a saída {exit} à direita",
+                "exit_destination": "Pegue a saída {exit} à direita em direção à {destination}"
+            },
+            "slight left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}",
+                "exit": "Pegue a saída {exit} à esquerda",
+                "exit_destination": "Pegue a saída {exit}  à esquerda em direção à {destination}"
+            },
+            "slight right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentido {destination}",
+                "exit": "Pegue a saída {exit} à direita",
+                "exit_destination": "Pegue a saída {exit} à direita em direção à {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Pegue a rampa",
+                "name": "Pegue a rampa em {way_name}",
+                "destination": "Pegue a rampa sentido {destination}"
+            },
+            "left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}"
+            },
+            "right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentid {destination}"
+            },
+            "sharp left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}"
+            },
+            "sharp right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentido {destination}"
+            },
+            "slight left": {
+                "default": "Pegue a rampa à esquerda",
+                "name": "Pegue a rampa à esquerda em {way_name}",
+                "destination": "Pegue a rampa à esquerda sentido {destination}"
+            },
+            "slight right": {
+                "default": "Pegue a rampa à direita",
+                "name": "Pegue a rampa à direita em {way_name}",
+                "destination": "Pegue a rampa à direita sentido {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Entre na rotatória",
+                    "name": "Entre na rotatória e saia em {way_name}",
+                    "destination": "Entre na rotatória e saia sentido {destination}"
+                },
+                "name": {
+                    "default": "Entre em {rotary_name}",
+                    "name": "Entre em {rotary_name} e saia em {way_name}",
+                    "destination": "Entre em {rotary_name} e saia sentido {destination}"
+                },
+                "exit": {
+                    "default": "Entre na rotatória e saia na {exit_number} saída",
+                    "name": "Entre na rotatória e saia na {exit_number} saída em {way_name}",
+                    "destination": "Entre na rotatória e saia na {exit_number} saída sentido {destination}"
+                },
+                "name_exit": {
+                    "default": "Entre em {rotary_name} e saia na {exit_number} saída",
+                    "name": "Entre em {rotary_name} e saia na {exit_number} saída em {way_name}",
+                    "destination": "Entre em {rotary_name} e saia na {exit_number} saída sentido {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Entre na rotatória e saia na {exit_number} saída",
+                    "name": "Entre na rotatória e saia na {exit_number} saída em {way_name}",
+                    "destination": "Entre na rotatória e saia na {exit_number} saída sentido {destination}"
+                },
+                "default": {
+                    "default": "Entre na rotatória",
+                    "name": "Entre na rotatória e saia em {way_name}",
+                    "destination": "Entre na rotatória e saia sentido {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Na rotatória, vire {modifier}",
+                "name": "Na rotatória, vire {modifier} na {way_name}",
+                "destination": "Na rotatória, vire {modifier} em direção à {destination}"
+            },
+            "left": {
+                "default": "Na rotatória vire à esquerda",
+                "name": "Na rotatória vire à esquerda em {way_name}",
+                "destination": "Na rotatória vire à esquerda sentido {destination}"
+            },
+            "right": {
+                "default": "Na rotatória vire à direita",
+                "name": "Na rotatória vire à direita em {way_name}",
+                "destination": "Na rotatória vire à direita sentido {destination}"
+            },
+            "straight": {
+                "default": "Na rotatória siga reto",
+                "name": "Na rotatória siga reto em {way_name}",
+                "destination": "Na rotatória siga reto sentido {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} em {way_name}",
+                "destination": "Siga {modifier} sentido {destination}"
+            },
+            "left": {
+                "default": "Vire à esquerda",
+                "name": "Vire à esquerda em {way_name}",
+                "destination": "Vire à esquerda sentido {destination}"
+            },
+            "right": {
+                "default": "Vire à direita",
+                "name": "Vire à direita em {way_name}",
+                "destination": "Vire à direita sentido {destination}"
+            },
+            "straight": {
+                "default": "Siga reto",
+                "name": "Siga reto em {way_name}",
+                "destination": "Siga reto sentido {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} em {way_name}",
+                "destination": "Siga {modifier} sentido {destination}"
+            },
+            "left": {
+                "default": "Vire à esquerda",
+                "name": "Vire à esquerda em {way_name}",
+                "destination": "Vire à esquerda sentido {destination}"
+            },
+            "right": {
+                "default": "Vire à direita",
+                "name": "Vire à direita em {way_name}",
+                "destination": "Vire à direita sentido {destination}"
+            },
+            "straight": {
+                "default": "Siga reto",
+                "name": "Siga reto em {way_name}",
+                "destination": "Siga reto sentido {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Siga {modifier}",
+                "name": "Siga {modifier} em {way_name}",
+                "destination": "Siga {modifier} sentido {destination}"
+            },
+            "left": {
+                "default": "Vire à esquerda",
+                "name": "Vire à esquerda em {way_name}",
+                "destination": "Vire à esquerda sentido {destination}"
+            },
+            "right": {
+                "default": "Vire à direita",
+                "name": "Vire à direita em {way_name}",
+                "destination": "Vire à direita sentido {destination}"
+            },
+            "straight": {
+                "default": "Siga reto",
+                "name": "Siga reto em {way_name}",
+                "destination": "Siga reto sentido {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Continue reto"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+
+},{}],17:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "prima",
+                "2": "a 2-a",
+                "3": "a 3-a",
+                "4": "a 4-a",
+                "5": "a 5-a",
+                "6": "a 6-a",
+                "7": "a 7-a",
+                "8": "a 8-a",
+                "9": "a 9-a",
+                "10": "a 10-a"
+            },
+            "direction": {
+                "north": "nord",
+                "northeast": "nord-est",
+                "east": "est",
+                "southeast": "sud-est",
+                "south": "sud",
+                "southwest": "sud-vest",
+                "west": "vest",
+                "northwest": "nord-vest"
+            },
+            "modifier": {
+                "left": "stânga",
+                "right": "dreapta",
+                "sharp left": "brusc stânga",
+                "sharp right": "brusc dreapta",
+                "slight left": "ușor stânga",
+                "slight right": "ușor dreapta",
+                "straight": "înainte",
+                "uturn": "întoarcere"
+            },
+            "lanes": {
+                "xo": "Menține dreapta",
+                "ox": "Menține dreapta",
+                "xox": "Menține pe interior",
+                "oxo": "Menține pe laterale"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Ia feribotul",
+                "name": "Ia feribotul {way_name}",
+                "destination": "Ia feribotul spre {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} apoi {instruction_two}",
+            "one in distance": "În {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Ați ajuns la {nth} destinație"
+            },
+            "left": {
+                "default": "Ați ajuns la {nth} destinație, pe stânga"
+            },
+            "right": {
+                "default": "Ați ajuns la {nth} destinație, pe dreapta"
+            },
+            "sharp left": {
+                "default": "Ați ajuns la {nth} destinație, pe stânga"
+            },
+            "sharp right": {
+                "default": "Ați ajuns la {nth} destinație, pe dreapta"
+            },
+            "slight right": {
+                "default": "Ați ajuns la {nth} destinație, pe dreapta"
+            },
+            "slight left": {
+                "default": "Ați ajuns la {nth} destinație, pe stânga"
+            },
+            "straight": {
+                "default": "Ați ajuns la {nth} destinație, în față"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Virează {modifier}",
+                "name": "Virați {modifier} pe {way_name}",
+                "destination": "Virați {modifier} spre {destination}",
+                "exit": "Virați {modifier} pe {way_name}"
+            },
+            "straight": {
+                "default": "Mergeți înainte",
+                "name": "Continuați înainte pe {way_name}",
+                "destination": "Continuați spre {destination}",
+                "distance": "Continuați înainte {distance}",
+                "namedistance": "Continuați pe {way_name} {distance}"
+            },
+            "sharp left": {
+                "default": "Virați brusc stânga",
+                "name": "Virați brusc stânga pe {way_name}",
+                "destination": "Virați brusc stânga spre {destination}"
+            },
+            "sharp right": {
+                "default": "Virați brusc dreapta",
+                "name": "Virați brusc stânga pe {way_name}",
+                "destination": "Virați brusc dreapta spre {destination}"
+            },
+            "slight left": {
+                "default": "Virați ușor stânga",
+                "name": "Virați ușor stânga pe {way_name}",
+                "destination": "Virați ușor stânga spre {destination}"
+            },
+            "slight right": {
+                "default": "Virați ușor dreapta",
+                "name": "Virați ușor dreapta pe {way_name}",
+                "destination": "Virați ușor dreapta spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă",
+                "name": "Întoarceți-vă și continuați pe {way_name}",
+                "destination": "Întoarceți-vă spre {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Mergeți {direction}",
+                "name": "Mergeți {direction} pe {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Virați {modifier}",
+                "name": "Virați {modifier} pe {way_name}",
+                "destination": "Virați {modifier} spre {destination}"
+            },
+            "straight": {
+                "default": "Continuați înainte",
+                "name": "Continuați înainte pe {way_name}",
+                "destination": "Continuați înainte spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă la sfârșitul drumului",
+                "name": "Întoarceți-vă pe {way_name} la sfârșitul drumului",
+                "destination": "Întoarceți-vă spre {destination} la sfârșitul drumului"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Mențineți {modifier} la bifurcație",
+                "name": "Mențineți {modifier} la bifurcație pe {way_name}",
+                "destination": "Mențineți {modifier} la bifurcație spre {destination}"
+            },
+            "slight left": {
+                "default": "Mențineți stânga la bifurcație",
+                "name": "Mențineți stânga la bifurcație pe {way_name}",
+                "destination": "Mențineți stânga la bifurcație spre {destination}"
+            },
+            "slight right": {
+                "default": "Mențineți dreapta la bifurcație",
+                "name": "Mențineți dreapta la bifurcație pe {way_name}",
+                "destination": "Mențineți dreapta la bifurcație spre {destination}"
+            },
+            "sharp left": {
+                "default": "Virați brusc stânga la bifurcație",
+                "name": "Virați brusc stânga la bifurcație pe {way_name}",
+                "destination": "Virați brusc stânga la bifurcație spre {destination}"
+            },
+            "sharp right": {
+                "default": "Virați brusc dreapta la bifurcație",
+                "name": "Virați brusc dreapta la bifurcație pe {way_name}",
+                "destination": "Virați brusc dreapta la bifurcație spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă",
+                "name": "Întoarceți-vă pe {way_name}",
+                "destination": "Întoarceți-vă spre {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Intrați în {modifier}",
+                "name": "Intrați în {modifier} pe {way_name}",
+                "destination": "Intrați în {modifier} spre {destination}"
+            },
+            "slight left": {
+                "default": "Intrați în stânga",
+                "name": "Intrați în stânga pe {way_name}",
+                "destination": "Intrați în stânga spre {destination}"
+            },
+            "slight right": {
+                "default": "Intrați în dreapta",
+                "name": "Intrați în dreapta pe {way_name}",
+                "destination": "Intrați în dreapta spre {destination}"
+            },
+            "sharp left": {
+                "default": "Intrați în stânga",
+                "name": "Intrați în stânga pe {way_name}",
+                "destination": "Intrați în stânga spre {destination}"
+            },
+            "sharp right": {
+                "default": "Intrați în dreapta",
+                "name": "Intrați în dreapta pe {way_name}",
+                "destination": "Intrați în dreapta spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă",
+                "name": "Întoarceți-vă pe {way_name}",
+                "destination": "Întoarceți-vă spre {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Continuați {modifier}",
+                "name": "Continuați {modifier} pe {way_name}",
+                "destination": "Continuați {modifier} spre {destination}"
+            },
+            "straight": {
+                "default": "Continuați înainte",
+                "name": "Continuați pe {way_name}",
+                "destination": "Continuați spre {destination}"
+            },
+            "sharp left": {
+                "default": "Virați brusc stânga",
+                "name": "Virați brusc stânga pe {way_name}",
+                "destination": "Virați brusc stânga spre {destination}"
+            },
+            "sharp right": {
+                "default": "Virați brusc dreapta",
+                "name": "Virați brusc dreapta pe {way_name}",
+                "destination": "Virați brusc dreapta spre {destination}"
+            },
+            "slight left": {
+                "default": "Continuați ușor stânga",
+                "name": "Continuați ușor stânga pe {way_name}",
+                "destination": "Continuați ușor stânga spre {destination}"
+            },
+            "slight right": {
+                "default": "Continuați ușor dreapta",
+                "name": "Continuați ușor dreapta pe {way_name}",
+                "destination": "Continuați ușor dreapta spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă",
+                "name": "Întoarceți-vă pe {way_name}",
+                "destination": "Întoarceți-vă spre {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Continuați {modifier}",
+                "name": "Continuați {modifier} pe {way_name}",
+                "destination": "Continuați {modifier} spre {destination}"
+            },
+            "uturn": {
+                "default": "Întoarceți-vă",
+                "name": "Întoarceți-vă pe {way_name}",
+                "destination": "Întoarceți-vă spre {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Urmați rampa",
+                "name": "Urmați rampa pe {way_name}",
+                "destination": "Urmați rampa spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit}",
+                "exit_destination": "Ieșiți pe ieșirea {exit}spre {destination}"
+            },
+            "left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe stânga",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe stânga spre {destination}"
+            },
+            "right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe dreapta",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe dreapta spre {destination}"
+            },
+            "sharp left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe stânga",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe stânga spre {destination}"
+            },
+            "sharp right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe dreapta",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe dreapta spre {destination}"
+            },
+            "slight left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe stânga",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe stânga spre {destination}"
+            },
+            "slight right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}",
+                "exit": "Ieșiți pe ieșirea {exit} pe dreapta",
+                "exit_destination": "Ieșiți pe ieșirea {exit} pe dreapta spre {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Urmați rampa",
+                "name": "Urmați rampa pe {way_name}",
+                "destination": "Urmați rampa spre {destination}"
+            },
+            "left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}"
+            },
+            "right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}"
+            },
+            "sharp left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}"
+            },
+            "sharp right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}"
+            },
+            "slight left": {
+                "default": "Urmați rampa pe stânga",
+                "name": "Urmați rampa pe stânga pe {way_name}",
+                "destination": "Urmați rampa pe stânga spre {destination}"
+            },
+            "slight right": {
+                "default": "Urmați rampa pe dreapta",
+                "name": "Urmați rampa pe dreapta pe {way_name}",
+                "destination": "Urmați rampa pe dreapta spre {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Intrați în sensul giratoriu",
+                    "name": "Intrați în sensul giratoriu și ieșiți pe {way_name}",
+                    "destination": "Intrați în sensul giratoriu și ieșiți spre {destination}"
+                },
+                "name": {
+                    "default": "Intrați în  {rotary_name}",
+                    "name": "Intrați în  {rotary_name} și ieșiți pe {way_name}",
+                    "destination": "Intrați în  {rotary_name} și ieșiți spre {destination}"
+                },
+                "exit": {
+                    "default": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number}",
+                    "name": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number} pe {way_name}",
+                    "destination": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number} spre {destination}"
+                },
+                "name_exit": {
+                    "default": "Intrați în  {rotary_name} și mergeți spre ieșirea {exit_number}",
+                    "name": "Intrați în  {rotary_name} și mergeți spre ieșirea {exit_number} pe {way_name}",
+                    "destination": "Intrați în  {rotary_name} și mergeți spre ieșirea {exit_number} spre {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number}",
+                    "name": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number} pe {way_name}",
+                    "destination": "Intrați în sensul giratoriu și mergeți spre ieșirea {exit_number} spre {destination}"
+                },
+                "default": {
+                    "default": "Intrați în sensul giratoriu",
+                    "name": "Intrați în sensul giratoriu și ieșiți pe {way_name}",
+                    "destination": "Intrați în sensul giratoriu și ieșiți spre {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "La sensul giratoriu virați {modifier}",
+                "name": "La sensul giratoriu virați {modifier} pe {way_name}",
+                "destination": "La sensul giratoriu virați {modifier} spre {destination}"
+            },
+            "left": {
+                "default": "La sensul giratoriu virați stânga",
+                "name": "La sensul giratoriu virați stânga pe {way_name}",
+                "destination": "La sensul giratoriu virați stânga spre {destination}"
+            },
+            "right": {
+                "default": "La sensul giratoriu virați dreapta",
+                "name": "La sensul giratoriu virați dreapta pe {way_name}",
+                "destination": "La sensul giratoriu virați dreapta spre {destination}"
+            },
+            "straight": {
+                "default": "La sensul giratoriu continuați înainte",
+                "name": "La sensul giratoriu continuați înainte pe {way_name}",
+                "destination": "La sensul giratoriu continuați înainte spre {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Virați {modifier}",
+                "name": "Virați {modifier} pe {way_name}",
+                "destination": "Virați {modifier} spre {destination}"
+            },
+            "left": {
+                "default": "Virați stânga",
+                "name": "Virați stânga pe {way_name}",
+                "destination": "Virați stânga spre {destination}"
+            },
+            "right": {
+                "default": "Virați dreapta",
+                "name": "Virați dreapta pe {way_name}",
+                "destination": "Virați dreapta spre {destination}"
+            },
+            "straight": {
+                "default": "Mergeți înainte",
+                "name": "Mergeți înainte pe {way_name}",
+                "destination": "Mergeți înainte spre {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Virați {modifier}",
+                "name": "Virați {modifier} pe {way_name}",
+                "destination": "Virați {modifier} spre {destination}"
+            },
+            "left": {
+                "default": "Virați stânga",
+                "name": "Virați stânga pe {way_name}",
+                "destination": "Virați stânga spre {destination}"
+            },
+            "right": {
+                "default": "Virați dreapta",
+                "name": "Virați dreapta pe {way_name}",
+                "destination": "Virați dreapta spre {destination}"
+            },
+            "straight": {
+                "default": "Mergeți înainte",
+                "name": "Mergeți înainte pe {way_name}",
+                "destination": "Mergeți înainte spre {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Virați {modifier}",
+                "name": "Virați {modifier} pe {way_name}",
+                "destination": "Virați {modifier} spre {destination}"
+            },
+            "left": {
+                "default": "Virați stânga",
+                "name": "Virați stânga pe {way_name}",
+                "destination": "Virați stânga spre {destination}"
+            },
+            "right": {
+                "default": "Virați dreapta",
+                "name": "Virați dreapta pe {way_name}",
+                "destination": "Virați dreapta spre {destination}"
+            },
+            "straight": {
+                "default": "Mergeți înainte",
+                "name": "Mergeți înainte pe {way_name}",
+                "destination": "Mergeți înainte spre {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Mergeți înainte"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],18:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "первый",
+                "2": "второй",
+                "3": "третий",
+                "4": "четвёртый",
+                "5": "пятый",
+                "6": "шестой",
+                "7": "седьмой",
+                "8": "восьмой",
+                "9": "девятый",
+                "10": "десятый"
+            },
+            "direction": {
+                "north": "северном",
+                "northeast": "северо-восточном",
+                "east": "восточном",
+                "southeast": "юго-восточном",
+                "south": "южном",
+                "southwest": "юго-западном",
+                "west": "западном",
+                "northwest": "северо-западном"
+            },
+            "modifier": {
+                "left": "налево",
+                "right": "направо",
+                "sharp left": "налево",
+                "sharp right": "направо",
+                "slight left": "левее",
+                "slight right": "правее",
+                "straight": "прямо",
+                "uturn": "на разворот"
+            },
+            "lanes": {
+                "xo": "Держитесь правее",
+                "ox": "Держитесь левее",
+                "xox": "Держитесь посередине",
+                "oxo": "Держитесь слева или справа"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Погрузитесь на паром",
+                "name": "Погрузитесь на паром {way_name}",
+                "destination": "Погрузитесь на паром в направлении {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, затем через {distance} {instruction_two}",
+            "two linked": "{instruction_one}, затем {instruction_two}",
+            "one in distance": "Через {distance} {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Вы прибыли в {nth} пункт назначения"
+            },
+            "left": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится слева"
+            },
+            "right": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится справа"
+            },
+            "sharp left": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится слева"
+            },
+            "sharp right": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится справа"
+            },
+            "slight right": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится справа"
+            },
+            "slight left": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится слева"
+            },
+            "straight": {
+                "default": "Вы прибыли в {nth} пункт назначения, он находится перед вами"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} по {way_name:dative}",
+                "destination": "Двигайтесь {modifier} в направлении {destination}",
+                "exit": "Двигайтесь {modifier} на {way_name:accusative}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Продолжите движение по {way_name:dative}",
+                "destination": "Продолжите движение в направлении {destination}",
+                "distance": "Двигайтесь прямо {distance}",
+                "namedistance": "Двигайтесь прямо {distance} по {way_name:dative}"
+            },
+            "sharp left": {
+                "default": "Резко поверните налево",
+                "name": "Резко поверните налево на {way_name:accusative}",
+                "destination": "Резко поверните налево в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "Резко поверните направо",
+                "name": "Резко поверните направо на {way_name:accusative}",
+                "destination": "Резко поверните направо в направлении {destination}"
+            },
+            "slight left": {
+                "default": "Плавно поверните налево",
+                "name": "Плавно поверните налево на {way_name:accusative}",
+                "destination": "Плавно поверните налево в направлении {destination}"
+            },
+            "slight right": {
+                "default": "Плавно поверните направо",
+                "name": "Плавно поверните направо на {way_name:accusative}",
+                "destination": "Плавно поверните направо в направлении {destination}"
+            },
+            "uturn": {
+                "default": "Развернитесь",
+                "name": "Развернитесь и продолжите движение по {way_name:dative}",
+                "destination": "Развернитесь в направлении {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Двигайтесь в {direction} направлении",
+                "name": "Двигайтесь в {direction} направлении по {way_name:dative}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Поверните {modifier}",
+                "name": "Поверните {modifier} на {way_name:accusative}",
+                "destination": "Поверните {modifier} в направлении {destination}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Двигайтесь прямо по {way_name:dative}",
+                "destination": "Двигайтесь прямо в направлении {destination}"
+            },
+            "uturn": {
+                "default": "В конце дороги развернитесь",
+                "name": "Развернитесь в конце {way_name:genitive}",
+                "destination": "В конце дороги развернитесь в направлении {destination}"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "На развилке двигайтесь {modifier}",
+                "name": "На развилке двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "На развилке двигайтесь {modifier} в направлении {destination}"
+            },
+            "slight left": {
+                "default": "На развилке держитесь левее",
+                "name": "На развилке держитесь левее на {way_name:accusative}",
+                "destination": "На развилке держитесь левее и продолжите движение в направлении {destination}"
+            },
+            "slight right": {
+                "default": "На развилке держитесь правее",
+                "name": "На развилке держитесь правее на {way_name:accusative}",
+                "destination": "На развилке держитесь правее и продолжите движение в направлении {destination}"
+            },
+            "sharp left": {
+                "default": "На развилке резко поверните налево",
+                "name": "На развилке резко поверните налево на {way_name:accusative}",
+                "destination": "На развилке резко поверните налево и продолжите движение в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "На развилке резко поверните направо",
+                "name": "На развилке резко поверните направо на {way_name:accusative}",
+                "destination": "На развилке резко поверните направо и продолжите движение в направлении {destination}"
+            },
+            "uturn": {
+                "default": "На развилке развернитесь",
+                "name": "На развилке развернитесь на {way_name:prepositional}",
+                "destination": "На развилке развернитесь и продолжите движение в направлении {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Перестройтесь {modifier}",
+                "name": "Перестройтесь {modifier} на {way_name:accusative}",
+                "destination": "Перестройтесь {modifier} в направлении {destination}"
+            },
+            "slight left": {
+                "default": "Перестройтесь левее",
+                "name": "Перестройтесь левее на {way_name:accusative}",
+                "destination": "Перестройтесь левее в направлении {destination}"
+            },
+            "slight right": {
+                "default": "Перестройтесь правее",
+                "name": "Перестройтесь правее на {way_name:accusative}",
+                "destination": "Перестройтесь правее в направлении {destination}"
+            },
+            "sharp left": {
+                "default": "Перестраивайтесь левее",
+                "name": "Перестраивайтесь левее на {way_name:accusative}",
+                "destination": "Перестраивайтесь левее в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "Перестраивайтесь правее",
+                "name": "Перестраивайтесь правее на {way_name:accusative}",
+                "destination": "Перестраивайтесь правее в направлении {destination}"
+            },
+            "uturn": {
+                "default": "Развернитесь",
+                "name": "Развернитесь на {way_name:prepositional}",
+                "destination": "Развернитесь в направлении {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "Двигайтесь {modifier} в направлении {destination}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Продолжите движение по {way_name:dative}",
+                "destination": "Продолжите движение в направлении {destination}"
+            },
+            "sharp left": {
+                "default": "Резко поверните налево",
+                "name": "Резко поверните налево на {way_name:accusative}",
+                "destination": "Резко поверните налево и продолжите движение в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "Резко поверните направо",
+                "name": "Резко поверните направо на {way_name:accusative}",
+                "destination": "Резко поверните направо и продолжите движение в направлении {destination}"
+            },
+            "slight left": {
+                "default": "Плавно поверните налево",
+                "name": "Плавно поверните налево на {way_name:accusative}",
+                "destination": "Плавно поверните налево в направлении {destination}"
+            },
+            "slight right": {
+                "default": "Плавно поверните направо",
+                "name": "Плавно поверните направо на {way_name:accusative}",
+                "destination": "Плавно поверните направо в направлении {destination}"
+            },
+            "uturn": {
+                "default": "Развернитесь",
+                "name": "Развернитесь на {way_name:prepositional}",
+                "destination": "Развернитесь и продолжите движение в направлении {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} по {way_name:dative}",
+                "destination": "Двигайтесь {modifier} в направлении {destination}"
+            },
+            "uturn": {
+                "default": "Развернитесь",
+                "name": "Развернитесь на {way_name:prepositional}",
+                "destination": "Развернитесь и продолжите движение в направлении {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Сверните на съезд",
+                "name": "Сверните на съезд на {way_name:accusative}",
+                "destination": "Сверните на съезд в направлении {destination}",
+                "exit": "Сверните на съезд {exit}",
+                "exit_destination": "Сверните на съезд {exit} в направлении {destination}"
+            },
+            "left": {
+                "default": "Сверните на левый съезд",
+                "name": "Сверните на левый съезд на {way_name:accusative}",
+                "destination": "Сверните на левый съезд в направлении {destination}",
+                "exit": "Сверните на съезд {exit} слева",
+                "exit_destination": "Сверните на съезд {exit} слева в направлении {destination}"
+            },
+            "right": {
+                "default": "Сверните на правый съезд",
+                "name": "Сверните на правый съезд на {way_name:accusative}",
+                "destination": "Сверните на правый съезд в направлении {destination}",
+                "exit": "Сверните на съезд {exit} справа",
+                "exit_destination": "Сверните на съезд {exit} справа в направлении {destination}"
+            },
+            "sharp left": {
+                "default": "Поверните налево на съезд",
+                "name": "Поверните налево на съезд на {way_name:accusative}",
+                "destination": "Поверните налево на съезд в направлении {destination}",
+                "exit": "Поверните налево на съезд {exit}",
+                "exit_destination": "Поверните налево на съезд {exit} в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "Поверните направо на съезд",
+                "name": "Поверните направо на съезд на {way_name:accusative}",
+                "destination": "Поверните направо на съезд в направлении {destination}",
+                "exit": "Поверните направо на съезд {exit}",
+                "exit_destination": "Поверните направо на съезд {exit} в направлении {destination}"
+            },
+            "slight left": {
+                "default": "Перестройтесь левее на съезд",
+                "name": "Перестройтесь левее на съезд на {way_name:accusative}",
+                "destination": "Перестройтесь левее на съезд в направлении {destination}",
+                "exit": "Перестройтесь левее на {exit}",
+                "exit_destination": "Перестройтесь левее на съезд {exit} в направлении {destination}"
+            },
+            "slight right": {
+                "default": "Перестройтесь правее на съезд",
+                "name": "Перестройтесь правее на съезд на {way_name:accusative}",
+                "destination": "Перестройтесь правее на съезд в направлении {destination}",
+                "exit": "Перестройтесь правее на съезд {exit}",
+                "exit_destination": "Перестройтесь правее на съезд {exit} в направлении {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Сверните на автомагистраль",
+                "name": "Сверните на въезд на {way_name:accusative}",
+                "destination": "Сверните на въезд на автомагистраль в направлении {destination}"
+            },
+            "left": {
+                "default": "Сверните на левый въезд на автомагистраль",
+                "name": "Сверните на левый въезд на {way_name:accusative}",
+                "destination": "Сверните на левый въезд на автомагистраль в направлении {destination}"
+            },
+            "right": {
+                "default": "Сверните на правый въезд на автомагистраль",
+                "name": "Сверните на правый въезд на {way_name:accusative}",
+                "destination": "Сверните на правый въезд на автомагистраль в направлении {destination}"
+            },
+            "sharp left": {
+                "default": "Поверните на левый въезд на автомагистраль",
+                "name": "Поверните на левый въезд на {way_name:accusative}",
+                "destination": "Поверните на левый въезд на автомагистраль в направлении {destination}"
+            },
+            "sharp right": {
+                "default": "Поверните на правый въезд на автомагистраль",
+                "name": "Поверните на правый въезд на {way_name:accusative}",
+                "destination": "Поверните на правый въезд на автомагистраль в направлении {destination}"
+            },
+            "slight left": {
+                "default": "Перестройтесь левее на въезд на автомагистраль",
+                "name": "Перестройтесь левее на {way_name:accusative}",
+                "destination": "Перестройтесь левее на автомагистраль в направлении {destination}"
+            },
+            "slight right": {
+                "default": "Перестройтесь правее на въезд на автомагистраль",
+                "name": "Перестройтесь правее на {way_name:accusative}",
+                "destination": "Перестройтесь правее на автомагистраль в направлении {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Продолжите движение по круговой развязке",
+                    "name": "На круговой развязке сверните на {way_name:accusative}",
+                    "destination": "На круговой развязке сверните в направлении {destination}"
+                },
+                "name": {
+                    "default": "Продолжите движение по {rotary_name:dative}",
+                    "name": "На {rotary_name:prepositional} сверните на {way_name:accusative}",
+                    "destination": "На {rotary_name:prepositional} сверните в направлении {destination}"
+                },
+                "exit": {
+                    "default": "На круговой развязке сверните на {exit_number} съезд",
+                    "name": "На круговой развязке сверните на {exit_number} съезд на {way_name:accusative}",
+                    "destination": "На круговой развязке сверните на {exit_number} съезд в направлении {destination}"
+                },
+                "name_exit": {
+                    "default": "На {rotary_name:prepositional} сверните на {exit_number} съезд",
+                    "name": "На {rotary_name:prepositional} сверните на {exit_number} съезд на {way_name:accusative}",
+                    "destination": "На {rotary_name:prepositional} сверните на {exit_number} съезд в направлении {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "На круговой развязке сверните на {exit_number} съезд",
+                    "name": "На круговой развязке сверните на {exit_number} съезд на {way_name:accusative}",
+                    "destination": "На круговой развязке сверните на {exit_number} съезд в направлении {destination}"
+                },
+                "default": {
+                    "default": "Продолжите движение по круговой развязке",
+                    "name": "На круговой развязке сверните на {way_name:accusative}",
+                    "destination": "На круговой развязке сверните в направлении {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "На круговой развязке двигайтесь {modifier}",
+                "name": "На круговой развязке двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "На круговой развязке двигайтесь {modifier} в направлении {destination}"
+            },
+            "left": {
+                "default": "На круговой развязке сверните налево",
+                "name": "На круговой развязке сверните налево на {way_name:accusative}",
+                "destination": "На круговой развязке сверните налево в направлении {destination}"
+            },
+            "right": {
+                "default": "На круговой развязке сверните направо",
+                "name": "На круговой развязке сверните направо на {way_name:accusative}",
+                "destination": "На круговой развязке сверните направо в направлении {destination}"
+            },
+            "straight": {
+                "default": "На круговой развязке двигайтесь прямо",
+                "name": "На круговой развязке двигайтесь по {way_name:dative}",
+                "destination": "На круговой развязке двигайтесь в направлении {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "Двигайтесь {modifier} в направлении {destination}"
+            },
+            "left": {
+                "default": "Сверните налево",
+                "name": "Сверните налево на {way_name:accusative}",
+                "destination": "Сверните налево в направлении {destination}"
+            },
+            "right": {
+                "default": "Сверните направо",
+                "name": "Сверните направо на {way_name:accusative}",
+                "destination": "Сверните направо в направлении {destination}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Двигайтесь по {way_name:dative}",
+                "destination": "Двигайтесь в направлении {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "Двигайтесь {modifier} в направлении {destination}"
+            },
+            "left": {
+                "default": "Сверните налево",
+                "name": "Сверните налево на {way_name:accusative}",
+                "destination": "Сверните налево в направлении {destination}"
+            },
+            "right": {
+                "default": "Сверните направо",
+                "name": "Сверните направо на {way_name:accusative}",
+                "destination": "Сверните направо в направлении {destination}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Двигайтесь по {way_name:dative}",
+                "destination": "Двигайтесь в направлении {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Двигайтесь {modifier}",
+                "name": "Двигайтесь {modifier} на {way_name:accusative}",
+                "destination": "Двигайтесь {modifier}  в направлении {destination}"
+            },
+            "left": {
+                "default": "Поверните налево",
+                "name": "Поверните налево на {way_name:accusative}",
+                "destination": "Поверните налево в направлении {destination}"
+            },
+            "right": {
+                "default": "Поверните направо",
+                "name": "Поверните направо на {way_name:accusative}",
+                "destination": "Поверните направо  в направлении {destination}"
+            },
+            "straight": {
+                "default": "Двигайтесь прямо",
+                "name": "Двигайтесь по {way_name:dative}",
+                "destination": "Двигайтесь в направлении {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Продолжайте движение прямо"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+
+},{}],19:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1:a",
+                "2": "2:a",
+                "3": "3:e",
+                "4": "4:e",
+                "5": "5:e",
+                "6": "6:e",
+                "7": "7:e",
+                "8": "8:e",
+                "9": "9:e",
+                "10": "10:e"
+            },
+            "direction": {
+                "north": "norr",
+                "northeast": "nordost",
+                "east": "öster",
+                "southeast": "sydost",
+                "south": "söder",
+                "southwest": "sydväst",
+                "west": "väster",
+                "northwest": "nordväst"
+            },
+            "modifier": {
+                "left": "vänster",
+                "right": "höger",
+                "sharp left": "vänster",
+                "sharp right": "höger",
+                "slight left": "vänster",
+                "slight right": "höger",
+                "straight": "rakt fram",
+                "uturn": "U-sväng"
+            },
+            "lanes": {
+                "xo": "Håll till höger",
+                "ox": "Håll till vänster",
+                "xox": "Håll till mitten",
+                "oxo": "Håll till vänster eller höger"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Ta färjan",
+                "name": "Ta färjan på {way_name}",
+                "destination": "Ta färjan mot {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, sedan efter {distance}, {instruction_two}",
+            "two linked": "{instruction_one}, sedan {instruction_two}",
+            "one in distance": "Om {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Du är framme vid din {nth} destination"
+            },
+            "left": {
+                "default": "Du är framme vid din {nth} destination, till vänster"
+            },
+            "right": {
+                "default": "Du är framme vid din {nth} destination, till höger"
+            },
+            "sharp left": {
+                "default": "Du är framme vid din {nth} destination, skarpt till vänster"
+            },
+            "sharp right": {
+                "default": "Du är framme vid din {nth} destination, skarpt till höger"
+            },
+            "slight right": {
+                "default": "Du är framme vid din {nth} destination, till höger"
+            },
+            "slight left": {
+                "default": "Du är framme vid din {nth} destination, till vänster"
+            },
+            "straight": {
+                "default": "Du är framme vid din {nth} destination, rakt fram"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Sväng {modifier}",
+                "name": "Sväng {modifier} och fortsätt på {way_name}",
+                "destination": "Sväng {modifier} mot {destination}",
+                "exit": "Sväng {modifier} in på {way_name}"
+            },
+            "straight": {
+                "default": "Fortsätt rakt fram",
+                "name": "Kör rakt fram och fortsätt på {way_name}",
+                "destination": "Fortsätt mot {destination}",
+                "distance": "Fortsätt rakt fram i {distance}",
+                "namedistance": "Fortsätt på {way_name} i {distance}"
+            },
+            "sharp left": {
+                "default": "Sväng vänster",
+                "name": "Sväng vänster och fortsätt på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "sharp right": {
+                "default": "Sväng höger",
+                "name": "Sväng höger och fortsätt på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "slight left": {
+                "default": "Sväng vänster",
+                "name": "Sväng vänster och fortsätt på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "slight right": {
+                "default": "Sväng höger",
+                "name": "Sväng höger och fortsätt på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng",
+                "name": "Gör en U-sväng och fortsätt på {way_name}",
+                "destination": "Gör en U-sväng mot {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Kör åt {direction}",
+                "name": "Kör åt {direction} på {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Sväng {modifier}",
+                "name": "Sväng {modifier} in på {way_name}",
+                "destination": "Sväng {modifier} mot {destination}"
+            },
+            "straight": {
+                "default": "Fortsätt rakt fram",
+                "name": "Fortsätt rakt fram in på {way_name}",
+                "destination": "Fortsätt rakt fram mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng i slutet av vägen",
+                "name": "Gör en U-sväng in på {way_name} i slutet av vägen",
+                "destination": "Gör en U-sväng mot {destination} i slutet av vägen"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Håll till {modifier} där vägen delar sig",
+                "name": "Håll till {modifier} in på {way_name}",
+                "destination": "Håll till {modifier} mot {destination}"
+            },
+            "slight left": {
+                "default": "Håll till vänster där vägen delar sig",
+                "name": "Håll till vänster in på {way_name}",
+                "destination": "Håll till vänster mot {destination}"
+            },
+            "slight right": {
+                "default": "Håll till höger där vägen delar sig",
+                "name": "Håll till höger in på {way_name}",
+                "destination": "Håll till höger mot {destination}"
+            },
+            "sharp left": {
+                "default": "Sväng vänster där vägen delar sig",
+                "name": "Sväng vänster in på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "sharp right": {
+                "default": "Sväng höger där vägen delar sig",
+                "name": "Sväng höger in på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng",
+                "name": "Gör en U-sväng in på {way_name}",
+                "destination": "Gör en U-sväng mot {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Byt till {modifier} körfält",
+                "name": "Byt till {modifier} körfält in på {way_name}",
+                "destination": "Byt till {modifier} körfält mot {destination}"
+            },
+            "slight left": {
+                "default": "Byt till vänstra körfältet",
+                "name": "Byt till vänstra körfältet in på {way_name}",
+                "destination": "Byt till vänstra körfältet mot {destination}"
+            },
+            "slight right": {
+                "default": "Byt till högra körfältet",
+                "name": "Byt till högra körfältet in på {way_name}",
+                "destination": "Byt till högra körfältet mot {destination}"
+            },
+            "sharp left": {
+                "default": "Byt till vänstra körfältet",
+                "name": "Byt till vänstra körfältet in på {way_name}",
+                "destination": "Byt till vänstra körfältet mot {destination}"
+            },
+            "sharp right": {
+                "default": "Byt till högra körfältet",
+                "name": "Byt till högra körfältet in på {way_name}",
+                "destination": "Byt till högra körfältet mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng",
+                "name": "Gör en U-sväng in på {way_name}",
+                "destination": "Gör en U-sväng mot {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Fortsätt {modifier}",
+                "name": "Fortsätt {modifier} på {way_name}",
+                "destination": "Fortsätt {modifier} mot {destination}"
+            },
+            "straight": {
+                "default": "Fortsätt rakt fram",
+                "name": "Fortsätt in på {way_name}",
+                "destination": "Fortsätt mot {destination}"
+            },
+            "sharp left": {
+                "default": "Gör en skarp vänstersväng",
+                "name": "Gör en skarp vänstersväng in på {way_name}",
+                "destination": "Gör en skarp vänstersväng mot {destination}"
+            },
+            "sharp right": {
+                "default": "Gör en skarp högersväng",
+                "name": "Gör en skarp högersväng in på {way_name}",
+                "destination": "Gör en skarp högersväng mot {destination}"
+            },
+            "slight left": {
+                "default": "Fortsätt med lätt vänstersväng",
+                "name": "Fortsätt med lätt vänstersväng in på {way_name}",
+                "destination": "Fortsätt med lätt vänstersväng mot {destination}"
+            },
+            "slight right": {
+                "default": "Fortsätt med lätt högersväng",
+                "name": "Fortsätt med lätt högersväng in på {way_name}",
+                "destination": "Fortsätt med lätt högersväng mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng",
+                "name": "Gör en U-sväng in på {way_name}",
+                "destination": "Gör en U-sväng mot {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Fortsätt {modifier}",
+                "name": "Fortsätt {modifier} på {way_name}",
+                "destination": "Fortsätt {modifier} mot {destination}"
+            },
+            "uturn": {
+                "default": "Gör en U-sväng",
+                "name": "Gör en U-sväng in på {way_name}",
+                "destination": "Gör en U-sväng mot {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Ta avfarten",
+                "name": "Ta avfarten in på {way_name}",
+                "destination": "Ta avfarten mot {destination}",
+                "exit": "Ta avfart {exit} ",
+                "exit_destination": "Ta avfart {exit} mot {destination}"
+            },
+            "left": {
+                "default": "Ta avfarten till vänster",
+                "name": "Ta avfarten till vänster in på {way_name}",
+                "destination": "Ta avfarten till vänster mot {destination}",
+                "exit": "Ta avfart {exit} till vänster",
+                "exit_destination": "Ta avfart {exit} till vänster mot {destination}"
+            },
+            "right": {
+                "default": "Ta avfarten till höger",
+                "name": "Ta avfarten till höger in på {way_name}",
+                "destination": "Ta avfarten till höger mot {destination}",
+                "exit": "Ta avfart {exit} till höger",
+                "exit_destination": "Ta avfart {exit} till höger mot {destination}"
+            },
+            "sharp left": {
+                "default": "Ta avfarten till vänster",
+                "name": "Ta avfarten till vänster in på {way_name}",
+                "destination": "Ta avfarten till vänster mot {destination}",
+                "exit": "Ta avfart {exit} till vänster",
+                "exit_destination": "Ta avfart {exit} till vänster mot {destination}"
+            },
+            "sharp right": {
+                "default": "Ta avfarten till höger",
+                "name": "Ta avfarten till höger in på {way_name}",
+                "destination": "Ta avfarten till höger mot {destination}",
+                "exit": "Ta avfart {exit} till höger",
+                "exit_destination": "Ta avfart {exit} till höger mot {destination}"
+            },
+            "slight left": {
+                "default": "Ta avfarten till vänster",
+                "name": "Ta avfarten till vänster in på {way_name}",
+                "destination": "Ta avfarten till vänster mot {destination}",
+                "exit": "Ta avfart {exit} till vänster",
+                "exit_destination": "Ta avfart{exit} till vänster mot {destination}"
+            },
+            "slight right": {
+                "default": "Ta avfarten till höger",
+                "name": "Ta avfarten till höger in på {way_name}",
+                "destination": "Ta avfarten till höger mot {destination}",
+                "exit": "Ta avfart {exit} till höger",
+                "exit_destination": "Ta avfart {exit} till höger mot {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Ta påfarten",
+                "name": "Ta påfarten in på {way_name}",
+                "destination": "Ta påfarten mot {destination}"
+            },
+            "left": {
+                "default": "Ta påfarten till vänster",
+                "name": "Ta påfarten till vänster in på {way_name}",
+                "destination": "Ta påfarten till vänster mot {destination}"
+            },
+            "right": {
+                "default": "Ta påfarten till höger",
+                "name": "Ta påfarten till höger in på {way_name}",
+                "destination": "Ta påfarten till höger mot {destination}"
+            },
+            "sharp left": {
+                "default": "Ta påfarten till vänster",
+                "name": "Ta påfarten till vänster in på {way_name}",
+                "destination": "Ta påfarten till vänster mot {destination}"
+            },
+            "sharp right": {
+                "default": "Ta påfarten till höger",
+                "name": "Ta påfarten till höger in på {way_name}",
+                "destination": "Ta påfarten till höger mot {destination}"
+            },
+            "slight left": {
+                "default": "Ta påfarten till vänster",
+                "name": "Ta påfarten till vänster in på {way_name}",
+                "destination": "Ta påfarten till vänster mot {destination}"
+            },
+            "slight right": {
+                "default": "Ta påfarten till höger",
+                "name": "Ta påfarten till höger in på {way_name}",
+                "destination": "Ta påfarten till höger mot {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Kör in i rondellen",
+                    "name": "I rondellen ta av in på {way_name}",
+                    "destination": "I rondellen ta av mot {destination}"
+                },
+                "name": {
+                    "default": "Kör in i {rotary_name}",
+                    "name": "I {rotary_name} ta av in på {way_name}",
+                    "destination": "I {rotary_name} ta av mot {destination}"
+                },
+                "exit": {
+                    "default": "I rondellen ta {exit_number} avfarten",
+                    "name": "I rondellen ta {exit_number} avfarten in på {way_name}",
+                    "destination": "I rondellen ta {exit_number} avfarten mot {destination}"
+                },
+                "name_exit": {
+                    "default": "I {rotary_name} ta {exit_number} avfarten",
+                    "name": "I {rotary_name} ta {exit_number}  avfarten in på {way_name}",
+                    "destination": "I {rotary_name} ta {exit_number} avfarten mot {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "I rondellen ta {exit_number} avfarten",
+                    "name": "I rondellen ta {exit_number} avfarten in på {way_name}",
+                    "destination": "I rondellen ta {exit_number} avfarten mot {destination}"
+                },
+                "default": {
+                    "default": "Kör in i rondellen",
+                    "name": "I rondellen ta av mot {way_name}",
+                    "destination": "I rondellen ta av mot {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "I rondellen sväng {modifier}",
+                "name": "I rondellen sväng {modifier} in på {way_name}",
+                "destination": "I rondellen sväng {modifier} mot {destination}"
+            },
+            "left": {
+                "default": "I rondellen sväng vänster",
+                "name": "I rondellen sväng vänster in på {way_name}",
+                "destination": "I rondellen sväng vänster mot {destination}"
+            },
+            "right": {
+                "default": "I rondellen sväng höger",
+                "name": "I rondellen sväng höger in på {way_name}",
+                "destination": "I rondellen sväng höger mot {destination}"
+            },
+            "straight": {
+                "default": "I rondellen fortsätt rakt fram",
+                "name": "I rondellen fortsätt rakt fram in på {way_name}",
+                "destination": "I rondellen fortsätt rakt fram mot {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Sväng {modifier}",
+                "name": "Sväng {modifier} in på {way_name}",
+                "destination": "Sväng {modifier} mot {destination}"
+            },
+            "left": {
+                "default": "Sväng vänster",
+                "name": "Sväng vänster in på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "right": {
+                "default": "Sväng höger",
+                "name": "Sväng höger in på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "straight": {
+                "default": "Kör rakt fram",
+                "name": "Kör rakt fram in på {way_name}",
+                "destination": "Kör rakt fram mot {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Sväng {modifier}",
+                "name": "Sväng {modifier} in på {way_name}",
+                "destination": "Sväng {modifier} mot {destination}"
+            },
+            "left": {
+                "default": "Sväng vänster",
+                "name": "Sväng vänster in på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "right": {
+                "default": "Sväng höger",
+                "name": "Sväng höger in på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "straight": {
+                "default": "Kör rakt fram",
+                "name": "Kör rakt fram in på {way_name}",
+                "destination": "Kör rakt fram mot {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Sväng {modifier}",
+                "name": "Sväng {modifier} in på {way_name}",
+                "destination": "Sväng {modifier} mot {destination}"
+            },
+            "left": {
+                "default": "Sväng vänster",
+                "name": "Sväng vänster in på {way_name}",
+                "destination": "Sväng vänster mot {destination}"
+            },
+            "right": {
+                "default": "Sväng höger",
+                "name": "Sväng höger in på {way_name}",
+                "destination": "Sväng höger mot {destination}"
+            },
+            "straight": {
+                "default": "Kör rakt fram",
+                "name": "Kör rakt fram in på {way_name}",
+                "destination": "Kör rakt fram mot {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Fortsätt rakt fram"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],20:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "birinci",
+                "2": "ikinci",
+                "3": "üçüncü",
+                "4": "dördüncü",
+                "5": "beşinci",
+                "6": "altıncı",
+                "7": "yedinci",
+                "8": "sekizinci",
+                "9": "dokuzuncu",
+                "10": "onuncu"
+            },
+            "direction": {
+                "north": "kuzey",
+                "northeast": "kuzeydoğu",
+                "east": "doğu",
+                "southeast": "güneydoğu",
+                "south": "güney",
+                "southwest": "güneybatı",
+                "west": "batı",
+                "northwest": "kuzeybatı"
+            },
+            "modifier": {
+                "left": "sol",
+                "right": "sağ",
+                "sharp left": "keskin sol",
+                "sharp right": "keskin sağ",
+                "slight left": "hafif sol",
+                "slight right": "hafif sağ",
+                "straight": "düz",
+                "uturn": "U dönüşü"
+            },
+            "lanes": {
+                "xo": "Sağda kalın",
+                "ox": "Solda kalın",
+                "xox": "Ortada kalın",
+                "oxo": "Solda veya sağda kalın"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Vapur kullan",
+                "name": "{way_name} vapurunu kullan",
+                "destination": "{destination} istikametine giden vapuru kullan"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} ve {distance} sonra {instruction_two}",
+            "two linked": "{instruction_one} ve sonra {instruction_two}",
+            "one in distance": "{distance} sonra, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "{nth} hedefinize ulaştınız"
+            },
+            "left": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz solunuzdadır"
+            },
+            "right": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz sağınızdadır"
+            },
+            "sharp left": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz solunuzdadır"
+            },
+            "sharp right": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz sağınızdadır"
+            },
+            "slight right": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz sağınızdadır"
+            },
+            "slight left": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz solunuzdadır"
+            },
+            "straight": {
+                "default": "{nth} hedefinize ulaştınız, hedefiniz karşınızdadır"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "{modifier} yöne dön",
+                "name": "{way_name} üzerinde kalmak için {modifier} yöne dön",
+                "destination": "{destination} istikametinde {modifier} yöne dön",
+                "exit": "{way_name} üzerinde {modifier} yöne dön"
+            },
+            "straight": {
+                "default": "Düz devam edin",
+                "name": "{way_name} üzerinde kalmak için düz devam et",
+                "destination": "{destination} istikametinde devam et",
+                "distance": "{distance} boyunca düz devam et",
+                "namedistance": "{distance} boyunca {way_name} üzerinde devam et"
+            },
+            "sharp left": {
+                "default": "Sola keskin dönüş yap",
+                "name": "{way_name} üzerinde kalmak için sola keskin dönüş yap",
+                "destination": "{destination} istikametinde sola keskin dönüş yap"
+            },
+            "sharp right": {
+                "default": "Sağa keskin dönüş yap",
+                "name": "{way_name} üzerinde kalmak için sağa keskin dönüş yap",
+                "destination": "{destination} istikametinde sağa keskin dönüş yap"
+            },
+            "slight left": {
+                "default": "Sola hafif dönüş yap",
+                "name": "{way_name} üzerinde kalmak için sola hafif dönüş yap",
+                "destination": "{destination} istikametinde sola hafif dönüş yap"
+            },
+            "slight right": {
+                "default": "Sağa hafif dönüş yap",
+                "name": "{way_name} üzerinde kalmak için sağa hafif dönüş yap",
+                "destination": "{destination} istikametinde sağa hafif dönüş yap"
+            },
+            "uturn": {
+                "default": "U dönüşü yapın",
+                "name": "Bir U-dönüşü yap ve {way_name} devam et",
+                "destination": "{destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "{direction} tarafına yönelin",
+                "name": "{way_name} üzerinde {direction} yöne git",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "{modifier} tarafa dönün",
+                "name": "{way_name} üzerinde {modifier} yöne dön",
+                "destination": "{destination} istikametinde {modifier} yöne dön"
+            },
+            "straight": {
+                "default": "Düz devam edin",
+                "name": "{way_name} üzerinde düz devam et",
+                "destination": "{destination} istikametinde düz devam et"
+            },
+            "uturn": {
+                "default": "Yolun sonunda U dönüşü yapın",
+                "name": "Yolun sonunda {way_name} üzerinde bir U-dönüşü yap",
+                "destination": "Yolun sonunda {destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Yol ayrımında {modifier} yönde kal",
+                "name": "{way_name} üzerindeki yol ayrımında {modifier} yönde kal",
+                "destination": "{destination} istikametindeki yol ayrımında {modifier} yönde kal"
+            },
+            "slight left": {
+                "default": "Çatalın solundan devam edin",
+                "name": "Çatalın solundan {way_name} yoluna doğru ",
+                "destination": "{destination} istikametindeki yol ayrımında solda kal"
+            },
+            "slight right": {
+                "default": "Çatalın sağından devam edin",
+                "name": "{way_name} üzerindeki yol ayrımında sağda kal",
+                "destination": "{destination} istikametindeki yol ayrımında sağda kal"
+            },
+            "sharp left": {
+                "default": "Çatalda keskin sola dönün",
+                "name": "{way_name} üzerindeki yol ayrımında sola keskin dönüş yap",
+                "destination": "{destination} istikametindeki yol ayrımında sola keskin dönüş yap"
+            },
+            "sharp right": {
+                "default": "Çatalda keskin sağa dönün",
+                "name": "{way_name} üzerindeki yol ayrımında sağa keskin dönüş yap",
+                "destination": "{destination} istikametindeki yol ayrımında sola keskin dönüş yap"
+            },
+            "uturn": {
+                "default": "U dönüşü yapın",
+                "name": "{way_name} yoluna U dönüşü yapın",
+                "destination": "{destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "{modifier} yöne gir",
+                "name": "{way_name} üzerinde {modifier} yöne gir",
+                "destination": "{destination} istikametinde {modifier} yöne gir"
+            },
+            "slight left": {
+                "default": "Sola gir",
+                "name": "{way_name} üzerinde sola gir",
+                "destination": "{destination} istikametinde sola gir"
+            },
+            "slight right": {
+                "default": "Sağa gir",
+                "name": "{way_name} üzerinde sağa gir",
+                "destination": "{destination} istikametinde sağa gir"
+            },
+            "sharp left": {
+                "default": "Sola gir",
+                "name": "{way_name} üzerinde sola gir",
+                "destination": "{destination} istikametinde sola gir"
+            },
+            "sharp right": {
+                "default": "Sağa gir",
+                "name": "{way_name} üzerinde sağa gir",
+                "destination": "{destination} istikametinde sağa gir"
+            },
+            "uturn": {
+                "default": "U dönüşü yapın",
+                "name": "{way_name} yoluna U dönüşü yapın",
+                "destination": "{destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "{modifier} yönde devam et",
+                "name": "{way_name} üzerinde {modifier} yönde devam et",
+                "destination": "{destination} istikametinde {modifier} yönde devam et"
+            },
+            "straight": {
+                "default": "Düz devam et",
+                "name": "{way_name} üzerinde devam et",
+                "destination": "{destination} istikametinde devam et"
+            },
+            "sharp left": {
+                "default": "Sola keskin dönüş yapın",
+                "name": "{way_name} yoluna doğru sola keskin dönüş yapın",
+                "destination": "{destination} istikametinde sola keskin dönüş yap"
+            },
+            "sharp right": {
+                "default": "Sağa keskin dönüş yapın",
+                "name": "{way_name} yoluna doğru sağa keskin dönüş yapın",
+                "destination": "{destination} istikametinde sağa keskin dönüş yap"
+            },
+            "slight left": {
+                "default": "Hafif soldan devam edin",
+                "name": "{way_name} üzerinde hafif solda devam et",
+                "destination": "{destination} istikametinde hafif solda devam et"
+            },
+            "slight right": {
+                "default": "Hafif sağdan devam edin",
+                "name": "{way_name} üzerinde hafif sağda devam et",
+                "destination": "{destination} istikametinde hafif sağda devam et"
+            },
+            "uturn": {
+                "default": "U dönüşü yapın",
+                "name": "{way_name} yoluna U dönüşü yapın",
+                "destination": "{destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "{modifier} yönde devam et",
+                "name": "{way_name} üzerinde {modifier} yönde devam et",
+                "destination": "{destination} istikametinde {modifier} yönde devam et"
+            },
+            "uturn": {
+                "default": "U dönüşü yapın",
+                "name": "{way_name} yoluna U dönüşü yapın",
+                "destination": "{destination} istikametinde bir U-dönüşü yap"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden bağlantı yoluna geç",
+                "exit": "{exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} çıkış yoluna geç"
+            },
+            "left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç",
+                "exit": "Soldaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sol çıkış yoluna geç"
+            },
+            "right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç",
+                "exit": "Sağdaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sağ çıkış yoluna geç"
+            },
+            "sharp left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç",
+                "exit": "Soldaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sol çıkış yoluna geç"
+            },
+            "sharp right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç",
+                "exit": "Sağdaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sağ çıkış yoluna geç"
+            },
+            "slight left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç",
+                "exit": "Soldaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sol çıkış yoluna geç"
+            },
+            "slight right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç",
+                "exit": "Sağdaki {exit} çıkış yoluna geç",
+                "exit_destination": "{destination} istikametindeki {exit} sağ çıkış yoluna geç"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden bağlantı yoluna geç"
+            },
+            "left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç"
+            },
+            "right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç"
+            },
+            "sharp left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç"
+            },
+            "sharp right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç"
+            },
+            "slight left": {
+                "default": "Soldaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sol bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sol bağlantı yoluna geç"
+            },
+            "slight right": {
+                "default": "Sağdaki bağlantı yoluna geç",
+                "name": "{way_name} üzerindeki sağ bağlantı yoluna geç",
+                "destination": "{destination} istikametine giden sağ bağlantı yoluna geç"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Dönel kavşağa gir",
+                    "name": "Dönel kavşağa gir ve {way_name} üzerinde çık",
+                    "destination": "Dönel kavşağa gir ve {destination} istikametinde çık"
+                },
+                "name": {
+                    "default": "{rotary_name} dönel kavşağa gir",
+                    "name": "{rotary_name} dönel kavşağa gir ve {way_name} üzerinde çık",
+                    "destination": "{rotary_name} dönel kavşağa gir ve {destination} istikametinde çık"
+                },
+                "exit": {
+                    "default": "Dönel kavşağa gir ve {exit_number} numaralı çıkışa gir",
+                    "name": "Dönel kavşağa gir ve {way_name} üzerindeki {exit_number} numaralı çıkışa gir",
+                    "destination": "Dönel kavşağa gir ve {destination} istikametindeki {exit_number} numaralı çıkışa gir"
+                },
+                "name_exit": {
+                    "default": "{rotary_name} dönel kavşağa gir ve {exit_number} numaralı çıkışa gir",
+                    "name": "{rotary_name} dönel kavşağa gir ve {way_name} üzerindeki {exit_number} numaralı çıkışa gir",
+                    "destination": "{rotary_name} dönel kavşağa gir ve {destination} istikametindeki {exit_number} numaralı çıkışa gir"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Göbekli kavşağa gir ve {exit_number} numaralı çıkışa gir",
+                    "name": "Göbekli kavşağa gir ve {way_name} üzerindeki {exit_number} numaralı çıkışa gir",
+                    "destination": "Göbekli kavşağa gir ve {destination} istikametindeki {exit_number} numaralı çıkışa gir"
+                },
+                "default": {
+                    "default": "Göbekli kavşağa gir",
+                    "name": "Göbekli kavşağa gir ve {way_name} üzerinde çık",
+                    "destination": "Göbekli kavşağa gir ve {destination} istikametinde çık"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Göbekli kavşakta {modifier} yöne dön",
+                "name": "{way_name} üzerindeki göbekli kavşakta {modifier} yöne dön",
+                "destination": "{destination} üzerindeki göbekli kavşakta {modifier} yöne dön"
+            },
+            "left": {
+                "default": "Göbekli kavşakta sola dön",
+                "name": "Göbekli kavşakta {way_name} üzerinde sola dön",
+                "destination": "Göbekli kavşakta {destination} istikametinde sola dön"
+            },
+            "right": {
+                "default": "Göbekli kavşakta sağa dön",
+                "name": "Göbekli kavşakta {way_name} üzerinde sağa dön",
+                "destination": "Göbekli kavşakta {destination} üzerinde sağa dön"
+            },
+            "straight": {
+                "default": "Göbekli kavşakta düz devam et",
+                "name": "Göbekli kavşakta {way_name} üzerinde düz devam et",
+                "destination": "Göbekli kavşakta {destination} istikametinde düz devam et"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "{modifier} yöne dön",
+                "name": "{way_name} üzerinde {modifier} yöne dön",
+                "destination": "{destination} istikametinde {modifier} yöne dön"
+            },
+            "left": {
+                "default": "Sola dön",
+                "name": "{way_name} üzerinde sola dön",
+                "destination": "{destination} istikametinde sola dön"
+            },
+            "right": {
+                "default": "Sağa dön",
+                "name": "{way_name} üzerinde sağa dön",
+                "destination": "{destination} istikametinde sağa dön"
+            },
+            "straight": {
+                "default": "Düz git",
+                "name": "{way_name} üzerinde düz git",
+                "destination": "{destination} istikametinde düz git"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "{modifier} yöne dön",
+                "name": "{way_name} üzerinde {modifier} yöne dön",
+                "destination": "{destination} istikametinde {modifier} yöne dön"
+            },
+            "left": {
+                "default": "Sola dön",
+                "name": "{way_name} üzerinde sola dön",
+                "destination": "{destination} istikametinde sola dön"
+            },
+            "right": {
+                "default": "Sağa dön",
+                "name": "{way_name} üzerinde sağa dön",
+                "destination": "{destination} istikametinde sağa dön"
+            },
+            "straight": {
+                "default": "Düz git",
+                "name": "{way_name} üzerinde düz git",
+                "destination": "{destination} istikametinde düz git"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "{modifier} yöne dön",
+                "name": "{way_name} üzerinde {modifier} yöne dön",
+                "destination": "{destination} istikametinde {modifier} yöne dön"
+            },
+            "left": {
+                "default": "Sola dönün",
+                "name": "{way_name} üzerinde sola dön",
+                "destination": "{destination} istikametinde sola dön"
+            },
+            "right": {
+                "default": "Sağa dönün",
+                "name": "{way_name} üzerinde sağa dön",
+                "destination": "{destination} istikametinde sağa dön"
+            },
+            "straight": {
+                "default": "Düz git",
+                "name": "{way_name} üzerinde düz git",
+                "destination": "{destination} istikametinde düz git"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Düz devam edin"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],21:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "1й",
+                "2": "2й",
+                "3": "3й",
+                "4": "4й",
+                "5": "5й",
+                "6": "6й",
+                "7": "7й",
+                "8": "8й",
+                "9": "9й",
+                "10": "10й"
+            },
+            "direction": {
+                "north": "північ",
+                "northeast": "північний схід",
+                "east": "схід",
+                "southeast": "південний схід",
+                "south": "південь",
+                "southwest": "південний захід",
+                "west": "захід",
+                "northwest": "північний захід"
+            },
+            "modifier": {
+                "left": "ліворуч",
+                "right": "праворуч",
+                "sharp left": "різко ліворуч",
+                "sharp right": "різко праворуч",
+                "slight left": "плавно ліворуч",
+                "slight right": "плавно праворуч",
+                "straight": "прямо",
+                "uturn": "розворот"
+            },
+            "lanes": {
+                "xo": "Тримайтесь праворуч",
+                "ox": "Тримайтесь ліворуч",
+                "xox": "Тримайтесь в середині",
+                "oxo": "Тримайтесь праворуч або ліворуч"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Скористайтесь поромом",
+                "name": "Скористайтесь поромом {way_name}",
+                "destination": "Скористайтесь поромом у напрямку {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Ви прибули у ваш {nth} пункт призначення"
+            },
+            "left": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – ліворуч"
+            },
+            "right": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – праворуч"
+            },
+            "sharp left": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – ліворуч"
+            },
+            "sharp right": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – праворуч"
+            },
+            "slight right": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – праворуч"
+            },
+            "slight left": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – ліворуч"
+            },
+            "straight": {
+                "default": "Ви прибули у ваш {nth} пункт призначення, він – прямо перед вами"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Поверніть {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Поверніть {modifier} у напрямку {destination}",
+                "exit": "Поверніть {modifier} на {way_name}"
+            },
+            "straight": {
+                "default": "Продовжуйте рух прямо",
+                "name": "Рухайтесь по {way_name}",
+                "destination": "Рухайтесь у напрямку {destination}",
+                "distance": "Continue straight for {distance}",
+                "namedistance": "Continue on {way_name} for {distance}"
+            },
+            "sharp left": {
+                "default": "Прийміть різко ліворуч",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Прийміть різко ліворуч у напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "Прийміть різко праворуч",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Прийміть різко праворуч у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "Прийміть різко ліворуч",
+                "name": "Рухайтесь плавно ліворуч на {way_name}",
+                "destination": "Рухайтесь плавно ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "Прийміть плавно праворуч",
+                "name": "Рухайтесь плавно праворуч на {way_name}",
+                "destination": "Рухайтесь плавно праворуч у напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот",
+                "name": "Здійсніть розворот на {way_name}",
+                "destination": "Здійсніть розворот у напрямку {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Прямуйте на {direction}",
+                "name": "Прямуйте на {direction} по {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Поверніть {modifier}",
+                "name": "Поверніть {modifier} на {way_name}",
+                "destination": "Поверніть {modifier} у напрямку {destination}"
+            },
+            "straight": {
+                "default": "Продовжуйте рух прямо",
+                "name": "Продовжуйте рух прямо по {way_name}",
+                "destination": "Продовжуйте рух прямо у напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот в кінці дороги",
+                "name": "Здійсніть розворот на {way_name} в кінці дороги",
+                "destination": "Здійсніть розворот у напрямку {destination} в кінці дороги"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "На роздоріжжі тримайтеся {modifier}",
+                "name": "На роздоріжжі тримайтеся {modifier} і виїжджайте на {way_name}",
+                "destination": "На роздоріжжі тримайтеся {modifier} у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "На роздоріжжі тримайтеся ліворуч",
+                "name": "На роздоріжжі тримайтеся ліворуч і виїжджайте на {way_name}",
+                "destination": "На роздоріжжі тримайтеся ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "На роздоріжжі тримайтеся праворуч",
+                "name": "На роздоріжжі тримайтеся праворуч і виїжджайте на {way_name}",
+                "destination": "На роздоріжжі тримайтеся праворуч у напрямку {destination}"
+            },
+            "sharp left": {
+                "default": "На роздоріжжі різко поверніть ліворуч",
+                "name": "На роздоріжжі різко поверніть ліворуч на {way_name}",
+                "destination": "На роздоріжжі різко поверніть ліворуч в напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "На роздоріжжі різко поверніть праворуч",
+                "name": "На роздоріжжі різко поверніть праворуч на {way_name}",
+                "destination": "На роздоріжжі різко поверніть праворуч в напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот",
+                "name": "Здійсніть розворот на {way_name}",
+                "destination": "Здійсніть розворот у напрямку {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Приєднайтеся до потоку {modifier}",
+                "name": "Приєднайтеся до потоку {modifier} на {way_name}",
+                "destination": "Приєднайтеся до потоку {modifier} у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "Приєднайтеся до потоку ліворуч",
+                "name": "Приєднайтеся до потоку ліворуч на {way_name}",
+                "destination": "Приєднайтеся до потоку ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "Приєднайтеся до потоку праворуч",
+                "name": "Приєднайтеся до потоку праворуч на {way_name}",
+                "destination": "Приєднайтеся до потоку праворуч у напрямку {destination}"
+            },
+            "sharp left": {
+                "default": "Приєднайтеся до потоку ліворуч",
+                "name": "Приєднайтеся до потоку ліворуч на {way_name}",
+                "destination": "Приєднайтеся до потоку ліворуч у напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "Приєднайтеся до потоку праворуч",
+                "name": "Приєднайтеся до потоку праворуч на {way_name}",
+                "destination": "Приєднайтеся до потоку праворуч у напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот",
+                "name": "Здійсніть розворот на {way_name}",
+                "destination": "Здійсніть розворот у напрямку {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Рухайтесь {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Рухайтесь {modifier} у напрямку {destination}"
+            },
+            "straight": {
+                "default": "Продовжуйте рух прямо",
+                "name": "Продовжуйте рух по {way_name}",
+                "destination": "Продовжуйте рух у напрямку {destination}"
+            },
+            "sharp left": {
+                "default": "Прийміть різко ліворуч",
+                "name": "Прийміть різко ліворуч на {way_name}",
+                "destination": "Прийміть різко ліворуч у напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "Прийміть різко праворуч",
+                "name": "Прийміть різко праворуч на {way_name}",
+                "destination": "Прийміть різко праворуч у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "Прийміть плавно ліворуч",
+                "name": "Рухайтесь плавно ліворуч на {way_name}",
+                "destination": "Рухайтесь плавно ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "Прийміть плавно праворуч",
+                "name": "Рухайтесь плавно праворуч на {way_name}",
+                "destination": "Рухайтесь плавно праворуч у напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот",
+                "name": "Здійсніть розворот на {way_name}",
+                "destination": "Здійсніть розворот у напрямку {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Рухайтесь {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Рухайтесь {modifier} у напрямку {destination}"
+            },
+            "uturn": {
+                "default": "Здійсніть розворот",
+                "name": "Здійсніть розворот на {way_name}",
+                "destination": "Здійсніть розворот у напрямку {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Рухайтесь на зʼїзд",
+                "name": "Рухайтесь на зʼїзд на {way_name}",
+                "destination": "Рухайтесь на зʼїзд у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit}",
+                "exit_destination": "Оберіть з'їзд {exit} у напрямку {destination}"
+            },
+            "left": {
+                "default": "Рухайтесь на зʼїзд ліворуч",
+                "name": "Рухайтесь на зʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд ліворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} ліворуч",
+                "exit_destination": "Оберіть з'їзд {exit} ліворуч у напрямку {destination}"
+            },
+            "right": {
+                "default": "Рухайтесь на зʼїзд праворуч",
+                "name": "Рухайтесь на зʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд праворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} праворуч",
+                "exit_destination": "Оберіть з'їзд {exit} праворуч у напрямку {destination}"
+            },
+            "sharp left": {
+                "default": "Рухайтесь на зʼїзд ліворуч",
+                "name": "Рухайтесь на зʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд ліворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} ліворуч",
+                "exit_destination": "Оберіть з'їзд {exit} ліворуч у напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "Рухайтесь на зʼїзд праворуч",
+                "name": "Рухайтесь на зʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд праворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} праворуч",
+                "exit_destination": "Оберіть з'їзд {exit} праворуч у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "Рухайтесь на зʼїзд ліворуч",
+                "name": "Рухайтесь на зʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд ліворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} ліворуч",
+                "exit_destination": "Оберіть з'їзд {exit} ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "Рухайтесь на зʼїзд праворуч",
+                "name": "Рухайтесь на зʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на зʼїзд праворуч у напрямку {destination}",
+                "exit": "Оберіть з'їзд {exit} праворуч",
+                "exit_destination": "Оберіть з'їзд {exit} праворуч у напрямку {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Рухайтесь на вʼїзд",
+                "name": "Рухайтесь на вʼїзд на {way_name}",
+                "destination": "Рухайтесь на вʼїзд у напрямку {destination}"
+            },
+            "left": {
+                "default": "Рухайтесь на вʼїзд ліворуч",
+                "name": "Рухайтесь на вʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд ліворуч у напрямку {destination}"
+            },
+            "right": {
+                "default": "Рухайтесь на вʼїзд праворуч",
+                "name": "Рухайтесь на вʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд праворуч у напрямку {destination}"
+            },
+            "sharp left": {
+                "default": "Рухайтесь на вʼїзд ліворуч",
+                "name": "Рухайтесь на вʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд ліворуч у напрямку {destination}"
+            },
+            "sharp right": {
+                "default": "Рухайтесь на вʼїзд праворуч",
+                "name": "Рухайтесь на вʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд праворуч у напрямку {destination}"
+            },
+            "slight left": {
+                "default": "Рухайтесь на вʼїзд ліворуч",
+                "name": "Рухайтесь на вʼїзд ліворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд ліворуч у напрямку {destination}"
+            },
+            "slight right": {
+                "default": "Рухайтесь на вʼїзд праворуч",
+                "name": "Рухайтесь на вʼїзд праворуч на {way_name}",
+                "destination": "Рухайтесь на вʼїзд праворуч у напрямку {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Рухайтесь по колу",
+                    "name": "Рухайтесь по колу до {way_name}",
+                    "destination": "Рухайтесь по колу в напрямку {destination}"
+                },
+                "name": {
+                    "default": "Рухайтесь по {rotary_name}",
+                    "name": "Рухайтесь по {rotary_name} та поверніть на {way_name}",
+                    "destination": "Рухайтесь по {rotary_name} та поверніть в напрямку {destination}"
+                },
+                "exit": {
+                    "default": "Рухайтесь по колу та повереніть у {exit_number} з'їзд",
+                    "name": "Рухайтесь по колу та поверніть у {exit_number} з'їзд на {way_name}",
+                    "destination": "Рухайтесь по колу та поверніть у {exit_number} з'їзд у напрямку {destination}"
+                },
+                "name_exit": {
+                    "default": "Рухайтесь по {rotary_name} та поверніть у {exit_number} з'їзд",
+                    "name": "Рухайтесь по {rotary_name} та поверніть у {exit_number} з'їзд на {way_name}",
+                    "destination": "Рухайтесь по {rotary_name} та поверніть у {exit_number} з'їзд в напрямку {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Рухайтесь по кільцю та повереніть у {exit_number} з'їзд",
+                    "name": "Рухайтесь по кільцю та поверніть у {exit_number} з'їзд на {way_name}",
+                    "destination": "Рухайтесь по кільцю та поверніть у {exit_number} з'їзд у напрямку {destination}"
+                },
+                "default": {
+                    "default": "Рухайтесь по кільцю",
+                    "name": "Рухайтесь по кільцю до {way_name}",
+                    "destination": "Рухайтесь по кільцю в напрямку {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "На кільці {modifier}",
+                "name": "На кільці {modifier} на {way_name}",
+                "destination": "На кільці {modifier} в напрямку {destination}"
+            },
+            "left": {
+                "default": "На кільці поверніть ліворуч",
+                "name": "На кільці поверніть ліворуч на {way_name}",
+                "destination": "На кільці поверніть ліворуч в напрямку {destination}"
+            },
+            "right": {
+                "default": "На кільці поверніть праворуч",
+                "name": "На кільці поверніть праворуч на {way_name}",
+                "destination": "На кільці поверніть праворуч в напрямку {destination}"
+            },
+            "straight": {
+                "default": "На кільці продовжуйте рухатись прямо",
+                "name": "На кільці продовжуйте рухатись прямо на {way_name}",
+                "destination": "На кільці продовжуйте рухатись прямо в напрямку {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Рухайтесь {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Рухайтесь {modifier} в напрямку {destination}"
+            },
+            "left": {
+                "default": "Поверніть ліворуч",
+                "name": "Поверніть ліворуч на {way_name}",
+                "destination": "Поверніть ліворуч у напрямку {destination}"
+            },
+            "right": {
+                "default": "Поверніть праворуч",
+                "name": "Поверніть праворуч на {way_name}",
+                "destination": "Поверніть праворуч у напрямку {destination}"
+            },
+            "straight": {
+                "default": "Рухайтесь прямо",
+                "name": "Рухайтесь прямо по {way_name}",
+                "destination": "Рухайтесь прямо у напрямку {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Рухайтесь {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Рухайтесь {modifier} в напрямку {destination}"
+            },
+            "left": {
+                "default": "Поверніть ліворуч",
+                "name": "Поверніть ліворуч на {way_name}",
+                "destination": "Поверніть ліворуч у напрямку {destination}"
+            },
+            "right": {
+                "default": "Поверніть праворуч",
+                "name": "Поверніть праворуч на {way_name}",
+                "destination": "Поверніть праворуч у напрямку {destination}"
+            },
+            "straight": {
+                "default": "Рухайтесь прямо",
+                "name": "Рухайтесь прямо по {way_name}",
+                "destination": "Рухайтесь прямо у напрямку {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Рухайтесь {modifier}",
+                "name": "Рухайтесь {modifier} на {way_name}",
+                "destination": "Рухайтесь {modifier} в напрямку {destination}"
+            },
+            "left": {
+                "default": "Поверніть ліворуч",
+                "name": "Поверніть ліворуч на {way_name}",
+                "destination": "Поверніть ліворуч у напрямку {destination}"
+            },
+            "right": {
+                "default": "Поверніть праворуч",
+                "name": "Поверніть праворуч на {way_name}",
+                "destination": "Поверніть праворуч у напрямку {destination}"
+            },
+            "straight": {
+                "default": "Рухайтесь прямо",
+                "name": "Рухайтесь прямо по {way_name}",
+                "destination": "Рухайтесь прямо у напрямку {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Продовжуйте рух прямо"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+
+},{}],22:[function(_dereq_,module,exports){
+module.exports={
+    "meta": {
+        "capitalizeFirstLetter": true
+    },
+    "v5": {
+        "constants": {
+            "ordinalize": {
+                "1": "đầu tiên",
+                "2": "thứ 2",
+                "3": "thứ 3",
+                "4": "thứ 4",
+                "5": "thứ 5",
+                "6": "thú 6",
+                "7": "thứ 7",
+                "8": "thứ 8",
+                "9": "thứ 9",
+                "10": "thứ 10"
+            },
+            "direction": {
+                "north": "bắc",
+                "northeast": "đông bắc",
+                "east": "đông",
+                "southeast": "đông nam",
+                "south": "nam",
+                "southwest": "tây nam",
+                "west": "tây",
+                "northwest": "tây bắc"
+            },
+            "modifier": {
+                "left": "trái",
+                "right": "phải",
+                "sharp left": "trái gắt",
+                "sharp right": "phải gắt",
+                "slight left": "trái nghiêng",
+                "slight right": "phải nghiêng",
+                "straight": "thẳng",
+                "uturn": "ngược"
+            },
+            "lanes": {
+                "xo": "Đi bên phải",
+                "ox": "Đi bên trái",
+                "xox": "Đi vào giữa",
+                "oxo": "Đi bên trái hay bên phải"
+            }
+        },
+        "modes": {
+            "ferry": {
+                "default": "Lên phà",
+                "name": "Lên phà {way_name}",
+                "destination": "Lên phà đi {destination}"
+            }
+        },
+        "phrase": {
+            "two linked by distance": "{instruction_one}, rồi {distance} nữa thì {instruction_two}",
+            "two linked": "{instruction_one}, rồi {instruction_two}",
+            "one in distance": "{distance} nữa thì {instruction_one}",
+            "name and ref": "{name} ({ref})"
+        },
+        "arrive": {
+            "default": {
+                "default": "Đến nơi {nth}"
+            },
+            "left": {
+                "default": "Đến nơi {nth} ở bên trái"
+            },
+            "right": {
+                "default": "Đến nơi {nth} ở bên phải"
+            },
+            "sharp left": {
+                "default": "Đến nơi {nth} ở bên trái"
+            },
+            "sharp right": {
+                "default": "Đến nơi {nth} ở bên phải"
+            },
+            "slight right": {
+                "default": "Đến nơi {nth} ở bên phải"
+            },
+            "slight left": {
+                "default": "Đến nơi {nth} ở bên trái"
+            },
+            "straight": {
+                "default": "Đến nơi {nth} ở trước mặt"
+            }
+        },
+        "continue": {
+            "default": {
+                "default": "Quẹo {modifier}",
+                "name": "Quẹo {modifier} để chạy tiếp trên {way_name}",
+                "destination": "Quẹo {modifier} đến {destination}",
+                "exit": "Quẹo {modifier} vào {way_name}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy tiếp trên {way_name}",
+                "destination": "Chạy tiếp đến {destination}",
+                "distance": "Chạy thẳng cho {distance}",
+                "namedistance": "Chạy tiếp trên {way_name} cho {distance}"
+            },
+            "sharp left": {
+                "default": "Quẹo gắt bên trái",
+                "name": "Quẹo gắt bên trái để chạy tiếp trên {way_name}",
+                "destination": "Quẹo gắt bên trái đến {destination}"
+            },
+            "sharp right": {
+                "default": "Quẹo gắt bên phải",
+                "name": "Quẹo gắt bên phải để chạy tiếp trên {way_name}",
+                "destination": "Quẹo gắt bên phải đến {destination}"
+            },
+            "slight left": {
+                "default": "Nghiêng về bên trái",
+                "name": "Nghiêng về bên trái để chạy tiếp trên {way_name}",
+                "destination": "Nghiêng về bên trái đến {destination}"
+            },
+            "slight right": {
+                "default": "Nghiêng về bên phải",
+                "name": "Nghiêng về bên phải để chạy tiếp trên {way_name}",
+                "destination": "Nghiêng về bên phải đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại",
+                "name": "Quẹo ngược lại trên {way_name}",
+                "destination": "Quẹo ngược đến {destination}"
+            }
+        },
+        "depart": {
+            "default": {
+                "default": "Đi về hướng {direction}",
+                "name": "Đi về hướng {direction} trên {way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
+            }
+        },
+        "end of road": {
+            "default": {
+                "default": "Quẹo {modifier}",
+                "name": "Quẹo {modifier} vào {way_name}",
+                "destination": "Quẹo {modifier} đến {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy tiếp trên {way_name}",
+                "destination": "Chạy tiếp đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại tại cuối đường",
+                "name": "Quẹo ngược vào {way_name} tại cuối đường",
+                "destination": "Quẹo ngược đến {destination} tại cuối đường"
+            }
+        },
+        "fork": {
+            "default": {
+                "default": "Đi bên {modifier} ở ngã ba",
+                "name": "Đi bên {modifier} ở ngã ba vào {way_name}",
+                "destination": "Đi bên {modifier} ở ngã ba đến {destination}"
+            },
+            "slight left": {
+                "default": "Nghiêng về bên trái ở ngã ba",
+                "name": "Nghiêng về bên trái ở ngã ba vào {way_name}",
+                "destination": "Nghiêng về bên trái ở ngã ba đến {destination}"
+            },
+            "slight right": {
+                "default": "Nghiêng về bên phải ở ngã ba",
+                "name": "Nghiêng về bên phải ở ngã ba vào {way_name}",
+                "destination": "Nghiêng về bên phải ở ngã ba đến {destination}"
+            },
+            "sharp left": {
+                "default": "Quẹo gắt bên trái ở ngã ba",
+                "name": "Quẹo gắt bên trái ở ngã ba vào {way_name}",
+                "destination": "Quẹo gắt bên trái ở ngã ba đến {destination}"
+            },
+            "sharp right": {
+                "default": "Quẹo gắt bên phải ở ngã ba",
+                "name": "Quẹo gắt bên phải ở ngã ba vào {way_name}",
+                "destination": "Quẹo gắt bên phải ở ngã ba đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại",
+                "name": "Quẹo ngược lại {way_name}",
+                "destination": "Quẹo ngược lại đến {destination}"
+            }
+        },
+        "merge": {
+            "default": {
+                "default": "Nhập sang {modifier}",
+                "name": "Nhập sang {modifier} vào {way_name}",
+                "destination": "Nhập sang {modifier} đến {destination}"
+            },
+            "slight left": {
+                "default": "Nhập sang trái",
+                "name": "Nhập sang trái vào {way_name}",
+                "destination": "Nhập sang trái đến {destination}"
+            },
+            "slight right": {
+                "default": "Nhập sang phải",
+                "name": "Nhập sang phải vào {way_name}",
+                "destination": "Nhập sang phải đến {destination}"
+            },
+            "sharp left": {
+                "default": "Nhập sang trái",
+                "name": "Nhập sang trái vào {way_name}",
+                "destination": "Nhập sang trái đến {destination}"
+            },
+            "sharp right": {
+                "default": "Nhập sang phải",
+                "name": "Nhập sang phải vào {way_name}",
+                "destination": "Nhập sang phải đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại",
+                "name": "Quẹo ngược lại {way_name}",
+                "destination": "Quẹo ngược lại đến {destination}"
+            }
+        },
+        "new name": {
+            "default": {
+                "default": "Chạy tiếp bên {modifier}",
+                "name": "Chạy tiếp bên {modifier} trên {way_name}",
+                "destination": "Chạy tiếp bên {modifier} đến {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy tiếp trên {way_name}",
+                "destination": "Chạy tiếp đến {destination}"
+            },
+            "sharp left": {
+                "default": "Quẹo gắt bên trái",
+                "name": "Quẹo gắt bên trái vào {way_name}",
+                "destination": "Quẹo gắt bên trái đến {destination}"
+            },
+            "sharp right": {
+                "default": "Quẹo gắt bên phải",
+                "name": "Quẹo gắt bên phải vào {way_name}",
+                "destination": "Quẹo gắt bên phải đến {destination}"
+            },
+            "slight left": {
+                "default": "Nghiêng về bên trái",
+                "name": "Nghiêng về bên trái vào {way_name}",
+                "destination": "Nghiêng về bên trái đến {destination}"
+            },
+            "slight right": {
+                "default": "Nghiêng về bên phải",
+                "name": "Nghiêng về bên phải vào {way_name}",
+                "destination": "Nghiêng về bên phải đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại",
+                "name": "Quẹo ngược lại {way_name}",
+                "destination": "Quẹo ngược lại đến {destination}"
+            }
+        },
+        "notification": {
+            "default": {
+                "default": "Chạy tiếp bên {modifier}",
+                "name": "Chạy tiếp bên {modifier} trên {way_name}",
+                "destination": "Chạy tiếp bên {modifier} đến {destination}"
+            },
+            "uturn": {
+                "default": "Quẹo ngược lại",
+                "name": "Quẹo ngược lại {way_name}",
+                "destination": "Quẹo ngược lại đến {destination}"
+            }
+        },
+        "off ramp": {
+            "default": {
+                "default": "Đi đường nhánh",
+                "name": "Đi đường nhánh {way_name}",
+                "destination": "Đi đường nhánh đến {destination}",
+                "exit": "Đi theo lối ra {exit}",
+                "exit_destination": "Đi theo lối ra {exit} về hướng {destination}"
+            },
+            "left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên trái",
+                "exit_destination": "Đi theo lối ra {exit} bên trái về hướng {destination}"
+            },
+            "right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên phải",
+                "exit_destination": "Đi theo lối ra {exit} bên phải về hướng {destination}"
+            },
+            "sharp left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên trái",
+                "exit_destination": "Đi theo lối ra {exit} bên trái về hướng {destination}"
+            },
+            "sharp right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên phải",
+                "exit_destination": "Đi theo lối ra {exit} bên phải về hướng {destination}"
+            },
+            "slight left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên trái",
+                "exit_destination": "Đi theo lối ra {exit} bên trái về hướng {destination}"
+            },
+            "slight right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}",
+                "exit": "Đi theo lối ra {exit} bên phải",
+                "exit_destination": "Đi theo lối ra {exit} bên phải về hướng {destination}"
+            }
+        },
+        "on ramp": {
+            "default": {
+                "default": "Đi đường nhánh",
+                "name": "Đi đường nhánh {way_name}",
+                "destination": "Đi đường nhánh đến {destination}"
+            },
+            "left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}"
+            },
+            "right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}"
+            },
+            "sharp left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}"
+            },
+            "sharp right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}"
+            },
+            "slight left": {
+                "default": "Đi đường nhánh bên trái",
+                "name": "Đi đường nhánh {way_name} bên trái",
+                "destination": "Đi đường nhánh bên trái đến {destination}"
+            },
+            "slight right": {
+                "default": "Đi đường nhánh bên phải",
+                "name": "Đi đường nhánh {way_name} bên phải",
+                "destination": "Đi đường nhánh bên phải đến {destination}"
+            }
+        },
+        "rotary": {
+            "default": {
+                "default": {
+                    "default": "Đi vào bùng binh",
+                    "name": "Đi vào bùng binh và ra tại {way_name}",
+                    "destination": "Vào bùng binh và ra để đi {destination}"
+                },
+                "name": {
+                    "default": "Đi vào {rotary_name}",
+                    "name": "Đi vào {rotary_name} và ra tại {way_name}",
+                    "destination": "Đi và {rotary_name} và ra để đi {destination}"
+                },
+                "exit": {
+                    "default": "Đi vào bùng binh và ra tại đường {exit_number}",
+                    "name": "Đi vào bùng binh và ra tại đường {exit_number} tức {way_name}",
+                    "destination": "Đi vào bùng binh và ra tại đường {exit_number} đến {destination}"
+                },
+                "name_exit": {
+                    "default": "Đi vào {rotary_name} và ra tại đường {exit_number}",
+                    "name": "Đi vào {rotary_name} và ra tại đường {exit_number} tức {way_name}",
+                    "destination": "Đi vào {rotary_name} và ra tại đường {exit_number} đến {destination}"
+                }
+            }
+        },
+        "roundabout": {
+            "default": {
+                "exit": {
+                    "default": "Đi vào vòng xuyến và ra tại đường {exit_number}",
+                    "name": "Đi vào vòng xuyến và ra tại đường {exit_number} tức {way_name}",
+                    "destination": "Đi vào vòng xuyến và ra tại đường {exit_number} đến {destination}"
+                },
+                "default": {
+                    "default": "Đi vào vòng xuyến",
+                    "name": "Đi vào vòng xuyến và ra tại {way_name}",
+                    "destination": "Đi vào vòng xuyến và ra để đi {destination}"
+                }
+            }
+        },
+        "roundabout turn": {
+            "default": {
+                "default": "Đi bên {modifier} tại vòng xuyến",
+                "name": "Đi bên {modifier} tại vòng xuyến để vào {way_name}",
+                "destination": "Đi bên {modifier} tại vòng xuyến để đi {destination}"
+            },
+            "left": {
+                "default": "Quẹo trái tại vòng xuyến",
+                "name": "Quẹo trái tại vòng xuyến để vào {way_name}",
+                "destination": "Quẹo trái tại vòng xuyến để đi {destination}"
+            },
+            "right": {
+                "default": "Quẹo phải tại vòng xuyến",
+                "name": "Quẹo phải ti vòng xuyến để vào {way_name}",
+                "destination": "Quẹo phải tại vòng xuyến để đi {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng tại vòng xuyến",
+                "name": "Chạy thẳng tại vòng xuyến để chạy tiếp trên {way_name}",
+                "destination": "Chạy thẳng tại vòng xuyến để đi {destination}"
+            }
+        },
+        "exit roundabout": {
+            "default": {
+                "default": "Quẹo {modifier}",
+                "name": "Quẹo {modifier} vào {way_name}",
+                "destination": "Quẹo {modifier} đến {destination}"
+            },
+            "left": {
+                "default": "Quẹo trái",
+                "name": "Quẹo trái vào {way_name}",
+                "destination": "Quẹo trái đến {destination}"
+            },
+            "right": {
+                "default": "Quẹo phải",
+                "name": "Quẹo phải vào {way_name}",
+                "destination": "Quẹo phải đến {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy thẳng vào {way_name}",
+                "destination": "Chạy thẳng đến {destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "Quẹo {modifier}",
+                "name": "Quẹo {modifier} vào {way_name}",
+                "destination": "Quẹo {modifier} đến {destination}"
+            },
+            "left": {
+                "default": "Quẹo trái",
+                "name": "Quẹo trái vào {way_name}",
+                "destination": "Quẹo trái đến {destination}"
+            },
+            "right": {
+                "default": "Quẹo phải",
+                "name": "Quẹo phải vào {way_name}",
+                "destination": "Quẹo phải đến {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy thẳng vào {way_name}",
+                "destination": "Chạy thẳng đến {destination}"
+            }
+        },
+        "turn": {
+            "default": {
+                "default": "Quẹo {modifier}",
+                "name": "Quẹo {modifier} vào {way_name}",
+                "destination": "Quẹo {modifier} đến {destination}"
+            },
+            "left": {
+                "default": "Quẹo trái",
+                "name": "Quẹo trái vào {way_name}",
+                "destination": "Quẹo trái đến {destination}"
+            },
+            "right": {
+                "default": "Quẹo phải",
+                "name": "Quẹo phải vào {way_name}",
+                "destination": "Quẹo phải đến {destination}"
+            },
+            "straight": {
+                "default": "Chạy thẳng",
+                "name": "Chạy thẳng vào {way_name}",
+                "destination": "Chạy thẳng đến {destination}"
+            }
+        },
+        "use lane": {
+            "no_lanes": {
+                "default": "Chạy thẳng"
+            },
+            "default": {
+                "default": "{lane_instruction}"
+            }
+        }
+    }
+}
+},{}],23:[function(_dereq_,module,exports){
 module.exports={
     "meta": {
         "capitalizeFirstLetter": false
@@ -1966,6 +9929,12 @@ module.exports={
                 "destination": "乘坐开往{destination}的轮渡"
             }
         },
+        "phrase": {
+            "two linked by distance": "{instruction_one} then in {distance} {instruction_two}",
+            "two linked": "{instruction_one} then {instruction_two}",
+            "one in distance": "In {distance}, {instruction_one}",
+            "name and ref": "{name}（{ref}）"
+        },
         "arrive": {
             "default": {
                 "default": "您已经到达您的{nth}个目的地"
@@ -1994,9 +9963,20 @@ module.exports={
         },
         "continue": {
             "default": {
-                "default": "继续{modifier}",
+                "default": "{modifier}行驶",
                 "name": "继续{modifier}，上{way_name}",
-                "destination": "继续{modifier}行驶，前往{destination}"
+                "destination": "{modifier}行驶，前往{destination}",
+                "exit": "{modifier}行驶，上{way_name}"
+            },
+            "sharp left": {
+                "default": "Make a sharp left",
+                "name": "Make a sharp left to stay on {way_name}",
+                "destination": "Make a sharp left towards {destination}"
+            },
+            "sharp right": {
+                "default": "Make a sharp right",
+                "name": "Make a sharp right to stay on {way_name}",
+                "destination": "Make a sharp right towards {destination}"
             },
             "uturn": {
                 "default": "调头",
@@ -2007,7 +9987,8 @@ module.exports={
         "depart": {
             "default": {
                 "default": "出发向{direction}",
-                "name": "出发向{direction}，上{way_name}"
+                "name": "出发向{direction}，上{way_name}",
+                "namedistance": "Head {direction} on {way_name} for {distance}"
             }
         },
         "end of road": {
@@ -2057,7 +10038,12 @@ module.exports={
                 "name": "继续{modifier}，上{way_name}",
                 "destination": "继续{modifier}，前往{destination}"
             },
-             "uturn": {
+            "straight": {
+                "default": "继续直行",
+                "name": "Continue onto {way_name}",
+                "destination": "Continue towards {destination}"
+            },
+            "uturn": {
                 "default": "调头",
                 "name": "调头，上{way_name}",
                 "destination": "调头，前往{destination}"
@@ -2067,7 +10053,7 @@ module.exports={
             "default": {
                 "default": "继续{modifier}",
                 "name": "继续{modifier}，上{way_name}",
-                "destination" : "继续{modifier}，前往{destination}"
+                "destination": "继续{modifier}，前往{destination}"
             },
             "uturn": {
                 "default": "调头",
@@ -2079,17 +10065,23 @@ module.exports={
             "default": {
                 "default": "上匝道",
                 "name": "通过匝道驶入{way_name}",
-                "destination": "通过匝道前往{destination}"
+                "destination": "通过匝道前往{destination}",
+                "exit": "Take exit {exit}",
+                "exit_destination": "Take exit {exit} towards {destination}"
             },
             "left": {
                 "default": "通过左边的匝道",
                 "name": "通过左边的匝道驶入{way_name}",
-                "destination": "通过左边的匝道前往{destination}"
+                "destination": "通过左边的匝道前往{destination}",
+                "exit": "Take exit {exit} on the left",
+                "exit_destination": "Take exit {exit} on the left towards {destination}"
             },
             "right": {
                 "default": "通过右边的匝道",
                 "name": "通过右边的匝道驶入{way_name}",
-                "destination": "通过右边的匝道前往{destination}"
+                "destination": "通过右边的匝道前往{destination}",
+                "exit": "Take exit {exit} on the right",
+                "exit_destination": "Take exit {exit} on the right towards {destination}"
             }
         },
         "on ramp": {
@@ -2169,6 +10161,50 @@ module.exports={
                 "destination": "在环岛继续直行，前往{destination}"
             }
         },
+        "exit roundabout": {
+            "default": {
+                "default": "{modifier}转弯",
+                "name": "{modifier}转弯，上{way_name}",
+                "destination": "{modifier}转弯，前往{destination}"
+            },
+            "left": {
+                "default": "左转",
+                "name": "左转，上{way_name}",
+                "destination": "左转，前往{destination}"
+            },
+            "right": {
+                "default": "右转",
+                "name": "右转，上{way_name}",
+                "destination": "右转，前往{destination}"
+            },
+            "straight": {
+                "default": "直行",
+                "name": "直行，上{way_name}",
+                "destination": "直行，前往{destination}"
+            }
+        },
+        "exit rotary": {
+            "default": {
+                "default": "{modifier}转弯",
+                "name": "{modifier}转弯，上{way_name}",
+                "destination": "{modifier}转弯，前往{destination}"
+            },
+            "left": {
+                "default": "左转",
+                "name": "左转，上{way_name}",
+                "destination": "左转，前往{destination}"
+            },
+            "right": {
+                "default": "右转",
+                "name": "右转，上{way_name}",
+                "destination": "右转，前往{destination}"
+            },
+            "straight": {
+                "default": "直行",
+                "name": "直行，上{way_name}",
+                "destination": "直行，前往{destination}"
+            }
+        },
         "turn": {
             "default": {
                 "default": "{modifier}转弯",
@@ -2196,182 +10232,18 @@ module.exports={
                 "default": "继续直行"
             },
             "default": {
-                "default": "{lane_instruction}然后{modifier}"
-            },
-            "straight": {
                 "default": "{lane_instruction}"
-            },
-            "left": {
-                "default": "{lane_instruction}然后左转"
-            },
-            "right": {
-                "default": "{lane_instruction}然后右转"
             }
         }
     }
 }
 
-},{}],9:[function(_dereq_,module,exports){
-'use strict';
-
-/**
- * Based off of [the offical Google document](https://developers.google.com/maps/documentation/utilities/polylinealgorithm)
- *
- * Some parts from [this implementation](http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.js)
- * by [Mark McClure](http://facstaff.unca.edu/mcmcclur/)
- *
- * @module polyline
- */
-
-var polyline = {};
-
-function encode(coordinate, factor) {
-    coordinate = Math.round(coordinate * factor);
-    coordinate <<= 1;
-    if (coordinate < 0) {
-        coordinate = ~coordinate;
-    }
-    var output = '';
-    while (coordinate >= 0x20) {
-        output += String.fromCharCode((0x20 | (coordinate & 0x1f)) + 63);
-        coordinate >>= 5;
-    }
-    output += String.fromCharCode(coordinate + 63);
-    return output;
-}
-
-/**
- * Decodes to a [latitude, longitude] coordinates array.
- *
- * This is adapted from the implementation in Project-OSRM.
- *
- * @param {String} str
- * @param {Number} precision
- * @returns {Array}
- *
- * @see https://github.com/Project-OSRM/osrm-frontend/blob/master/WebContent/routing/OSRM.RoutingGeometry.js
- */
-polyline.decode = function(str, precision) {
-    var index = 0,
-        lat = 0,
-        lng = 0,
-        coordinates = [],
-        shift = 0,
-        result = 0,
-        byte = null,
-        latitude_change,
-        longitude_change,
-        factor = Math.pow(10, precision || 5);
-
-    // Coordinates have variable length when encoded, so just keep
-    // track of whether we've hit the end of the string. In each
-    // loop iteration, a single coordinate is decoded.
-    while (index < str.length) {
-
-        // Reset shift, result, and byte
-        byte = null;
-        shift = 0;
-        result = 0;
-
-        do {
-            byte = str.charCodeAt(index++) - 63;
-            result |= (byte & 0x1f) << shift;
-            shift += 5;
-        } while (byte >= 0x20);
-
-        latitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
-
-        shift = result = 0;
-
-        do {
-            byte = str.charCodeAt(index++) - 63;
-            result |= (byte & 0x1f) << shift;
-            shift += 5;
-        } while (byte >= 0x20);
-
-        longitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
-
-        lat += latitude_change;
-        lng += longitude_change;
-
-        coordinates.push([lat / factor, lng / factor]);
-    }
-
-    return coordinates;
-};
-
-/**
- * Encodes the given [latitude, longitude] coordinates array.
- *
- * @param {Array.<Array.<Number>>} coordinates
- * @param {Number} precision
- * @returns {String}
- */
-polyline.encode = function(coordinates, precision) {
-    if (!coordinates.length) { return ''; }
-
-    var factor = Math.pow(10, precision || 5),
-        output = encode(coordinates[0][0], factor) + encode(coordinates[0][1], factor);
-
-    for (var i = 1; i < coordinates.length; i++) {
-        var a = coordinates[i], b = coordinates[i - 1];
-        output += encode(a[0] - b[0], factor);
-        output += encode(a[1] - b[1], factor);
-    }
-
-    return output;
-};
-
-function flipped(coords) {
-    var flipped = [];
-    for (var i = 0; i < coords.length; i++) {
-        flipped.push(coords[i].slice().reverse());
-    }
-    return flipped;
-}
-
-/**
- * Encodes a GeoJSON LineString feature/geometry.
- *
- * @param {Object} geojson
- * @param {Number} precision
- * @returns {String}
- */
-polyline.fromGeoJSON = function(geojson, precision) {
-    if (geojson && geojson.type === 'Feature') {
-        geojson = geojson.geometry;
-    }
-    if (!geojson || geojson.type !== 'LineString') {
-        throw new Error('Input must be a GeoJSON LineString');
-    }
-    return polyline.encode(flipped(geojson.coordinates), precision);
-};
-
-/**
- * Decodes to a GeoJSON LineString geometry.
- *
- * @param {String} str
- * @param {Number} precision
- * @returns {Object}
- */
-polyline.toGeoJSON = function(str, precision) {
-    var coords = polyline.decode(str, precision);
-    return {
-        type: 'LineString',
-        coordinates: flipped(coords)
-    };
-};
-
-if (typeof module === 'object' && module.exports) {
-    module.exports = polyline;
-}
-
-},{}],10:[function(_dereq_,module,exports){
+},{}],24:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	module.exports = L.Class.extend({
 		options: {
@@ -2580,12 +10452,12 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],11:[function(_dereq_,module,exports){
+},{}],25:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	var Itinerary = _dereq_('./itinerary');
 	var Line = _dereq_('./line');
@@ -2931,12 +10803,12 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./itinerary":17,"./line":18,"./osrm-v1":21,"./plan":22}],12:[function(_dereq_,module,exports){
+},{"./itinerary":31,"./line":32,"./osrm-v1":35,"./plan":36}],26:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	module.exports = L.Control.extend({
 		options: {
@@ -2990,12 +10862,12 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],13:[function(_dereq_,module,exports){
+},{}],27:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	var Localization = _dereq_('./localization');
 
@@ -3153,12 +11025,12 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./localization":19}],14:[function(_dereq_,module,exports){
+},{"./localization":33}],28:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	var Autocomplete = _dereq_('./autocomplete');
 	var Localization = _dereq_('./localization');
 
@@ -3303,9 +11175,9 @@ if (typeof module === 'object' && module.exports) {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./autocomplete":10,"./localization":19}],15:[function(_dereq_,module,exports){
+},{"./autocomplete":24,"./localization":33}],29:[function(_dereq_,module,exports){
 (function (global){
-var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null),
+var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
     Control = _dereq_('./control'),
     Itinerary = _dereq_('./itinerary'),
     Line = _dereq_('./line'),
@@ -3387,12 +11259,12 @@ module.exports = L.Routing = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./autocomplete":10,"./control":11,"./error-control":12,"./formatter":13,"./geocoder-element":14,"./itinerary":17,"./itinerary-builder":16,"./line":18,"./localization":19,"./mapbox":20,"./osrm-v1":21,"./plan":22,"./waypoint":23}],16:[function(_dereq_,module,exports){
+},{"./autocomplete":24,"./control":25,"./error-control":26,"./formatter":27,"./geocoder-element":28,"./itinerary":31,"./itinerary-builder":30,"./line":32,"./localization":33,"./mapbox":34,"./osrm-v1":35,"./plan":36,"./waypoint":37}],30:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	module.exports = L.Class.extend({
 		options: {
@@ -3435,12 +11307,12 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],17:[function(_dereq_,module,exports){
+},{}],31:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	var Formatter = _dereq_('./formatter');
 	var ItineraryBuilder = _dereq_('./itinerary-builder');
 
@@ -3590,7 +11462,9 @@ module.exports = L.Routing = {
 				icon = this._formatter.getIconName(instr, i);
 				step = this._itineraryBuilder.createStep(text, distance, icon, steps);
 
-				this._addRowListeners(step, r.coordinates[instr.index]);
+				if(instr.index) {
+					this._addRowListeners(step, r.coordinates[instr.index]);
+				}
 			}
 
 			return container;
@@ -3664,12 +11538,12 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./formatter":13,"./itinerary-builder":16}],18:[function(_dereq_,module,exports){
+},{"./formatter":27,"./itinerary-builder":30}],32:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	
 	module.exports = L.LayerGroup.extend({
 		includes: L.Mixin.Events,
@@ -3798,7 +11672,17 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],19:[function(_dereq_,module,exports){
+},{}],33:[function(_dereq_,module,exports){
+/* 
+   NOTICE
+   Since version 3.2.5, the functionality in this file is by
+   default NOT used for localizing OSRM instructions.
+   Instead, we rely on the module osrm-text-instructions (https://github.com/Project-OSRM/osrm-text-instructions/).
+   
+   This file can still be used for other routing backends, or if you specify the
+   stepToText option in the OSRMv1 class.
+*/
+
 (function() {
 	'use strict';
 
@@ -4513,12 +12397,12 @@ module.exports = L.Routing = {
 	});
 })();
 
-},{}],20:[function(_dereq_,module,exports){
+},{}],34:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	var OSRMv1 = _dereq_('./osrm-v1');
 
@@ -4544,14 +12428,14 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./osrm-v1":21}],21:[function(_dereq_,module,exports){
+},{"./osrm-v1":35}],35:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null),
-		corslite = _dereq_('corslite'),
-		polyline = _dereq_('polyline'),
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
+		corslite = _dereq_('@mapbox/corslite'),
+		polyline = _dereq_('@mapbox/polyline'),
 		osrmTextInstructions = _dereq_('osrm-text-instructions');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
@@ -4916,12 +12800,12 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./waypoint":23,"corslite":1,"osrm-text-instructions":2,"polyline":9}],22:[function(_dereq_,module,exports){
+},{"./waypoint":37,"@mapbox/corslite":1,"@mapbox/polyline":2,"osrm-text-instructions":3}],36:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 	var GeocoderElement = _dereq_('./geocoder-element');
 	var Waypoint = _dereq_('./waypoint');
 
@@ -5276,12 +13160,12 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./geocoder-element":14,"./waypoint":23}],23:[function(_dereq_,module,exports){
+},{"./geocoder-element":28,"./waypoint":37}],37:[function(_dereq_,module,exports){
 (function (global){
 (function() {
 	'use strict';
 
-	var L = (typeof window !== "undefined" ? window.L : typeof global !== "undefined" ? global.L : null);
+	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null);
 
 	module.exports = L.Class.extend({
 		options: {
@@ -5296,4 +13180,4 @@ module.exports = L.Routing = {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[15]);
+},{}]},{},[29]);
