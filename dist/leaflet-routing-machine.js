@@ -12436,7 +12436,7 @@ module.exports = L.Routing = {
 	var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null),
 		corslite = _dereq_('@mapbox/corslite'),
 		polyline = _dereq_('@mapbox/polyline'),
-		osrmTextInstructions = _dereq_('osrm-text-instructions');
+		osrmTextInstructions = _dereq_('osrm-text-instructions')('v5');
 
 	// Ignore camelcase naming for this file, since OSRM's API uses
 	// underscores.
@@ -12623,8 +12623,7 @@ module.exports = L.Routing = {
 			if (this.options.stepToText) {
 				stepToText = this.options.stepToText;
 			} else {
-				var textInstructions = osrmTextInstructions('v5', this.options.language);
-				stepToText = textInstructions.compile.bind(textInstructions);
+				stepToText = L.bind(osrmTextInstructions.compile, osrmTextInstructions, this.options.language);
 			}
 
 			for (i = 0; i < legCount; i++) {
@@ -12636,7 +12635,7 @@ module.exports = L.Routing = {
 					result.coordinates.push.apply(result.coordinates, geometry);
 					type = this._maneuverToInstructionType(step.maneuver, i === legCount - 1);
 					modifier = this._maneuverToModifier(step.maneuver);
-					text = stepToText(step);
+					text = stepToText(step, {legCount: legCount, legIndex: i});
 
 					if (type) {
 						if ((i == 0 && step.maneuver.type == 'depart') || step.maneuver.type == 'arrive') {
