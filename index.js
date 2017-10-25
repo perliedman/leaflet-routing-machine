@@ -11,6 +11,7 @@ L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}{r}.png?acc
 }).addTo(map);
 
 var control = L.Routing.control({
+		router: L.routing.mapbox(LRM.apiToken),
 		plan: L.Routing.plan(waypoints, {
 			createMarker: function(i, wp) {
 				return L.marker(wp.latLng, {
