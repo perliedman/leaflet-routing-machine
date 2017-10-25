@@ -7,6 +7,7 @@ L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}{r}.png?acc
 }).addTo(map);
 
 var control = L.Routing.control({
+        router: L.routing.mapbox(LRM.apiToken),
         waypoints: [
             L.latLng(57.74, 11.94),
             L.latLng(57.6792, 11.949)

@@ -14,6 +14,7 @@ function button(label, container) {
 }
 
 var control = L.Routing.control({
+        router: L.routing.mapbox(LRM.apiToken),
         routeWhileDragging: true,
         plan: new (L.Routing.Plan.extend({
             createGeocoders: function() {
