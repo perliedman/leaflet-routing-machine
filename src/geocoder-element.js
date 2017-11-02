@@ -16,7 +16,7 @@
 	}
 
 	module.exports = L.Class.extend({
-		includes: L.Mixin.Events,
+		includes: (L.Evented.prototype || L.Mixin.Events),
 
 		options: {
 			createGeocoder: function(i, nWps, options) {
