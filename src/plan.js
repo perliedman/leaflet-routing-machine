@@ -6,7 +6,7 @@
 	var Waypoint = require('./waypoint');
 
 	module.exports = (L.Layer || L.Class).extend({
-		includes: L.Mixin.Events,
+		includes: ((typeof L.Evented !== 'undefined' && L.Evented.prototype) || L.Mixin.Events),
 
 		options: {
 			dragStyles: [

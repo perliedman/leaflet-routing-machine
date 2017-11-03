@@ -2,9 +2,9 @@
 	'use strict';
 
 	var L = require('leaflet');
-	
+
 	module.exports = L.LayerGroup.extend({
-		includes: L.Mixin.Events,
+		includes: ((typeof L.Evented !== 'undefined' && L.Evented.prototype) || L.Mixin.Events),
 
 		options: {
 			styles: [
@@ -36,7 +36,7 @@
 				this.options.styles,
 				this.options.addWaypoints);
 		},
-		
+
 		getBounds: function() {
 			return L.latLngBounds(this._route.coordinates);
 		},
