@@ -6,7 +6,7 @@
 	var ItineraryBuilder = require('./itinerary-builder');
 
 	module.exports = L.Control.extend({
-		includes: (L.Evented.prototype || L.Mixin.Events),
+		includes: ((typeof L.Evented !== 'undefined' && L.Evented.prototype) || L.Mixin.Events),
 
 		options: {
 			pointMarkerStyle: {

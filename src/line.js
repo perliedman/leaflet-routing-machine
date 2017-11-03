@@ -4,7 +4,7 @@
 	var L = require('leaflet');
 
 	module.exports = L.LayerGroup.extend({
-		includes: (L.Evented.prototype || L.Mixin.Events),
+		includes: ((typeof L.Evented !== 'undefined' && L.Evented.prototype) || L.Mixin.Events),
 
 		options: {
 			styles: [
