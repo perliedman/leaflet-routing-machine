@@ -46,15 +46,19 @@ layout: default
       </small>
     </p>
     <p>
-      Getting started with Leaflet Routing Machine is easy. <a href="https://github.com/perliedman/leaflet-routing-machine/releases">Download</a> the files and
-      include <code>leaflet-routing-machine.css</code> and <code>leaflet-routing-machine.js</code> in a Leaflet page:
+      Getting started with Leaflet Routing Machine is easy. Include 
+      <code>leaflet-routing-machine.css</code> and <code>leaflet-routing-machine.js</code> in a Leaflet page:
     </p>
     <pre><code class="language-markup">[...]
-&lt;link rel=&quot;stylesheet&quot; href=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css&quot; /&gt;
-&lt;link rel=&quot;stylesheet&quot; href=&quot;leaflet-routing-machine.css&quot; /&gt;
-&lt;script src=&quot;http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js&quot;&gt;&lt;/script&gt;
-&lt;script src=&quot;leaflet-routing-machine.js&quot;&gt;&lt;/script&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;https://unpkg.com/leaflet@1.2.0/dist/leaflet.css&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css&quot; /&gt;
+&lt;script src=&quot;https://unpkg.com/leaflet@1.2.0/dist/leaflet.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js&quot;&gt;&lt;/script&gt;
 [...]</code></pre>
+    <p>
+      (For production use, you might want to <a href="https://github.com/perliedman/leaflet-routing-machine/releases">Download</a> the files
+      instead of using <code>unpkg.com</code>
+    </p>
     <p>If you prefer, you can also install using NPM:<p>
     <pre><code class="bash">npm install --save leaflet-routing-machine</code></pre>
     <p>
