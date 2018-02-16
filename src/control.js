@@ -274,7 +274,10 @@
 			if (!err) {
 				routes = routes.slice();
 				var selected = routes.splice(this._selectedRoute.routesIndex, 1)[0];
-				this._updateLines({route: selected, alternatives: routes });
+				this._updateLines({
+					route: selected,
+					alternatives: this.options.showAlternatives ? routes : []
+				});
 			} else if (err.type !== 'abort') {
 				this._clearLines();
 			}
