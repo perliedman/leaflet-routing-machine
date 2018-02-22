@@ -29,6 +29,8 @@ Leaflet Routing Machine is in many ways already a feature complete routing UI. M
 
 If you have more complex requirements, need new features or just need some support, I am open to doing paid custom work and support around Leaflet Routing Machine for your organization. Contact me at [per@liedman.net](mailto:per@liedman.net) and we'll sort this out!
 
+For questions and discussions, you might want to look at [the Leaflet Routing Machine gitter](https://gitter.im/leaflet-routing-machine/Lobby).
+
 ## Building
 
 ```sh
