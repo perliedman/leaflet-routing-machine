@@ -1,0 +1,41 @@
+<div></div>
+
+<script>
+  import L from 'leaflet'
+  import {toLatLng, toLngLat} from '../leaflet-utils'
+
+  export default {
+    oncreate () {
+      this.marker =
+        L.marker(this.get('lngLat'), {draggable: true})
+        .on('drag dragend', e => this.fire(e.type, {lngLat: toLngLat(this.marker.getLatLng())}))
+        .addTo(this.get('map'))
+      this
+        .observe('lngLat', lngLat => this.marker.setLatLng(toLatLng(lngLat)))
+      this
+        .observe('dragging', dragging => {
+          const onOff = dragging ? 'on' : 'off'
+          const map = this.get('map')
+          map[onOff]('mousemove', this.drag, this)
+          map[onOff]('mouseup', this.dragEnd, this)
+          map.dragging[dragging ? 'disable' : 'enable']()
+        })
+    },
+
+    ondestroy () {
+      this.map.removeLayer(this.marker)
+    },
+
+    methods: {
+      drag (e) {
+        this.marker.setLatLng(e.latlng)
+        this.fire('drag', {lngLat: toLngLat(e.latlng)})
+        L.DomEvent.stop(e)
+      },
+      dragEnd (e) {
+        this.fire('dragend', {lngLat: toLngLat(e.latlng)})
+        L.DomEvent.stop(e)
+      },
+    }
+  }
+</script>

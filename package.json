@@ -1,48 +1,33 @@
 {
-  "name": "leaflet-routing-machine",
-  "version": "3.2.8",
-  "description": "Routing for Leaflet",
-  "directories": {
-    "example": "examples",
-    "dist": "dist"
-  },
+  "name": "lrm-svelte",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "prepublish": "browserify -t browserify-shim -p browserify-derequire -o dist/leaflet-routing-machine.js src/index.js && uglifyjs dist/leaflet-routing-machine.js >dist/leaflet-routing-machine.min.js",
-    "publish": "scripts/publish.sh",
+    "dev": "mkdirp dist && rollup -c -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/perliedman/leaflet-routing-machine.git"
-  },
-  "keywords": [
-    "leaflet",
-    "routing",
-    "osrm"
-  ],
-  "author": {
-    "name": "Per Liedman",
-    "email": "per@liedman.net"
-  },
+  "keywords": [],
+  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
-  },
-  "homepage": "https://github.com/perliedman/leaflet-routing-machine",
-  "browserify-shim": {
-    "leaflet": "global:L"
-  },
-  "main": "./dist/leaflet-routing-machine.js",
   "devDependencies": {
-    "browserify": "^14.1.0",
-    "browserify-derequire": "^0.9.4",
-    "browserify-shim": "^3.8.13",
-    "derequire": "^2.0.6",
-    "uglify-js": "^2.8.2"
+    "eslint": "^4.18.2",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-html": "^4.0.2",
+    "eslint-plugin-import": "^2.9.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "mkdirp": "^0.5.1",
+    "rollup": "^0.56.2",
+    "rollup-plugin-commonjs": "^8.3.0",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-resolve": "^3.0.3",
+    "rollup-plugin-sizes": "^0.4.2",
+    "rollup-plugin-svelte": "^4.0.0",
+    "svelte": "^1.55.0"
   },
   "dependencies": {
-    "@mapbox/corslite": "0.0.7",
-    "@mapbox/polyline": "^0.2.0",
-    "osrm-text-instructions": "^0.11.5"
+    "routing-components": "^1.0.0"
   }
 }

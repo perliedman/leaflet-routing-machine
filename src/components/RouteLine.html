@@ -1,0 +1,70 @@
+<div></div>
+
+<script>
+  import L from 'leaflet'
+  import {getLastWaypointIndexBefore} from 'routing-components'
+
+  export default {
+    oncreate () {
+      this.observe('route', route => {
+        var latLngs = route.coordinates.map(c => L.latLng(c[1], c[0]))
+
+        if (!this.line) {
+          this.line = 
+            L.polyline(latLngs, this.get('style'))
+            .on('click', () => this.fire('selected'))
+            .on('mousedown', e => this.get('selected') && this.startDrag(e))
+            .addTo(this.get('map'))
+        } else {
+          this.line.setLatLngs(latLngs)
+        }
+      })
+      this.observe('selected', selected => {
+        if (this.line) {
+          this.line.setStyle(this.get('style'))
+        }
+      })
+    },
+
+    ondestroy () {
+      if (this.line) {
+        this.get('map').removeLayer(this.line)
+      }
+    },
+
+    computed: {
+      style: selected => ({
+        weight: selected ? 9 : 6,
+        opacity: selected ? 1 : 0.5
+      })
+    },
+
+    methods: {
+      startDrag (e) {
+        const map = this.get('map')
+        const cleanup = () => {
+          map
+            .off('mouseup', cleanup)
+            .off('mousemove', dragging)
+        }
+        const dragging = () => {
+          cleanup()
+
+          const route = this.get('route')
+          const lngLat = toLngLat(e.latlng)
+
+          this.fire('dragging', {
+            afterWpIndex: getLastWaypointIndexBefore(route, lngLat),
+            lngLat: lngLat
+          })
+
+          L.DomEvent.stop(e)
+        }
+
+        map
+          .once('mouseup', cleanup)
+          .on('mousemove', dragging)
+      },
+    }
+  }
+</script>
