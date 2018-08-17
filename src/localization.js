@@ -73,11 +73,16 @@
 
 	var Localization = L.Class.extend({
 		initialize: function(langs) {
-			this._langs = L.Util.isArray(langs) ? langs : [langs, 'en'];
+			this._langs = L.Util.isArray(langs) ? langs.slice() : [langs, 'en'];
 
 			for (var i = 0, l = this._langs.length; i < l; i++) {
+				var generalizedCode = /([A-Za-z]+)/.exec(this._langs[i])[1]
 				if (!Localization[this._langs[i]]) {
-					throw new Error('No localization for language "' + this._langs[i] + '".');
+					if (Localization[generalizedCode]) {
+						this._langs[i] = generalizedCode;
+					} else {
+						throw new Error('No localization for language "' + this._langs[i] + '".');
+					}
 				}
 			}
 		},
