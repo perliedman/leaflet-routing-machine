@@ -85,6 +85,10 @@
 				}, this);
 			}
 
+			if (typeof this.options.geocoderResult == 'function') {
+				this.options.autocompleteOptions.geocoderResult = this.options.geocoderResult;
+			}
+
 			new Autocomplete(geocoderInput, function(r) {
 					geocoderInput.value = r.name;
 					wp.name = r.name;
