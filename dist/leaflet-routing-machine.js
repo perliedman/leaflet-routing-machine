@@ -15756,6 +15756,7 @@ module.exports={
 			}
 
 			if (e.keyCode === 13) {
+				L.DomEvent.preventDefault(e);
 				this._complete(this._resultFn, true);
 				return;
 			}
