@@ -75,8 +75,8 @@
 				tr.setAttribute('data-result-index', i);
 				td = L.DomUtil.create('td', '', tr);
 
-				if (this._geocoderResult) {
-					text = this._geocoderResult(results[i]);
+				if (this.options.formatGeocoderResult) {
+					text = this.options.formatGeocoderResult(results[i]);
 				} else {
 					text = document.createTextNode(results[i].name);
 				}

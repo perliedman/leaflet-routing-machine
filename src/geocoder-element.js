@@ -85,8 +85,8 @@
 				}, this);
 			}
 
-			if (typeof this.options.geocoderResult == 'function') {
-				this.options.autocompleteOptions.geocoderResult = this.options.geocoderResult;
+			if (typeof this.options.formatGeocoderResult == 'function') {
+				this.options.autocompleteOptions.formatGeocoderResult = this.options.formatGeocoderResult;
 			}
 
 			new Autocomplete(geocoderInput, function(r) {
