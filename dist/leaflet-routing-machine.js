@@ -15886,10 +15886,6 @@ module.exports={
 			if (options.routeWhileDragging) {
 				this._setupRouteDragging();
 			}
-
-			if (this.options.autoRoute) {
-				this.route();
-			}
 		},
 
 		_onZoomEnd: function() {
@@ -15919,6 +15915,10 @@ module.exports={
 		},
 
 		onAdd: function(map) {
+			if (this.options.autoRoute) {
+				this.route();
+			}
+
 			var container = Itinerary.prototype.onAdd.call(this, map);
 
 			this._map = map;
@@ -16670,7 +16670,7 @@ module.exports = L.Routing = {
 		},
 
 		createContainer: function(className) {
-			var table = L.DomUtil.create('table', className || ''),
+			var table = L.DomUtil.create('table', (className || '') + ' ' + this.options.containerClassName),
 				colgroup = L.DomUtil.create('colgroup', '', table);
 
 			L.DomUtil.create('col', 'leaflet-routing-instruction-icon', colgroup);
@@ -17053,6 +17053,7 @@ module.exports = L.Routing = {
 				afterIndex: afterIndex,
 				latlng: e.latlng
 			});
+			L.DomEvent.stop(e);
 		},
 
 		_getWaypointIndices: function() {
@@ -18585,6 +18586,8 @@ module.exports = L.Routing = {
 					if (draggingEnabled) {
 						this._map.dragging.enable();
 					}
+
+					L.DomEvent.stop(e);
 				}, this),
 				i;
 
