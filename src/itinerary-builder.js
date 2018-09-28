@@ -13,7 +13,7 @@
 		},
 
 		createContainer: function(className) {
-			var table = L.DomUtil.create('table', className || ''),
+			var table = L.DomUtil.create('table', (className || '') + ' ' + this.options.containerClassName),
 				colgroup = L.DomUtil.create('colgroup', '', table);
 
 			L.DomUtil.create('col', 'leaflet-routing-instruction-icon', colgroup);
