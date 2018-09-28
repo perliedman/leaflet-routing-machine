@@ -39,10 +39,6 @@
 			if (options.routeWhileDragging) {
 				this._setupRouteDragging();
 			}
-
-			if (this.options.autoRoute) {
-				this.route();
-			}
 		},
 
 		_onZoomEnd: function() {
@@ -72,6 +68,10 @@
 		},
 
 		onAdd: function(map) {
+			if (this.options.autoRoute) {
+				this.route();
+			}
+
 			var container = Itinerary.prototype.onAdd.call(this, map);
 
 			this._map = map;
