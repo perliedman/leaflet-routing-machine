@@ -325,6 +325,8 @@
 					if (draggingEnabled) {
 						this._map.dragging.enable();
 					}
+
+					L.DomEvent.stop(e);
 				}, this),
 				i;
 

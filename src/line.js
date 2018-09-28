@@ -117,6 +117,7 @@
 				afterIndex: afterIndex,
 				latlng: e.latlng
 			});
+			L.DomEvent.stop(e);
 		},
 
 		_getWaypointIndices: function() {
