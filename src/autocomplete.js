@@ -74,7 +74,13 @@
 				tr = L.DomUtil.create('tr', '', this._resultTable);
 				tr.setAttribute('data-result-index', i);
 				td = L.DomUtil.create('td', '', tr);
-				text = document.createTextNode(results[i].name);
+
+				if (this.options.formatGeocoderResult) {
+					text = this.options.formatGeocoderResult(results[i]);
+				} else {
+					text = document.createTextNode(results[i].name);
+				}
+
 				td.appendChild(text);
 				// mousedown + click because:
 				// http://stackoverflow.com/questions/10652852/jquery-fire-click-before-blur-event
