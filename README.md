@@ -38,3 +38,29 @@ npm install
 ```
 
 This requires [Node and npm](http://nodejs.org/), as well as `grunt`.
+
+# Usage
+
+Download [latest release](https://github.com/perliedman/leaflet-routing-machine/releases), or obtain the latest release via [unpkg.com](https://unpkg.com/).
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+```
+
+or via npm:
+
+```sh
+npm install --save leaflet-routing-machine
+```
+
+```javascript
+var L = require('leaflet');
+require('leaflet-routing-machine');
+
+...
+```
+
+LRM attaches itself onto `L`.
+
+__Go to the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
