@@ -59,6 +59,10 @@
     cursor: pointer;
 }
 
+.leaflet-routing-alt {
+    scrollbar-width: thin;
+}
+
 .leaflet-routing-alt::-webkit-scrollbar {
     width: 8px;
 }
