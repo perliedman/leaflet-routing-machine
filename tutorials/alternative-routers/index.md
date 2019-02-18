@@ -6,11 +6,9 @@ title: GraphHopper, Mapbox, Valhalla and other routing software
 ## GraphHopper, Mapbox, Valhalla and other routing software
 
 Behind the UI, Leaflet Routing Machine queries [OSRM](http://project-osrm.org)'s
-servers each time the route is recalculated, unless you tell it to use something else.
-This is great for normal use: the service is free, OSRM is both good as well as *very*
-quick. However, there are cases where OSRM's defaults doesn't cut it: you want to
-do bike routing, while OSRM's open servers only route for cars at the time of writing.
-The free servers comes with no SLA, which might be another cause to use another server.
+demo servers each time the route is recalculated, unless you tell it to use something else.
+This is great for a demo, but not for production: the service is free but comes with a [usage policy](https://github.com/Project-OSRM/osrm-backend/wiki/Api-usage-policy) and without any warranties or SLA. 
+For production use, or for any use case were you need control over how routes are calculated (like other means of transport, like bike or foot), you need to use another server, be it OSRM or some other software. This tutorial tells you about the different options.
 
 ### Using your own OSRM server
 
