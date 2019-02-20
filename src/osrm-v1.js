@@ -104,8 +104,16 @@
 							error.message = 'Error parsing OSRM response: ' + ex.toString();
 						}
 					} else {
-						error.message = 'HTTP request failed: ' + err.type +
-							(err.target && err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
+						var message = err.type + (err.target && err.target.status ? ' HTTP ' + err.target.status + ': ' + err.target.statusText : '');
+						if (err.responseText) {
+							try {
+								data = JSON.parse(err.responseText);
+								if (data.message)
+									message = data.message;
+							} catch (ex) {
+							}
+						}
+						error.message = 'HTTP request failed: ' + message;
 						error.url = url;
 						error.status = -1;
 						error.target = err;
