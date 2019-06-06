@@ -331,12 +331,14 @@
 		},
 
 		buildRouteUrl: function(waypoints, options) {
+
 			var locs = [],
 				hints = [],
 				wp,
 				latLng,
-			    computeInstructions,
-			    computeAlternative = true;
+		    computeInstructions = options.steps !== "default" ? true : false,
+		    computeRoundtrip = options.roundtrip !== "default" ? true : false,
+		    computeAlternative = options.alternatives !== "default" ? true : false;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
@@ -345,14 +347,13 @@
 				hints.push(this._hints.locations[this._locationKey(latLng)] || '');
 			}
 
-			computeInstructions =
-				true;
 
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
 				locs.join(';') + '?' +
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
-				'&alternatives=' + computeAlternative.toString() +
-				'&steps=' + computeInstructions.toString() +
+				(computeAlternative ? '&alternatives=' + (typeof options.steps == "boolean" ? options.steps : true).toString() : '') +
+				(computeInstructions ? '&steps=' + (typeof options.roundtrip == "boolean" ? options.roundtrip : false).toString() : '') +
+				(computeRoundtrip ? '&roundtrip=' + (typeof options.alternatives == "boolean" ? options.alternatives : true).toString() : '') +
 				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
