@@ -337,9 +337,9 @@
 				hints = [],
 				wp,
 				latLng,
-		    computeInstructions = options.steps !== "default" ? true : false,
-		    computeRoundtrip = options.roundtrip !== "default" ? true : false,
-		    computeAlternative = options.alternatives !== "default" ? true : false;
+		    computeInstructions = options.steps && options.steps !== "default" ? true : false,
+		    computeRoundtrip = options.roundtrip && options.roundtrip !== "default" ? true : false,
+		    computeAlternative = options.alternatives && options.alternatives !== "default" ? true : false;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
@@ -352,9 +352,9 @@
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
 				locs.join(';') + '?' +
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
-				(computeAlternative ? '&alternatives=' + (typeof options.steps == "boolean" ? options.steps : true).toString() : '') +
-				(computeInstructions ? '&steps=' + (typeof options.roundtrip == "boolean" ? options.roundtrip : false).toString() : '') +
-				(computeRoundtrip ? '&roundtrip=' + (typeof options.alternatives == "boolean" ? options.alternatives : true).toString() : '') +
+				(computeInstructions ? '&steps=' + (typeof options.steps == "boolean" ? options.steps : true).toString() : '') +
+				(computeRoundtrip ? '&roundtrip=' + (typeof options.roundtrip == "boolean" ? options.roundtrip : false).toString() : '') +
+				(computeAlternative ? '&alternatives=' + (typeof options.alternatives == "boolean" ? options.alternatives : true).toString() : '') +
 				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
