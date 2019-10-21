@@ -1,4 +1,4 @@
-[Leaflet Routing Machine]((http://www.liedman.net/leaflet-routing-machine/)) [![NPM version](https://img.shields.io/npm/v/leaflet-routing-machine.svg)](https://www.npmjs.com/package/leaflet-routing-machine) ![Leaflet 1.0 compatible!](https://img.shields.io/badge/Leaflet%201.0-%E2%9C%93-1EB300.svg?style=flat) [![Join the chat at https://gitter.im/leaflet-routing-machine/Lobby](https://badges.gitter.im/leaflet-routing-machine/Lobby.svg)](https://gitter.im/leaflet-routing-machine/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[Leaflet Routing Machine]((https://www.liedman.net/leaflet-routing-machine/)) [![NPM version](https://img.shields.io/npm/v/leaflet-routing-machine.svg)](https://www.npmjs.com/package/leaflet-routing-machine) ![Leaflet 1.0 compatible!](https://img.shields.io/badge/Leaflet%201.0-%E2%9C%93-1EB300.svg?style=flat) [![Join the chat at https://gitter.im/leaflet-routing-machine/Lobby](https://badges.gitter.im/leaflet-routing-machine/Lobby.svg)](https://gitter.im/leaflet-routing-machine/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 =======================
 
 Find the way from A to B on a Leaflet map. The plugin supports multiple backends:
@@ -21,7 +21,7 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * Customizable look (theming / skins)
 * Open Source released under ISC License (more or less equivalent with the MIT license)
 
-__Go to the [Leaflet Routing Machine site](http://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
+__Go to the [Leaflet Routing Machine site](https://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
 
 ## Support and New Features
 
