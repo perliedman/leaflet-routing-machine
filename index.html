@@ -72,6 +72,12 @@ layout: default
     L.latLng(57.6792, 11.949)
   ]
 }).addTo(map);</code></pre>
+<p><strong>Update 2020-04-06:</strong> The example above relies on OSRM's demo server. At this moment, the demo
+    server (which is outside scope and control of the plugin's author) is
+    <a href="https://github.com/Project-OSRM/osrm-backend/issues/5655">no longer maintained, and its SSL
+    certificate has expired</a>. The plugin will not work unless you
+    <a href="https://www.liedman.net/leaflet-routing-machine/tutorials/alternative-routers/">configure a routing backend</a> yourself.
+    I am sorry to say that, to my knowledge, there is no good default.
     <p>
       Note that in the most basic version, the control will not be able to do address lookups (geocoding), so you
       will have to provide the latitude and longitude of the waypoints. See the
