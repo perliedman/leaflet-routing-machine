@@ -23,6 +23,8 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 
 __Go to the [Leaflet Routing Machine site](https://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
 
+**Update 2020-04-06:** Out of the box, Leaflet Routing Machine relies on OSRM's demo server. At this moment, the demo server (which is outside scope of the plugin and outside control of the plugin's author) is [no longer maintained, and its SSL certificate has expired](https://github.com/Project-OSRM/osrm-backend/issues/5655). The plugin will not work unless you [configure a routing backend](https://www.liedman.net/leaflet-routing-machine/tutorials/alternative-routers/) yourself. I am sorry to say that, to my knowledge, there is no good default.
+
 ## Support and New Features
 
 Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, your requirements are already covered and require very little adaptation.
