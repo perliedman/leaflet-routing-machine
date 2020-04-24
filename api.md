@@ -298,7 +298,7 @@ Method                 | Returns         | Description
 -----------------------|-----------------|-----------------------------------------------------------------
 `formatDistance(<Number> d, <Number> precision?)` | `String`  | Formats a distance given in meters to a string with the given (or suitable if not provided) precision and unit
 `formatTime(<Number> t)` | `String`       | Formats a time duration, given in seconds, to a string with suitable precision and unit
-`formatInstruction(<`[`IInstruction`](#iinstruction)`> instr)` | String | Formats an instruction to a human readable text
+`formatInstruction(<`[`IInstruction`](#iinstruction)`> instr)` | `String` | Formats an instruction to a human readable text
 
 ## <a name="l-routing-itinerarybuilder"></a>L.Routing.ItineraryBuilder
 
@@ -309,8 +309,8 @@ Creates the DOM structure for an itinerary. Subclass or reimplement to create yo
 Method                                | Returns        | Description
 --------------------------------------|----------------|-----------------------------------------------------
 `createContainer(<String> className)` | `HTMLElement`  | Create the container in which the itinerary will be put; default will create a `table`
-`createStepsContainer(<HTMLElement> container) | `HTMLElement` | Create the container for the instructions/steps; default will create a `tbody`
-`createStep(<String> text, <String> distance, <HTMLElement> steps) | `HTMLElement` | Creates a DOM element for an instruction, with the provided text and distance (already formatted as string with unit); default will create a `tr`
+`createStepsContainer(<HTMLElement> container)` | `HTMLElement` | Create the container for the instructions/steps; default will create a `tbody`
+`createStep(<String> text, <String> distance, <HTMLElement> steps)` | `HTMLElement` | Creates a DOM element for an instruction, with the provided text and distance (already formatted as string with unit); default will create a `tr`
 
 
 ## <a name="l-routing-localization"></a>L.Routing.Localization
@@ -337,29 +337,29 @@ Option                 | Type      | Default             | Description
 
 property      | type        | description
 --------------|------------|-----------------------------------
-waypoints     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
+`waypoints`     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
 
 
 ### <a name="routingresultevent"></a> RoutingResultEvent
 
 property      | type        | description
 --------------|------------|-----------------------------------
-waypoints     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
-routes        |[`IRoute`](#iroute)`[]`        | The routing alternatives
+`waypoints`     |[`L.Routing.Waypoint`](#l-routing-waypoint)`[]`  | The waypoints of the related route
+`routes`        |[`IRoute`](#iroute)`[]`        | The routing alternatives
 
 
 ### <a name="routingerrorevent"></a> RoutingErrorEvent
 
 property      | type        | description
 --------------|------------|-----------------------------------
-error         | [`IError`](#ierror)  | Error object, as passed by the current [`IRouter`](#irouter)
+`error`         | [`IError`](#ierror)  | Error object, as passed by the current [`IRouter`](#irouter)
 
 
 ### <a name="routeselectedevent"></a> RouteSelectedEvent
 
 property      | type        | description
 --------------|------------|-----------------------------------
-route     |[`IRoute`](#iroute)  | The selected route
+`route`     |[`IRoute`](#iroute)  | The selected route
 
 
 ### <a name="waypointssplicedevent"></a> WaypointsSplicedEvent
@@ -434,7 +434,7 @@ Combined with either:
 
 property      | type        | description
 --------------|-------------|--------------------------------------------
-`text`        | String      | explicit instruction text
+`text`        | `String`      | explicit instruction text
 
 or:
 
