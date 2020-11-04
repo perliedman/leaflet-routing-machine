@@ -782,7 +782,74 @@
 				seconds: 's'
 			}
 		},
-
+		'uk': {
+			directions: {
+				N: 'північ',
+				NE: 'північний схід',
+				E: 'схід',
+				SE: 'південний схід',
+				S: 'південь',
+				SW: 'південний захід',
+				W: 'захід',
+				NW: 'північний захід',
+				SlightRight: 'плавно направо',
+				Right: 'направо',
+				SharpRight: 'різко направо',
+				SlightLeft: 'плавно наліво',
+				Left: 'наліво',
+				SharpLeft: 'різко наліво',
+				Uturn: 'розвернутися',
+			},
+			instructions: {
+				'Head':
+					[ 'Почати рух на {dir}', 'по {road}'],
+				'Continue':
+					[ 'Продовжувати рух на {dir}', 'по {road}'],
+				'SlightRight':
+					[ 'Плавний поворот направо', 'на {road}'],
+				'Right':
+					[ 'Направо', 'на {road}'],
+				'SharpRight':
+					[ 'Різкий поворот направо', 'на {road}'],
+				'TurnAround':
+					[ 'Розгорнутися'],
+				'SharpLeft':
+					[ 'Різкий поворот наліво', 'на {road}'],
+				'Left':
+					[ 'Поворот наліво', 'на {road}'],
+				'SlightLeft':
+					[ 'Плавний поворот наліво', 'на {road}'],
+				'WaypointReached':
+					[ 'Точка досягнута'],
+				'Roundabout':
+					[ "{ExitStr} з'їзд з кільця", 'на {road}'],
+				'DestinationReached':
+					[ 'Закінчення маршруту'],
+				'Fork': [ 'На розвилці поверніть {modifier}', 'на {road}'],
+				'Merge': [ 'Візьміть {modifier}', 'на {road}'],
+				'OnRamp': [ "Поверніть {modifier} на з'їзд", 'на {road}'],
+				'OffRamp': [ "З'їжджайте на {modifier}", 'на {road}'],
+				'EndOfRoad': [ 'Поверніть {modifier} в кінці дороги', 'на {road}'],
+				'Onto': 'на {road}'
+			},
+			formatOrder: function(n) {
+				return n + '-й';
+			},
+			ui: {
+				startPlaceholder: 'Початок',
+				viaPlaceholder: 'Через {viaNumber}',
+				endPlaceholder: 'Кінець'
+			},
+			units: {
+				meters: 'м',
+				kilometers: 'км',
+				yards: 'ярд',
+				miles: 'ми',
+				hours: 'г',
+				minutes: 'хв',
+				seconds: 'сек'
+			}
+		},
 		'id': {
 			directions: {
 				N: 'utara',
@@ -804,45 +871,41 @@
 			instructions: {
 				// instruction, postfix if the road is named
 				'Head':
-					['Head {dir}', ' on {road}'],
+					['Menuju {dir}', ' di {road}'],
 				'Continue':
-					['Continue {dir}'],
+					['Lanjut {dir}'],
 				'TurnAround':
-					['Turn around'],
+					['Berputar'],
 				'WaypointReached':
-					['Waypoint reached'],
+					['Waypoint tercapai'],
 				'Roundabout':
-					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
+					['Ambil jalan keluar {exitStr} bundaran', ' ke {road}'],
 				'DestinationReached':
-					['Destination reached'],
-				'Fork': ['At the fork, turn {modifier}', ' onto {road}'],
-				'Merge': ['Merge {modifier}', ' onto {road}'],
-				'OnRamp': ['Turn {modifier} on the ramp', ' onto {road}'],
-				'OffRamp': ['Take the ramp on the {modifier}', ' onto {road}'],
-				'EndOfRoad': ['Turn {modifier} at the end of the road', ' onto {road}'],
-				'Onto': 'onto {road}'
+					['Sampai tujuan'],
+				'Fork': ['Di pertigaan jalan, belok {modifier}', ' ke {road}'],
+				'Merge': ['Masuk {modifier}', ' ke {road}'],
+				'OnRamp': ['Belok {modifier} di tanjakan', ' ke {road}'],
+				'OffRamp': ['Gunakan tanjakan di {modifier}', ' ke {road}'],
+				'EndOfRoad': ['Belok {modifier} di ujung jalan', ' ke {road}'],
+				'Onto': 'ke {road}'
 			},
 			formatOrder: function(n) {
-				var i = n % 10 - 1,
-				suffix = ['st', 'nd', 'rd'];
-
-				return suffix[i] ? n + suffix[i] : n + 'th';
+				return n + '.';
 			},
 			ui: {
-				startPlaceholder: 'Start',
-				viaPlaceholder: 'Via {viaNumber}',
-				endPlaceholder: 'End'
+				startPlaceholder: 'Awal',
+				viaPlaceholder: 'Melalui {viaNumber}',
+				endPlaceholder: 'Akhir'
 			},
 			units: {
 				meters: 'm',
 				kilometers: 'km',
-				yards: 'yd',
-				miles: 'mi',
-				hours: 'h',
-				minutes: 'min',
-				seconds: 's'
+				yards: 'yard',
+				miles: 'mil',
+				hours: 'jam',
+				minutes: 'menit',
+				seconds: 'detik'
 			}
 		}
-
 	});
 })();
