@@ -724,8 +724,8 @@
 				seconds: 'с'
 			}
 		},
-                
-                'pl': {
+
+    'pl': {
 			directions: {
 				N: 'północ',
 				NE: 'północny wschód',
@@ -781,6 +781,68 @@
 				minutes: 'min',
 				seconds: 's'
 			}
+		},
+
+		'id': {
+			directions: {
+				N: 'utara',
+				NE: 'timur laut',
+				E: 'timur',
+				SE: 'tenggara',
+				S: 'selatan',
+				SW: 'barat daya',
+				W: 'barat',
+				NW: 'barat laut',
+				SlightRight: 'kanan sedikit',
+				Right: 'kanan',
+				SharpRight: 'kanan tajam',
+				SlightLeft: 'kiri sedikit',
+				Left: 'kiri',
+				SharpLeft: 'kiri tajam',
+				Uturn: 'Putar balik'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Head {dir}', ' on {road}'],
+				'Continue':
+					['Continue {dir}'],
+				'TurnAround':
+					['Turn around'],
+				'WaypointReached':
+					['Waypoint reached'],
+				'Roundabout':
+					['Take the {exitStr} exit in the roundabout', ' onto {road}'],
+				'DestinationReached':
+					['Destination reached'],
+				'Fork': ['At the fork, turn {modifier}', ' onto {road}'],
+				'Merge': ['Merge {modifier}', ' onto {road}'],
+				'OnRamp': ['Turn {modifier} on the ramp', ' onto {road}'],
+				'OffRamp': ['Take the ramp on the {modifier}', ' onto {road}'],
+				'EndOfRoad': ['Turn {modifier} at the end of the road', ' onto {road}'],
+				'Onto': 'onto {road}'
+			},
+			formatOrder: function(n) {
+				var i = n % 10 - 1,
+				suffix = ['st', 'nd', 'rd'];
+
+				return suffix[i] ? n + suffix[i] : n + 'th';
+			},
+			ui: {
+				startPlaceholder: 'Start',
+				viaPlaceholder: 'Via {viaNumber}',
+				endPlaceholder: 'End'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yd',
+				miles: 'mi',
+				hours: 'h',
+				minutes: 'min',
+				seconds: 's'
+			}
 		}
+
 	});
 })();
