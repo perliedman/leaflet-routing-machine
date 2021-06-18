@@ -724,8 +724,8 @@
 				seconds: 'с'
 			}
 		},
-                
-                'pl': {
+
+    'pl': {
 			directions: {
 				N: 'północ',
 				NE: 'północny wschód',
@@ -848,6 +848,63 @@
 				hours: 'г',
 				minutes: 'хв',
 				seconds: 'сек'
+			}
+		},
+		'id': {
+			directions: {
+				N: 'utara',
+				NE: 'timur laut',
+				E: 'timur',
+				SE: 'tenggara',
+				S: 'selatan',
+				SW: 'barat daya',
+				W: 'barat',
+				NW: 'barat laut',
+				SlightRight: 'kanan sedikit',
+				Right: 'kanan',
+				SharpRight: 'kanan tajam',
+				SlightLeft: 'kiri sedikit',
+				Left: 'kiri',
+				SharpLeft: 'kiri tajam',
+				Uturn: 'Putar balik'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['Menuju {dir}', ' di {road}'],
+				'Continue':
+					['Lanjut {dir}'],
+				'TurnAround':
+					['Berputar'],
+				'WaypointReached':
+					['Waypoint tercapai'],
+				'Roundabout':
+					['Ambil jalan keluar {exitStr} bundaran', ' ke {road}'],
+				'DestinationReached':
+					['Sampai tujuan'],
+				'Fork': ['Di pertigaan jalan, belok {modifier}', ' ke {road}'],
+				'Merge': ['Masuk {modifier}', ' ke {road}'],
+				'OnRamp': ['Belok {modifier} di tanjakan', ' ke {road}'],
+				'OffRamp': ['Gunakan tanjakan di {modifier}', ' ke {road}'],
+				'EndOfRoad': ['Belok {modifier} di ujung jalan', ' ke {road}'],
+				'Onto': 'ke {road}'
+			},
+			formatOrder: function(n) {
+				return n + '.';
+			},
+			ui: {
+				startPlaceholder: 'Awal',
+				viaPlaceholder: 'Melalui {viaNumber}',
+				endPlaceholder: 'Akhir'
+			},
+			units: {
+				meters: 'm',
+				kilometers: 'km',
+				yards: 'yard',
+				miles: 'mil',
+				hours: 'jam',
+				minutes: 'menit',
+				seconds: 'detik'
 			}
 		}
 	});
