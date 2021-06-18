@@ -170,7 +170,85 @@
 				seconds: 's'
 			}
 		},
-
+		'fa-ir': {
+			directions: {
+				N: 'شمال',
+				NE: 'شمال شرقی',
+				E: 'شرق',
+				SE: 'جنوب شرقی',
+				S: 'جنوب',
+				SW: 'جنوب غربی',
+				W: 'غرب',
+				NW: 'شمال قربی',
+				SlightRight: 'اندکی به راست',
+				Right: 'راست',
+				SharpRight: 'کاملا به راست',
+				SlightLeft: 'اندکی به چپ',
+				Left: 'چپ',
+				SharpLeft: 'کاملا به چپ',
+				Uturn: 'دور برگردان'
+			},
+			instructions: {
+				// instruction, postfix if the road is named
+				'Head':
+					['درمسیر {dir}', ' در {road}'],
+				'Continue':
+					['درمسیر {dir} ادامه دهید'],
+				'TurnAround':
+					['دور بزنید'],
+				'WaypointReached':
+					['به مقصد رسیدید'],
+				'Roundabout':
+					['از خروجی {exitStr} خارج شوید', ' در {road}'],
+				'DestinationReached':
+					['به مقصد رسیدید'],
+				'Fork': ['در دوراهی از مسیر {modifier} برانید', ' در {road}'],
+				'Merge': ['به {modifier} برانید', ' در {road}'],
+				'OnRamp': ['به سمت {modifier} برروی پل برانید', ' در {road}'],
+				'OffRamp': ['از سمت {modifier} از پل خارج شوید', ' در {road}'],
+				'EndOfRoad': ['درپایان مسیر به  {modifier} برانید', ' در {road}'],
+				'Onto': 'onto {road}'
+			},
+			formatOrder: function (n) {
+				switch (n) {
+					case 1:
+						return "اولین";
+					case 2:
+						return "دومین";
+					case 3:
+						return "سومین";
+					case 4:
+						return "چهارمین";
+					case 5:
+						return "پنجمین";
+					case 6:
+						return "ششمین";
+					case 7:
+						return "هفتمین";
+					case 8:
+						return "هشتمین";
+					case 9:
+						return "نهمین";
+					case 10:
+						return "دهمین";
+				}
+				return n + "مین";
+			},
+			ui: {
+				startPlaceholder: 'شروع',
+				viaPlaceholder: 'از مسیر {viaNumber}',
+				endPlaceholder: 'پایان'
+			},
+			units: {
+				meters: 'متر',
+				kilometers: 'کیلومتر',
+				yards: 'یارد',
+				miles: 'مایل',
+				hours: 'ساعت',
+				minutes: 'دقیقه',
+				seconds: 'ثانیه'
+			}
+		},
 		'de': {
 			directions: {
 				N: 'Norden',
