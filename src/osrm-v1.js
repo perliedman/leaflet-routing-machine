@@ -157,9 +157,10 @@
 			}
 
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.waypoints);
-
-			for (i = 0; i < response.routes.length; i++) {
-				route = this._convertRoute(response.routes[i]);
+			//Mapbox optimization route returns trips instead of routes
+      			let routes = response.routes || response.trips;
+			for (i = 0; i < routes.length; i++) {
+				route = this._convertRoute(routes[i]);
 				route.inputWaypoints = inputWaypoints;
 				route.waypoints = actualWaypoints;
 				route.properties = {isSimplified: !options || !options.geometryOnly || options.simplifyGeometry};
@@ -331,12 +332,14 @@
 		},
 
 		buildRouteUrl: function(waypoints, options) {
+
 			var locs = [],
 				hints = [],
 				wp,
 				latLng,
-			    computeInstructions,
-			    computeAlternative = true;
+		    computeInstructions = options.steps && options.steps !== "default" ? true : false,
+		    computeRoundtrip = options.roundtrip && options.roundtrip !== "default" ? true : false,
+		    computeAlternative = options.alternatives && options.alternatives !== "default" ? true : false;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
@@ -345,14 +348,13 @@
 				hints.push(this._hints.locations[this._locationKey(latLng)] || '');
 			}
 
-			computeInstructions =
-				true;
 
 			return this.options.serviceUrl + '/' + this.options.profile + '/' +
 				locs.join(';') + '?' +
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
-				'&alternatives=' + computeAlternative.toString() +
-				'&steps=' + computeInstructions.toString() +
+				(computeInstructions ? '&steps=' + (typeof options.steps == "boolean" ? options.steps : true).toString() : '') +
+				(computeRoundtrip ? '&roundtrip=' + (typeof options.roundtrip == "boolean" ? options.roundtrip : false).toString() : '') +
+				(computeAlternative ? '&alternatives=' + (typeof options.alternatives == "boolean" ? options.alternatives : true).toString() : '') +
 				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
