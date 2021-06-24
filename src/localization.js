@@ -764,7 +764,9 @@
         EndOfRoad: ["Belok {modifier} di ujung jalan", " ke {road}"],
         Onto: "ke {road}",
       },
-      formatOrder: (n) => n + ".",
+      formatOrder: function (n) {
+        return n + ".";
+      },
       ui: {
         startPlaceholder: "Awal",
         viaPlaceholder: "Melalui {viaNumber}",
