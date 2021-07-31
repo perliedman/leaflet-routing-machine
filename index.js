@@ -4,7 +4,7 @@ var map = L.map('map', { scrollWheelZoom: false }),
 		L.latLng(52.3546,4.9039)
 	];
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+L.tileLayer(LRM.tileLayerUrl, {
 	attribution: 'Maps and routes from <a href="https://www.openstreetmap.org">OpenStreetMap</a>. ' +
 		'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map);

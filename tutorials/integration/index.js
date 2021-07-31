@@ -1,6 +1,6 @@
 var map = L.map('map-1', { scrollWheelZoom: false });
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+L.tileLayer(LRM.tileLayerUrl, {
     attribution: 'Maps and routes from <a href="https://www.openstreetmap.org">OpenStreetMap</a>. ' +
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map);
