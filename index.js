@@ -11,7 +11,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 var control = L.Routing.control({
 		router: L.routing.osrmv1({
-			serviceUrl: 'https://routing.openstreetmap.de/routed-car/route/v1'
+			serviceUrl: LRM.osmServiceUrl
 		}),
 		plan: L.Routing.plan(waypoints, {
 			createMarker: function(i, wp) {
