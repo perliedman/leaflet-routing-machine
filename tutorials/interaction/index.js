@@ -1,8 +1,7 @@
 var map1 = L.map('map-1', { scrollWheelZoom: false });
 
-L.tileLayer('https://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}{r}.png?access_token=' + LRM.apiToken, {
-    attribution: 'Maps by <a href="https://www.mapbox.com/about/maps/">MapBox</a>. ' +
-        'Routes from <a href="http://project-osrm.org/">OSRM</a>, ' +
+L.tileLayer(LRM.tileLayerUrl, {
+    attribution: 'Maps and routes from <a href="https://www.openstreetmap.org">OpenStreetMap</a>. ' +
         'data uses <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a> license'
 }).addTo(map1);
 
@@ -14,7 +13,9 @@ function button(label, container) {
 }
 
 var control = L.Routing.control({
-        router: L.routing.mapbox(LRM.apiToken),
+        router: L.routing.osrmv1({
+			serviceUrl: LRM.osmServiceUrl
+		}),
         routeWhileDragging: true,
         plan: new (L.Routing.Plan.extend({
             createGeocoders: function() {
