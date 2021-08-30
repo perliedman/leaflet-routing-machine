@@ -122,3 +122,8 @@ export interface WaypointGeocodedEvent extends WaypointEvent {
 export interface GeocodedEvent extends WaypointEvent {
 	value: string;
 }
+
+export interface LineTouchedEvent {
+	afterIndex: number;
+	latlng: L.LatLng;
+}
