@@ -123,7 +123,13 @@ export interface GeocodedEvent extends WaypointEvent {
 	value: string;
 }
 
-export interface LineTouchedEvent {
+export interface LineTouchedEvent extends L.LeafletEvent {
 	afterIndex: number;
+	latlng: L.LatLng;
+}
+
+export interface WaypointDragEvent {
+	target: any;
+	index: number;
 	latlng: L.LatLng;
 }

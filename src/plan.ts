@@ -51,7 +51,7 @@ export default class Plan extends L.Layer {
 	private geocoderElements: GeocoderElement[]  = [];
 	private markers: L.Marker[] = [];
 
-	constructor(waypoints: L.LatLng[], options: PlanOptions) {
+	constructor(waypoints: (Waypoint | L.LatLng)[], options?: PlanOptions) {
 		super();
 
 		this.options = {
@@ -60,7 +60,7 @@ export default class Plan extends L.Layer {
 		};
 
 		this.waypoints = [];
-		this.setWaypoints(waypoints.map((waypoint) => new Waypoint(waypoint)));
+		this.setWaypoints(waypoints.map((waypoint) => waypoint instanceof Waypoint ? waypoint : new Waypoint(waypoint)));
 	}
 
 	isReady() {

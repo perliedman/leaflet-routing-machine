@@ -5,7 +5,6 @@ type GeocoderQuery = (query: string, callback: GeocodingCallback) => void;
 
 interface GeocoderOptions {
 	resultFn?: GeocoderQuery;
-	resultContext?: any;
 	autocompleteFn?: GeocoderQuery;
 }
 
@@ -53,6 +52,7 @@ export default class Autocomplete {
 		// TODO: looks a bit like a kludge to register same for input and keypress -
 		// browsers supporting both will get duplicate events; just registering
 		// input will not catch enter, though.
+		// TODO: Try using keyup instead after typescript transition is over
 		L.DomEvent.addListener(this.element, 'input', this.keyPressed);
 		L.DomEvent.addListener(this.element, 'keypress', this.keyPressed);
 		L.DomEvent.addListener(this.element, 'keydown', this.keyDown);

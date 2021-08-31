@@ -99,7 +99,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
 		locations: {[key: string]: string};
 	};
 
-	constructor(options: Partial<OSRMv1Options>) {
+	constructor(options?: OSRMv1Options) {
 		super();
 		
 		this.options = {

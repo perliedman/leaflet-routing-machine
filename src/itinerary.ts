@@ -73,7 +73,7 @@ export default class Itinerary extends ItineraryControl {
 	private marker?: L.CircleMarker;
 	map?: L.Map;
 
-	constructor(options: Partial<ItineraryOptions>) {
+	constructor(options?: ItineraryOptions) {
 		super(options);
 
 		this.options = {
