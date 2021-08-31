@@ -244,6 +244,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
 				isSimplified
 			},
 			waypointIndices: [],
+			routesIndex: 0
 		};
 
 		const legNames: string[] = [];

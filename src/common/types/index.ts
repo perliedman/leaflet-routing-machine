@@ -22,14 +22,14 @@ export enum InstructionType {
 }
 
 export enum Direction {
-	N,
-	NE,
-	E,
-	SE,
-	S,
-	SW,
-	W,
-	NW,
+	N = 'N',
+	NE = 'NE',
+	E = 'E',
+	SE = 'SE',
+	S = 'S',
+	SW = 'SW',
+	W ='W',
+	NW = 'NW',
 }
 
 export interface IRouteSummary {
@@ -79,7 +79,7 @@ export interface IRoute {
 	properties: {
 		isSimplified: boolean;
 	};
-	routesIndex?: number;
+	routesIndex: number;
 }
 
 export interface IRoutingError {
