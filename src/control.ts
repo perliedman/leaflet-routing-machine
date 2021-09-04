@@ -51,7 +51,6 @@ export default class Control extends Itinerary {
 	private selectedRoute?: IRoute;
 	private line?: Line;
 	private alternatives: Line[] = [];
-	private controlRoutes: IRoute[] = [];
 	private pendingRequest: {
 		request: Promise<IRoute[]>;
 		abortController?: AbortController;
@@ -72,11 +71,11 @@ export default class Control extends Itinerary {
 		this.plan = this.controlOptions.plan || new Plan(this.controlOptions.waypoints || [], options);
 		this.requestCount = 0;
 
-		this.on('routeselected', this.routeSelected);
+		this.on('routeselected', this.routeSelected, this);
 		if (this.controlOptions.defaultErrorHandler) {
-			this.on('routingerror', this.controlOptions.defaultErrorHandler);
+			this.on('routingerror', this.controlOptions.defaultErrorHandler, this);
 		}
-		this.plan.on('waypointschanged', this.onWaypointsChanged);
+		this.plan.on('waypointschanged', this.onWaypointsChanged, this);
 		if (routeWhileDragging) {
 			this.setupRouteDragging();
 		}
@@ -96,11 +95,11 @@ export default class Control extends Itinerary {
 
 				for (const route of routes) {
 					const i = routes.indexOf(route);
-					this.controlRoutes[i].properties = routes[i].properties;
+					this.routes[i].properties = routes[i].properties;
 				}
 
 				this.updateLineCallback(routes);
-			} catch (err) {
+			} catch (err: any) {
 				if (err.type !== 'abort') {
 					this.clearLines();
 				}
@@ -177,9 +176,9 @@ export default class Control extends Itinerary {
 		}
 
 		if (this.controlOptions.waypointMode === 'snap') {
-			this.plan.off('waypointschanged', this.onWaypointsChanged);
+			this.plan.off('waypointschanged', this.onWaypointsChanged, this);
 			this.setWaypoints(route.waypoints);
-			this.plan.on('waypointschanged', this.onWaypointsChanged);
+			this.plan.on('waypointschanged', this.onWaypointsChanged, this);
 		}
 	}
 
@@ -268,8 +267,8 @@ export default class Control extends Itinerary {
 
 	private hookAltEvents(l: Line) {
 		l.on('linetouched', (e) => {
-			var alts = this.controlRoutes.slice();
-			var selected = alts.splice(e.target.route.routesIndex, 1)[0];
+			const alts = this.routes.slice();
+			const selected = alts.splice(e.target.route.routesIndex, 1)[0];
 			this.fire('routeselected', { route: selected, alternatives: alts });
 		});
 	}
@@ -375,7 +374,7 @@ export default class Control extends Itinerary {
 				}
 
 				return routes;
-			} catch (err) {
+			} catch (err: any) {
 				if (err?.type !== 'abort') {
 					this.fire('routingerror', { error: err });
 				}

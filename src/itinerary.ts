@@ -68,7 +68,7 @@ export default class Itinerary extends ItineraryControl {
 	private itineraryBuilder: ItineraryBuilder;
 	private container?: HTMLDivElement;
 	private altContainer?: HTMLDivElement;
-	private routes: IRoute[] = [];
+	protected routes: IRoute[] = [];
 	private altElements: HTMLElement[] = [];
 	private marker?: L.CircleMarker;
 	map?: L.Map;
