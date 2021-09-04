@@ -361,12 +361,12 @@ export default class Control extends Itinerary {
 				// this isn't the last request.
 				if (ts === this.requestCount) {
 					this.clearLines();
-					this.clearAlts();
 
 					routes.forEach((route, i) => { route.routesIndex = i; });
 
 					if (!routeOptions.geometryOnly) {
 						this.fire('routesfound', { waypoints, routes: routes });
+						this.clearAlts();
 						this.setAlternatives(routes);
 					} else {
 						const selectedRoute = [...routes].splice(0, 1)[0];
