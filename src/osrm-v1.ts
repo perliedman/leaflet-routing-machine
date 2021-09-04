@@ -144,17 +144,20 @@ export default class OSRMv1 extends L.Class implements IRouter {
 			status: 0,
 		};
 
-		const controller = abortController || new AbortController();
-		const timer = setTimeout(() => controller.abort(), this.options.timeout);
+		const request = fetch(url, {
+			signal: abortController?.signal,
+		});
 
 		try {
-			const request = await fetch(url, {
-				signal: controller.signal,
-			});
+			const timeout = this.options.timeout ?? this.defaultOptions.timeout;
+			const response = await Promise.race([
+				request,
+				new Promise<undefined>((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+			]);
 
-			if (request.ok) {
+			if (response?.ok) {
 				try {
-					const data: OSRMResult = await request.json();
+					const data: OSRMResult = await response.json();
 
 					if (data.code !== 'Ok') {
 						throw {
@@ -165,11 +168,11 @@ export default class OSRMv1 extends L.Class implements IRouter {
 					
 					try {
 						return this.routeDone(data, wps, routingOptions);
-					} catch (ex) {
+					} catch (ex: any) {
 						error.status = -3;
 						error.message = ex.toString();
 					}
-				} catch (ex) {
+				} catch (ex: any) {
 					error.status = -2;
 					error.message = 'Error parsing OSRM response: ' + ex.toString();
 				}
@@ -178,9 +181,10 @@ export default class OSRMv1 extends L.Class implements IRouter {
 					target: request
 				}
 			}
-		} catch (err) {
-			if (err.name === 'AbortError') {
+		} catch (err: any) {
+			if (err.name === 'AbortError' || err.message === 'timeout') {
 				throw {
+					type: 'abort',
 					status: -1,
 					message: 'OSRM request timed out.'
 				};
@@ -202,8 +206,6 @@ export default class OSRMv1 extends L.Class implements IRouter {
 			error.url = url;
 			error.status = -1;
 			error.target = err;
-		} finally {
-			clearTimeout(timer);
 		}
 
 		throw error;
