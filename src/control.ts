@@ -369,12 +369,12 @@ export default class Control extends Itinerary {
 						this.fire('routesfound', { waypoints, routes: routes });
 						this.setAlternatives(routes);
 					} else {
-						const selectedRoute = routes.splice(0, 1)[0];
+						const selectedRoute = [...routes].splice(0, 1)[0];
 						this.routeSelected({ route: selectedRoute, alternatives: routes });
 					}
-
-					return routes;
 				}
+
+				return routes;
 			} catch (err: any) {
 				if (err?.type !== 'abort') {
 					this.fire('routingerror', { error: err });
