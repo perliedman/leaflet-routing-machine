@@ -97,7 +97,7 @@ export default class Itinerary extends ItineraryControl {
 		this.altContainer = this.createAlternativesContainer();
 		this.container.appendChild(this.altContainer);
 		L.DomEvent.disableClickPropagation(this.container);
-		L.DomEvent.addListener(this.container, 'mousewheel', function(e) {
+		L.DomEvent.addListener(this.container, 'mousewheel', (e) => {
 			L.DomEvent.stopPropagation(e);
 		});
 

@@ -363,7 +363,7 @@ export default class Control extends Itinerary {
 					this.clearLines();
 					this.clearAlts();
 
-					routes.forEach(function(route, i) { route.routesIndex = i; });
+					routes.forEach((route, i) => { route.routesIndex = i; });
 
 					if (!routeOptions.geometryOnly) {
 						this.fire('routesfound', { waypoints, routes: routes });
