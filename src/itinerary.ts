@@ -56,7 +56,7 @@ export default class Itinerary extends ItineraryControl {
 		collapsible: undefined,
 		collapseBtn: (itinerary: Itinerary) => {
 			const collapseBtn = L.DomUtil.create('span', itinerary.options.collapseBtnClass);
-			L.DomEvent.on(collapseBtn, 'click', itinerary.toggle);
+			L.DomEvent.on(collapseBtn, 'click', itinerary.toggle, itinerary);
 			itinerary.container?.insertBefore(collapseBtn, itinerary.container.firstChild);
 		},
 		collapseBtnClass: 'leaflet-routing-collapse-btn'

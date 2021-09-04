@@ -117,7 +117,7 @@ export default class Control extends Itinerary {
 		this.map = map;
 		this.map.addLayer(this.plan);
 
-		this.map.on('zoomend', this.onZoomEnd);
+		this.map.on('zoomend', this.onZoomEnd, this);
 
 		if (this.plan.options.geocoder) {
 			container.insertBefore(this.plan.createGeocoders(), container.firstChild);
@@ -127,7 +127,7 @@ export default class Control extends Itinerary {
 	}
 
 	onRemove(map: L.Map) {
-		map.off('zoomend', this.onZoomEnd);
+		map.off('zoomend', this.onZoomEnd, this);
 		if (this.line) {
 			map.removeLayer(this.line);
 		}
@@ -327,11 +327,12 @@ export default class Control extends Itinerary {
 
 	async route(options?: ControlRoutingOptions) {
 		const ts = ++this.requestCount;
-		const abortController = this.pendingRequest?.abortController;
 
-		if (abortController) {
-			abortController.abort();
-			this.pendingRequest = null;
+		if (this.pendingRequest?.abortController) {
+			setTimeout(() => {
+				this.pendingRequest?.abortController?.abort();
+				this.pendingRequest = null;
+			}, 1000)
 		}
 
 		const routeOptions = options || {};
@@ -371,9 +372,9 @@ export default class Control extends Itinerary {
 						const selectedRoute = routes.splice(0, 1)[0];
 						this.routeSelected({ route: selectedRoute, alternatives: routes });
 					}
-				}
 
-				return routes;
+					return routes;
+				}
 			} catch (err: any) {
 				if (err?.type !== 'abort') {
 					this.fire('routingerror', { error: err });

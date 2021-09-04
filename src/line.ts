@@ -110,7 +110,7 @@ export default class Line extends L.LayerGroup {
 			const polyline = L.polyline(coords, style);
 			this.addLayer(polyline);
 			if (mouselistener) {
-				polyline.on('mousedown', this.onLineTouched);
+				polyline.on('mousedown', this.onLineTouched, this);
 			}
 		}
 	}
@@ -135,7 +135,7 @@ export default class Line extends L.LayerGroup {
 	}
 
 	private getWaypointIndices() {
-		if (!this.waypointIndices) {
+		if (!this.waypointIndices.length) {
 			this.waypointIndices = this.route.waypointIndices || this.findWaypointIndices();
 		}
 

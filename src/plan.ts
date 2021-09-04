@@ -133,7 +133,7 @@ export default class Plan extends L.Layer {
 		}
 
 		this.updateGeocoders();
-		this.on('waypointsspliced', this.updateGeocoders);
+		this.on('waypointsspliced', this.updateGeocoders, this);
 
 		return container;
 	}
@@ -255,18 +255,18 @@ export default class Plan extends L.Layer {
 			};
 			const mouseUp = (e: L.LeafletMouseEvent) => {
 				this._map.dragging.enable();
-				this._map.off('mouseup', mouseUp);
-				this._map.off('mousemove', mouseMove);
+				this._map.off('mouseup', mouseUp, this);
+				this._map.off('mousemove', mouseMove, this);
 				dragEnd(e);
 			};
 			this._map.dragging.disable();
-			this._map.on('mousemove', mouseMove);
-			this._map.on('mouseup', mouseUp);
+			this._map.on('mousemove', mouseMove, this);
+			this._map.on('mouseup', mouseUp, this);
 			dragStart({ latlng: this.waypoints[waypointIndex].latLng });
 		} else {
-			marker.on('dragstart', dragStart);
-			marker.on('drag', drag);
-			marker.on('dragend', dragEnd);
+			marker.on('dragstart', dragStart, this);
+			marker.on('drag', drag, this);
+			marker.on('dragend', dragEnd, this);
 		}
 	}
 
@@ -288,7 +288,7 @@ export default class Plan extends L.Layer {
 		const marker = createMarker(newWaypointIndex, waypoint, this.waypoints.length + 1);
 		const lines: L.Polyline[] = [];
 		const draggingEnabled = this._map.dragging.enabled();
-		const mouseMove = L.bind(function(e) {
+		const mouseMove = (e: L.LeafletMouseEvent) => {
 			if (marker) {
 				marker.setLatLng(e.latlng);
 			}
@@ -299,7 +299,7 @@ export default class Plan extends L.Layer {
 			}
 
 			L.DomEvent.stop(e);
-		}, this);
+		};
 		const mouseUp = (e: L.LeafletMouseEvent) => {
 			if (marker) {
 				this._map.removeLayer(marker);
@@ -307,8 +307,8 @@ export default class Plan extends L.Layer {
 			for (const line of lines) {
 				this._map.removeLayer(line);
 			}
-			this._map.off('mousemove', mouseMove);
-			this._map.off('mouseup', mouseUp);
+			this._map.off('mousemove', mouseMove, this);
+			this._map.off('mouseup', mouseUp, this);
 			this.spliceWaypoints(newWaypointIndex, 0, new Waypoint(e.latlng));
 			if (draggingEnabled) {
 				this._map.dragging.enable();
@@ -330,8 +330,8 @@ export default class Plan extends L.Layer {
 			this._map.dragging.disable();
 		}
 
-		this._map.on('mousemove', mouseMove);
-		this._map.on('mouseup', mouseUp);
+		this._map.on('mousemove', mouseMove, this);
+		this._map.on('mouseup', mouseUp,this);
 	}
 
 	private focusGeocoder(index: number) {
