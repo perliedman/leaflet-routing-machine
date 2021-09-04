@@ -38,7 +38,7 @@ const itLocale: Locale = {
     'DestinationReached':
       ['Destinazione raggiunta'],
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

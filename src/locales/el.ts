@@ -38,7 +38,7 @@ const elLocale: Locale = {
     'DestinationReached':
       ['Φτάσατε στον προορισμό σας'],
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

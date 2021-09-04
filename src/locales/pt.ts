@@ -51,7 +51,7 @@ const ptLocale: Locale = {
     'EndOfRoad': ['Vire {modifier} no fim da rua', ' na {road}'],
     'Onto': 'na {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

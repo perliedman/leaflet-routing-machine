@@ -51,7 +51,7 @@ const deLocale: Locale = {
     'EndOfRoad': ['Fahren Sie {modifier} am Ende der Straße', ' auf {road}'],
     'Onto': 'auf {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + '.';
   },
   ui: {

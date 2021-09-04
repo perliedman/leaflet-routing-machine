@@ -39,7 +39,7 @@ const esLocale: Locale = {
     'EndOfRoad': ['Gira {modifier} al final de la carretera', ' hacia {road}'],
     'Onto': 'hacia {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

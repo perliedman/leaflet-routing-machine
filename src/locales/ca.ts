@@ -38,7 +38,7 @@ const caLocale: Locale = {
     'EndOfRoad': ['Gira {modifier} al final de la carretera', ' cap a {road}'],
     'Onto': 'cap a {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

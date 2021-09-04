@@ -38,9 +38,9 @@ const skLocale: Locale = {
     'DestinationReached':
       ['Prišli ste do cieľa.'],
   },
-  formatOrder: function(n) {
-    var i = n % 10 - 1,
-    suffix = ['.', '.', '.'];
+  formatOrder: function (n) {
+    const i = n % 10 - 1,
+      suffix = ['.', '.', '.'];
 
     return suffix[i] ? n + suffix[i] : n + '.';
   },

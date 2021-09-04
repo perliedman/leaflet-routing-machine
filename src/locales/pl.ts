@@ -39,7 +39,7 @@ const plLocale: Locale = {
     'EndOfRoad': ['Skręć {modifier} na końcu drogi', ' na {road}'],
     'Onto': 'na {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + '.';
   },
   ui: {

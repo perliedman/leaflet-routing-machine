@@ -38,7 +38,7 @@ const frLocale: Locale = {
     'DestinationReached':
       ['Destination atteinte'],
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + 'º';
   },
   ui: {

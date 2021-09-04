@@ -50,7 +50,7 @@ const ruLocale: Locale = {
     'EndOfRoad': ['Поверните {modifier} в конце дороги', ' на {road}'],
     'Onto': 'на {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + '-й';
   },
   ui: {

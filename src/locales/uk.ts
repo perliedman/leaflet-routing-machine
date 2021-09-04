@@ -20,37 +20,37 @@ const ukLocale: Locale = {
   },
   instructions: {
     'Head':
-      [ 'Почати рух на {dir}', 'по {road}'],
+      ['Почати рух на {dir}', 'по {road}'],
     'Continue':
-      [ 'Продовжувати рух на {dir}', 'по {road}'],
+      ['Продовжувати рух на {dir}', 'по {road}'],
     'SlightRight':
-      [ 'Плавний поворот направо', 'на {road}'],
+      ['Плавний поворот направо', 'на {road}'],
     'Right':
-      [ 'Направо', 'на {road}'],
+      ['Направо', 'на {road}'],
     'SharpRight':
-      [ 'Різкий поворот направо', 'на {road}'],
+      ['Різкий поворот направо', 'на {road}'],
     'TurnAround':
-      [ 'Розгорнутися'],
+      ['Розгорнутися'],
     'SharpLeft':
-      [ 'Різкий поворот наліво', 'на {road}'],
+      ['Різкий поворот наліво', 'на {road}'],
     'Left':
-      [ 'Поворот наліво', 'на {road}'],
+      ['Поворот наліво', 'на {road}'],
     'SlightLeft':
-      [ 'Плавний поворот наліво', 'на {road}'],
+      ['Плавний поворот наліво', 'на {road}'],
     'WaypointReached':
-      [ 'Точка досягнута'],
+      ['Точка досягнута'],
     'Roundabout':
-      [ "{ExitStr} з'їзд з кільця", 'на {road}'],
+      ["{ExitStr} з'їзд з кільця", 'на {road}'],
     'DestinationReached':
-      [ 'Закінчення маршруту'],
-    'Fork': [ 'На розвилці поверніть {modifier}', 'на {road}'],
-    'Merge': [ 'Візьміть {modifier}', 'на {road}'],
-    'OnRamp': [ "Поверніть {modifier} на з'їзд", 'на {road}'],
-    'OffRamp': [ "З'їжджайте на {modifier}", 'на {road}'],
-    'EndOfRoad': [ 'Поверніть {modifier} в кінці дороги', 'на {road}'],
+      ['Закінчення маршруту'],
+    'Fork': ['На розвилці поверніть {modifier}', 'на {road}'],
+    'Merge': ['Візьміть {modifier}', 'на {road}'],
+    'OnRamp': ["Поверніть {modifier} на з'їзд", 'на {road}'],
+    'OffRamp': ["З'їжджайте на {modifier}", 'на {road}'],
+    'EndOfRoad': ['Поверніть {modifier} в кінці дороги', 'на {road}'],
     'Onto': 'на {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return n + '-й';
   },
   ui: {

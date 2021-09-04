@@ -51,7 +51,7 @@ const svLocale: Locale = {
     'EndOfRoad': ['Sväng {modifier} vid vägens slut', ' till {road}'],
     'Onto': 'till {road}'
   },
-  formatOrder: function(n) {
+  formatOrder: function (n) {
     return ['första', 'andra', 'tredje', 'fjärde', 'femte',
       'sjätte', 'sjunde', 'åttonde', 'nionde', 'tionde'
       /* Can't possibly be more than ten exits, can there? */][n - 1];

@@ -1,6 +1,6 @@
 {
   "name": "leaflet-routing-machine",
-  "version": "3.2.12",
+  "version": "4.0.0-beta01",
   "description": "Routing for Leaflet",
   "directories": {
     "example": "examples",
@@ -9,6 +9,7 @@
   "scripts": {
     "prepare": "esbuild src/index.ts --bundle --sourcemap --outfile=dist/leaflet-routing-machine.js",
     "publish": "scripts/publish.sh",
+    "lint": "eslint --ext .ts src --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -38,7 +39,10 @@
   "main": "./dist/leaflet-routing-machine.js",
   "devDependencies": {
     "@types/leaflet": "^1.7.4",
+    "@typescript-eslint/eslint-plugin": "^4.30.0",
+    "@typescript-eslint/parser": "^4.30.0",
     "esbuild": "^0.12.22",
+    "eslint": "^7.32.0",
     "typescript": "^4.4.2"
   },
   "dependencies": {

@@ -51,7 +51,7 @@ export interface Units {
 }
 
 export default interface Locale {
-	directions: Directions;
+  directions: Directions;
   instructions: Instructions;
   formatOrder: (n: number) => string,
   ui: UI;
