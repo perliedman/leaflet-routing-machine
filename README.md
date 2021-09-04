@@ -1,8 +1,6 @@
 [Leaflet Routing Machine]((https://www.liedman.net/leaflet-routing-machine/)) [![NPM version](https://img.shields.io/npm/v/leaflet-routing-machine.svg)](https://www.npmjs.com/package/leaflet-routing-machine) ![Leaflet 1.0 compatible!](https://img.shields.io/badge/Leaflet%201.0-%E2%9C%93-1EB300.svg?style=flat) [![Join the chat at https://gitter.im/leaflet-routing-machine/Lobby](https://badges.gitter.im/leaflet-routing-machine/Lobby.svg)](https://gitter.im/leaflet-routing-machine/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 =======================
 
-**This plugin is barely maintained!** It has been a good long while since I had any reason to work with routing or Leaflet, and it does not look like that will change. I do not spend time on maintaining this plugin, and only rarely can I find time to respond to issues. If you want to take over as maintainer, feel free to contact me at per@liedman.net.
-
 Find the way from A to B on a Leaflet map. The plugin supports multiple backends:
 
 * [OSRM](http://project-osrm.org/) - builtin and used by default (version 5)
@@ -25,8 +23,6 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 
 __Go to the [Leaflet Routing Machine site](https://www.liedman.net/leaflet-routing-machine/) for more information, demos, tutorials and more.__
 
-**Update 2020-04-06:** Out of the box, Leaflet Routing Machine relies on OSRM's demo server. At this moment, the demo server (which is outside scope of the plugin and outside control of the plugin's author) is [no longer maintained, and its SSL certificate has expired](https://github.com/Project-OSRM/osrm-backend/issues/5655). The plugin will not work unless you [configure a routing backend](https://www.liedman.net/leaflet-routing-machine/tutorials/alternative-routers/) yourself. I am sorry to say that, to my knowledge, there is no good default.
-
 ## Support and New Features
 
 Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, your requirements are already covered and require very little adaptation.
@@ -39,7 +35,7 @@ For questions and discussions, you might want to look at [the Leaflet Routing Ma
 npm install
 ```
 
-This requires [Node and npm](http://nodejs.org/), as well as `grunt`.
+This requires [Node and npm](http://nodejs.org/).
 
 # Usage
 
