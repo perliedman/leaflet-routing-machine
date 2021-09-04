@@ -7,7 +7,7 @@
     "dist": "dist"
   },
   "scripts": {
-    "prepare": "esbuild src/index.js --bundle --sourcemap --outfile=dist/leaflet-routing-machine.js",
+    "prepare": "esbuild src/index.ts --bundle --sourcemap --outfile=dist/leaflet-routing-machine.js",
     "publish": "scripts/publish.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,6 +24,12 @@
     "name": "Per Liedman",
     "email": "per@liedman.net"
   },
+  "contributors": [
+    {
+      "name": "Alexander Oberländer (curtisy)",
+      "email": "curtisy@curtisy.one"
+    }
+  ],
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
