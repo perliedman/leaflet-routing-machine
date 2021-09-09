@@ -369,7 +369,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
 
   private decodePolyline(routeGeometry: string) {
     const line = decode(routeGeometry, this.options.polylinePrecision) as [number, number][];
-    return [...line].reverse().map((l) => L.latLng(l));
+    return line.map((l) => L.latLng(l));
   }
 
   private toWaypoints(inputWaypoints: Waypoint[], vias: OSRMWaypoint[]) {
