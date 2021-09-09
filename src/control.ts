@@ -90,7 +90,8 @@ export default class Control extends Itinerary {
       try {
         const routes = await this.route({
           simplifyGeometry: false,
-          geometryOnly: true
+          geometryOnly: true,
+          customRouteTransform: true,
         });
 
         for (const route of routes) {
@@ -303,6 +304,7 @@ export default class Control extends Itinerary {
           const routes = await this.route({
             waypoints: waypoints,
             geometryOnly: true,
+            customRouteTransform: true,
           });
 
           this.updateLineCallback(routes);
@@ -324,10 +326,11 @@ export default class Control extends Itinerary {
       return;
     }
 
-    const selected = [...routes].splice(this.selectedRoute.routesIndex, 1)[0];
+    const alternatives = [...routes];
+    const selected = alternatives.splice(this.selectedRoute.routesIndex, 1)[0];
     this.updateLines({
       route: selected,
-      alternatives: this.controlOptions.showAlternatives ? routes : []
+      alternatives: this.controlOptions.showAlternatives ? alternatives : []
     });
   }
 
@@ -361,6 +364,10 @@ export default class Control extends Itinerary {
         const routes = await this.pendingRequest.request;
         this.pendingRequest = null;
 
+        if (routeOptions?.customRouteTransform) {
+          return routes;
+        }
+
         // Prevent race among multiple requests,
         // by checking the current request's count
         // against the last request's; ignore result if
@@ -375,12 +382,11 @@ export default class Control extends Itinerary {
             this.clearAlts();
             this.setAlternatives(routes);
           } else {
-            const selectedRoute = [...routes].splice(0, 1)[0];
-            this.routeSelected({ route: selectedRoute, alternatives: routes });
+            const alternatives = [...routes];
+            const selectedRoute = alternatives.splice(0, 1)[0];
+            this.routeSelected({ route: selectedRoute, alternatives });
           }
         }
-
-        return routes;
       } catch (err: any) {
         if (err?.type !== 'abort') {
           this.fire('routingerror', { error: err });

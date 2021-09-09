@@ -66,6 +66,7 @@ export interface RoutingOptions {
 	geometryOnly?: boolean;
 	fileFormat?: string;
 	simplifyGeometry?: boolean;
+	customRouteTransform?: boolean;
 }
 
 export interface IRoute {
