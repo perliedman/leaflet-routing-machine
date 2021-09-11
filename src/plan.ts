@@ -46,7 +46,6 @@ export default class Plan extends L.Layer {
   options: PlanOptions;
 
   private waypoints: Waypoint[];
-  private newWaypoint?: Waypoint;
   private geocoderContainer?: HTMLDivElement;
   private geocoderElements: GeocoderElement[] = [];
   private markers: L.Marker[] = [];
@@ -64,7 +63,10 @@ export default class Plan extends L.Layer {
   }
 
   isReady() {
-    return this.waypoints.every((waypoint) => waypoint.latLng);
+    return this.waypoints.every((waypoint) => {
+      const { latLng } = waypoint;
+      return latLng && ((latLng.lat > 0 && latLng.lng > 0) || (latLng.lat === 0 && latLng.lng > 0) || (latLng.lng === 0 && latLng.lat > 0));
+    });
   }
 
   getWaypoints() {
@@ -98,12 +100,6 @@ export default class Plan extends L.Layer {
   onRemove() {
     this.removeMarkers();
 
-    if (this.newWaypoint) {
-      for (const line of this.newWaypoint.lines) {
-        this._map.removeLayer(line);
-      }
-    }
-
     delete this._map;
 
     return this;
@@ -119,8 +115,8 @@ export default class Plan extends L.Layer {
       const addWaypointButton = L.DomUtil.create('button', `leaflet-routing-add-waypoint ${this.options.addButtonClassName}`, container);
       addWaypointButton.setAttribute('type', 'button');
       L.DomEvent.addListener(addWaypointButton, 'click', () => {
-        this.spliceWaypoints(this.waypoints.length, 0);
-      });
+        this.spliceWaypoints(this.waypoints.length, 0, new Waypoint());
+      }, this);
     }
 
     if (this.options.reverseWaypoints) {
@@ -129,7 +125,7 @@ export default class Plan extends L.Layer {
       L.DomEvent.addListener(reverseButton, 'click', () => {
         this.waypoints.reverse();
         this.setWaypoints(this.waypoints);
-      });
+      }, this);
     }
 
     this.updateGeocoders();

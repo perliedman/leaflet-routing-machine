@@ -53,14 +53,14 @@ export default class Autocomplete {
     // browsers supporting both will get duplicate events; just registering
     // input will not catch enter, though.
     // TODO: Try using keyup instead after typescript transition is over
-    L.DomEvent.addListener(this.element, 'input', this.keyPressed);
-    L.DomEvent.addListener(this.element, 'keypress', this.keyPressed);
-    L.DomEvent.addListener(this.element, 'keydown', this.keyDown);
+    L.DomEvent.addListener(this.element, 'input', this.keyPressed, this);
+    L.DomEvent.addListener(this.element, 'keypress', this.keyPressed, this);
+    L.DomEvent.addListener(this.element, 'keydown', this.keyDown, this);
     L.DomEvent.addListener(this.element, 'blur', () => {
       if (this.isOpen) {
         this.close();
       }
-    });
+    }, this);
   }
 
   close() {
@@ -102,8 +102,8 @@ export default class Autocomplete {
       td.append(text);
       // mousedown + click because:
       // http://stackoverflow.com/questions/10652852/jquery-fire-click-before-blur-event
-      L.DomEvent.addListener(td, 'mousedown', L.DomEvent.preventDefault);
-      L.DomEvent.addListener(td, 'click', () => this.createClickListener(result));
+      L.DomEvent.addListener(td, 'mousedown', L.DomEvent.preventDefault, this);
+      L.DomEvent.addListener(td, 'click', () => this.createClickListener(result), this);
     }
 
     if (!results.length) {
@@ -213,14 +213,14 @@ export default class Autocomplete {
     }
 
     if (value !== this.lastCompletedText) {
-      completeFn(value, this._completeResults);
+      completeFn(value, this.completeResults);
     } else if (trySelect) {
       this.lastCompletedText = value;
-      this._completeResults();
+      this.completeResults();
     }
   }
 
-  private _completeResults() {
+  private completeResults() {
     if (this.results.length === 1) {
       this.resultSelected(this.results[0]);
     } else {

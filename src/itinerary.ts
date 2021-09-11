@@ -99,7 +99,7 @@ export default class Itinerary extends ItineraryControl {
     L.DomEvent.disableClickPropagation(this.container);
     L.DomEvent.addListener(this.container, 'mousewheel', (e) => {
       L.DomEvent.stopPropagation(e);
-    });
+    }, this);
 
     if (collapsible) {
       collapseBtn(this);
@@ -212,17 +212,17 @@ export default class Itinerary extends ItineraryControl {
         this.marker = L.circleMarker(coordinate,
           this.options.pointMarkerStyle).addTo(this.map);
       }
-    });
+    }, this);
     L.DomEvent.addListener(row, 'mouseout', () => {
       if (this.marker) {
         this.map?.removeLayer(this.marker);
         delete this.marker;
       }
-    });
+    }, this);
     L.DomEvent.addListener(row, 'click', (e) => {
       this.map?.panTo(coordinate);
       L.DomEvent.stopPropagation(e);
-    });
+    }, this);
   }
 
   private onAltClicked(e: MouseEvent) {

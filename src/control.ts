@@ -280,9 +280,9 @@ export default class Control extends Itinerary {
     });
   }
 
-  private onWaypointsChanged(e: RoutingStartEvent) {
+  private async onWaypointsChanged(e: RoutingStartEvent) {
     if (this.controlOptions.autoRoute) {
-      this.route({});
+      await this.route({});
     }
 
     if (!this.plan.isReady()) {
@@ -313,11 +313,11 @@ export default class Control extends Itinerary {
         }, this.controlOptions.routeDragInterval);
       }
     });
-    this.plan.on('waypointdragend', () => {
+    this.plan.on('waypointdragend', async () => {
       if (timer) {
         clearTimeout(timer);
       }
-      this.route();
+      await this.route();
     });
   }
 

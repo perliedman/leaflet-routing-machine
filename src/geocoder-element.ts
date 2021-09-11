@@ -115,12 +115,12 @@ export default class GeocoderElement extends EventedControl {
 
     L.DomEvent.addListener(geocoderInput, 'click', (e) => {
       this.selectInputText(e.currentTarget as HTMLInputElement);
-    });
+    }, this);
 
     if (closeButton) {
       L.DomEvent.addListener(closeButton, 'click', () => {
         this.fire('delete', { waypoint: this.waypoint });
-      });
+      }, this);
     }
 
     if (typeof this.options.formatGeocoderResult == 'function') {

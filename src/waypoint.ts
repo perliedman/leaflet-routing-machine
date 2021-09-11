@@ -9,10 +9,10 @@ export default class Waypoint extends L.Class {
     allowUTurn: false
   }
 
-  latLng: L.LatLng;
+  latLng: L.LatLng | null;
   name?: string;
 
-  constructor(latLng: L.LatLngExpression, name?: string, options?: WaypointOptions) {
+  constructor(latLng?: L.LatLngExpression, name?: string, options?: WaypointOptions) {
     super();
 
     this.options = {
@@ -20,7 +20,7 @@ export default class Waypoint extends L.Class {
       ...options,
     };
 
-    this.latLng = L.latLng(latLng);
+    this.latLng = latLng ? L.latLng(latLng) : null;
     this.name = name;
   }
 }
