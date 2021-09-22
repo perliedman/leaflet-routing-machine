@@ -1,12 +1,14 @@
 import L from 'leaflet';
 import Line, { LineOptions } from './line';
-import Plan from './plan';
-import OSRMv1 from './osrm-v1';
-import Itinerary, { ItineraryOptions } from './itinerary';
+import Plan, { PlanOptions } from './plan';
+import OSRMv1, { OSRMv1Options } from './osrm-v1';
 import { IRoute, IRouter, RouteEvent, RoutingErrorEvent, RoutingOptions, RoutingStartEvent } from './common/types';
 import Waypoint from './waypoint';
+import ItineraryBuilder, { ItineraryBuilderOptions } from './itinerary-builder';
+import EventHub from './eventhub';
 
-interface ControlOptions extends ItineraryOptions {
+interface ControlOptions extends L.ControlOptions {
+  pointMarkerStyle?: L.CircleMarkerOptions;
   fitSelectedRoutes?: 'smart' | boolean;
   routeLine?: (route: IRoute, options: LineOptions) => Line;
   autoRoute?: boolean;
@@ -16,12 +18,17 @@ interface ControlOptions extends ItineraryOptions {
   showAlternatives?: boolean;
   defaultErrorHandler?: (e: any) => void;
   router?: IRouter;
+  routerOptions?: OSRMv1Options;
   plan?: Plan;
+  planOptions?: PlanOptions;
   waypoints?: Waypoint[];
   addWaypoints?: boolean;
   useZoomParameter?: boolean;
   altLineOptions?: LineOptions;
   lineOptions?: LineOptions;
+  itineraryBuilder?: ItineraryBuilder;
+  itineraryBuilderOptions?: ItineraryBuilderOptions;
+  eventHub?: EventHub<any>;
 }
 
 interface ControlRoutingOptions extends RoutingOptions {
@@ -29,8 +36,25 @@ interface ControlRoutingOptions extends RoutingOptions {
   waypoints?: Waypoint[];
 }
 
-export default class Control extends Itinerary {
-  private readonly defaultControlOptions = {
+class RoutingControl {
+  constructor(...args: any[]) {
+  }
+}
+
+interface RoutingControl extends L.Control, L.Evented {
+}
+L.Util.extend(RoutingControl.prototype, L.Control.prototype);
+L.Util.extend(RoutingControl.prototype, L.Evented.prototype);
+
+export default class Control extends RoutingControl {
+  private readonly defaultOptions = {
+    pointMarkerStyle: {
+      radius: 5,
+      color: '#03f',
+      fillColor: 'white',
+      opacity: 1,
+      fillOpacity: 0.7
+    },
     fitSelectedRoutes: 'smart',
     routeLine: (route: IRoute, options: LineOptions) => { return new Line(route, options); },
     autoRoute: true,
@@ -44,6 +68,7 @@ export default class Control extends Itinerary {
   };
 
   controlOptions: ControlOptions;
+  map?: L.Map;
 
   private router: IRouter;
   private plan: Plan;
@@ -51,6 +76,10 @@ export default class Control extends Itinerary {
   private selectedRoute?: IRoute;
   private line?: Line;
   private alternatives: Line[] = [];
+  private routes: IRoute[] = [];
+  private marker?: L.CircleMarker;
+  private itineraryBuilder: ItineraryBuilder;
+  private eventHub: EventHub<any>;
   private pendingRequest: {
     request: Promise<IRoute[]>;
     abortController?: AbortController;
@@ -61,17 +90,18 @@ export default class Control extends Itinerary {
     super(options);
 
     this.controlOptions = {
-      ...this.defaultControlOptions as ControlOptions,
-      ...this.options,
+      ...this.defaultOptions as ControlOptions,
       ...options,
     };
 
-    const { routeWhileDragging = this.defaultControlOptions.routeWhileDragging } = this.controlOptions;
-    this.router = this.controlOptions.router || new OSRMv1(options);
-    this.plan = this.controlOptions.plan || new Plan(this.controlOptions.waypoints || [], options);
+    const { routeWhileDragging = this.defaultOptions.routeWhileDragging } = this.controlOptions;
+    this.router = this.controlOptions.router || new OSRMv1(this.controlOptions.routerOptions);
+    this.plan = this.controlOptions.plan || new Plan(this.controlOptions.waypoints || [], this.controlOptions.planOptions);
+    this.eventHub = this.controlOptions.eventHub ?? new EventHub<any>();
+    this.itineraryBuilder = this.controlOptions.itineraryBuilder || new ItineraryBuilder(this.controlOptions.itineraryBuilderOptions);
+    this.itineraryBuilder.registerEventHub(this.eventHub);
     this.requestCount = 0;
 
-    this.on('routeselected', this.routeSelected, this);
     if (this.controlOptions.defaultErrorHandler) {
       this.on('routingerror', this.controlOptions.defaultErrorHandler, this);
     }
@@ -81,47 +111,35 @@ export default class Control extends Itinerary {
     }
   }
 
-  private async onZoomEnd() {
-    if (!this.selectedRoute || !this.router.requiresMoreDetail || !this.map) {
-      return;
-    }
-
-    if (this.router.requiresMoreDetail(this.selectedRoute, this.map.getZoom(), this.map.getBounds())) {
-      try {
-        const routes = await this.route({
-          simplifyGeometry: false,
-          geometryOnly: true,
-          customRouteTransform: true,
-        });
-
-        for (const route of routes) {
-          const i = routes.indexOf(route);
-          this.routes[i].properties = routes[i].properties;
-        }
-
-        this.updateLineCallback(routes);
-      } catch (err: any) {
-        if (err.type !== 'abort') {
-          this.clearLines();
-        }
-      }
-    }
-  }
-
   onAdd(map: L.Map) {
-    if (this.controlOptions.autoRoute) {
-      this.route();
-    }
-
-    const container = super.onAdd(map);
-
     this.map = map;
     this.map.addLayer(this.plan);
-
     this.map.on('zoomend', this.onZoomEnd, this);
+    this.eventHub.on('routeselected', (e) => this.routeSelected(e));
+    this.eventHub.on('altRowMouseOver', (coordinate) => {
+      if (this.map) {
+        this.marker = L.circleMarker(coordinate,
+          this.controlOptions.pointMarkerStyle).addTo(this.map);
+      }
+    });
+    this.eventHub.on('altRowMouseOut', () => {
+      if (this.marker) {
+        this.map?.removeLayer(this.marker);
+        delete this.marker;
+      }
+    });
+    this.eventHub.on('altRowClick', (coordinate) => {
+      this.map?.panTo(coordinate);
+    });
+
+    const container = this.itineraryBuilder.buildItinerary(map.getSize().x <= 640);
 
     if (this.plan.options.geocoder) {
       container.insertBefore(this.plan.createGeocoders(), container.firstChild);
+    }
+
+    if (this.controlOptions.autoRoute) {
+      this.route();
     }
 
     return container;
@@ -137,8 +155,6 @@ export default class Control extends Itinerary {
     for (const alternative of this.alternatives) {
       map.removeLayer(alternative);
     }
-
-    super.onRemove(map);
   }
 
   getWaypoints() {
@@ -163,14 +179,20 @@ export default class Control extends Itinerary {
   }
 
   private routeSelected(e: RouteEvent) {
-    const route = this.selectedRoute = e.route;
-    const alternatives = this.controlOptions.showAlternatives ? e.alternatives : [];
+    const { routeIndex } = e;
+    const selectRoute = this.routes.find((r) => r.routesIndex === routeIndex);
+    if (!selectRoute) {
+      return;
+    }
+
+    const route = this.selectedRoute = selectRoute;
+    const alternatives = this.controlOptions.showAlternatives ? this.routes.filter((r) => r.routesIndex !== routeIndex) : [];
     const fitMode = this.controlOptions.fitSelectedRoutes;
     const fitBounds =
       (fitMode === 'smart' && !this.waypointsVisible()) ||
       (fitMode !== 'smart' && fitMode);
 
-    this.updateLines({ route, alternatives });
+    this.updateLines(route, alternatives);
 
     if (fitBounds && this.map && this.line) {
       this.map.fitBounds(this.line.getBounds());
@@ -225,20 +247,20 @@ export default class Control extends Itinerary {
     }
   }
 
-  private updateLines(routes: RouteEvent) {
-    const { routeLine = this.defaultControlOptions.routeLine } = this.controlOptions;
+  private updateLines(route: IRoute, alternatives: IRoute[]) {
+    const { routeLine = this.defaultOptions.routeLine } = this.controlOptions;
     const addWaypoints = this.controlOptions.addWaypoints ?? true;
     this.clearLines();
 
     // add alternatives first so they lie below the main route
     this.alternatives = [];
-    routes.alternatives?.forEach((alt, i) => {
+    alternatives?.forEach((alt, i) => {
       this.alternatives[i] = routeLine(alt,
         {
           ...{
             isAlternative: true
           },
-          ...this.controlOptions.altLineOptions || this.controlOptions.lineOptions
+          ...(this.controlOptions.altLineOptions || this.controlOptions.lineOptions)
         });
 
       if (!this.map) {
@@ -248,7 +270,7 @@ export default class Control extends Itinerary {
       this.hookAltEvents(this.alternatives[i]);
     });
 
-    this.line = routeLine(routes.route,
+    this.line = routeLine(route,
       {
         ...{
           addWaypoints: addWaypoints,
@@ -274,9 +296,7 @@ export default class Control extends Itinerary {
 
   private hookAltEvents(l: Line) {
     l.on('linetouched', (e) => {
-      const alts = this.routes.slice();
-      const selected = alts.splice(e.target.route.routesIndex, 1)[0];
-      this.fire('routeselected', { route: selected, alternatives: alts });
+      this.eventHub.trigger('routeselected', { routeIndex: e.target.route.routesIndex });
     });
   }
 
@@ -287,7 +307,7 @@ export default class Control extends Itinerary {
 
     if (!this.plan.isReady()) {
       this.clearLines();
-      this.clearAlts();
+      this.itineraryBuilder.clearAlts();
     }
 
     this.fire('waypointschanged', { waypoints: e.waypoints });
@@ -328,10 +348,10 @@ export default class Control extends Itinerary {
 
     const alternatives = [...routes];
     const selected = alternatives.splice(this.selectedRoute.routesIndex, 1)[0];
-    this.updateLines({
-      route: selected,
-      alternatives: this.controlOptions.showAlternatives ? alternatives : []
-    });
+    this.updateLines(
+      selected,
+      this.controlOptions.showAlternatives ? alternatives : []
+    );
   }
 
   async route(options?: ControlRoutingOptions) {
@@ -379,12 +399,10 @@ export default class Control extends Itinerary {
 
           if (!routeOptions.geometryOnly) {
             this.fire('routesfound', { waypoints, routes: routes });
-            this.clearAlts();
+            this.itineraryBuilder.clearAlts();
             this.setAlternatives(routes);
           } else {
-            const alternatives = [...routes];
-            const selectedRoute = alternatives.splice(0, 1)[0];
-            this.routeSelected({ route: selectedRoute, alternatives });
+            this.routeSelected({ routeIndex: routes[0].routesIndex });
           }
         }
       } catch (err: any) {
@@ -409,5 +427,49 @@ export default class Control extends Itinerary {
     }
 
     this.alternatives = [];
+  }
+
+  setAlternatives(routes: IRoute[]) {
+    this.routes = routes;
+
+    this.itineraryBuilder.setAlternatives(this.routes);
+    this.selectRoute({ routeIndex: this.routes[0].routesIndex });
+
+    return this;
+  }
+
+  private selectRoute(e: RouteEvent) {
+    if (this.marker) {
+      this.map?.removeLayer(this.marker);
+      delete this.marker;
+    }
+    this.eventHub.trigger('routeselected', e);
+  }
+
+  private async onZoomEnd() {
+    if (!this.selectedRoute || !this.router.requiresMoreDetail || !this.map) {
+      return;
+    }
+
+    if (this.router.requiresMoreDetail(this.selectedRoute, this.map.getZoom(), this.map.getBounds())) {
+      try {
+        const routes = await this.route({
+          simplifyGeometry: false,
+          geometryOnly: true,
+          customRouteTransform: true,
+        });
+
+        for (const route of routes) {
+          const i = routes.indexOf(route);
+          this.routes[i].properties = routes[i].properties;
+        }
+
+        this.updateLineCallback(routes);
+      } catch (err: any) {
+        if (err.type !== 'abort') {
+          this.clearLines();
+        }
+      }
+    }
   }
 }

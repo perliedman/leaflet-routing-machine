@@ -3,7 +3,7 @@ import { LineTouchedEvent } from './common/types';
 import GeocoderElement, { GeocoderElementsOptions } from './geocoder-element';
 import Waypoint from './waypoint';
 
-interface PlanOptions extends GeocoderElementsOptions {
+export interface PlanOptions extends GeocoderElementsOptions {
   dragStyles?: L.PathOptions[];
   draggableWaypoints?: boolean;
   routeWhileDragging?: boolean;

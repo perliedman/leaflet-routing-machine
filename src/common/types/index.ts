@@ -96,8 +96,7 @@ export interface IRouter {
 }
 
 export interface RouteEvent {
-	route: IRoute;
-	alternatives: IRoute[];
+	routeIndex: number;
 }
 
 export interface RoutingErrorEvent {
