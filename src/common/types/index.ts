@@ -133,3 +133,10 @@ export interface WaypointDragEvent {
 	index: number;
 	latlng: L.LatLng;
 }
+
+export type ItineraryEvents = {
+	altRowMouseOver: L.LatLng;
+	altRowClick: L.LatLng;
+	altRowMouseOut: L.LatLng;
+	routeselected: RouteEvent;
+}

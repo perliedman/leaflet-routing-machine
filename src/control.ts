@@ -2,7 +2,7 @@ import L from 'leaflet';
 import Line, { LineOptions } from './line';
 import Plan, { PlanOptions } from './plan';
 import OSRMv1, { OSRMv1Options } from './osrm-v1';
-import { IRoute, IRouter, RouteEvent, RoutingErrorEvent, RoutingOptions, RoutingStartEvent } from './common/types';
+import { IRoute, IRouter, ItineraryEvents, RouteEvent, RoutingErrorEvent, RoutingOptions, RoutingStartEvent } from './common/types';
 import Waypoint from './waypoint';
 import ItineraryBuilder, { ItineraryBuilderOptions } from './itinerary-builder';
 import EventHub from './eventhub';
@@ -28,7 +28,7 @@ interface ControlOptions extends L.ControlOptions {
   lineOptions?: LineOptions;
   itineraryBuilder?: ItineraryBuilder;
   itineraryBuilderOptions?: ItineraryBuilderOptions;
-  eventHub?: EventHub<any>;
+  eventHub?: EventHub<ItineraryEvents>;
 }
 
 interface ControlRoutingOptions extends RoutingOptions {
@@ -79,7 +79,7 @@ export default class Control extends RoutingControl {
   private routes: IRoute[] = [];
   private marker?: L.CircleMarker;
   private itineraryBuilder: ItineraryBuilder;
-  private eventHub: EventHub<any>;
+  private eventHub: EventHub<ItineraryEvents>;
   private pendingRequest: {
     request: Promise<IRoute[]>;
     abortController?: AbortController;
@@ -97,7 +97,7 @@ export default class Control extends RoutingControl {
     const { routeWhileDragging = this.defaultOptions.routeWhileDragging } = this.controlOptions;
     this.router = this.controlOptions.router || new OSRMv1(this.controlOptions.routerOptions);
     this.plan = this.controlOptions.plan || new Plan(this.controlOptions.waypoints || [], this.controlOptions.planOptions);
-    this.eventHub = this.controlOptions.eventHub ?? new EventHub<any>();
+    this.eventHub = this.controlOptions.eventHub ?? new EventHub<ItineraryEvents>();
     this.itineraryBuilder = this.controlOptions.itineraryBuilder || new ItineraryBuilder(this.controlOptions.itineraryBuilderOptions);
     this.itineraryBuilder.registerEventHub(this.eventHub);
     this.requestCount = 0;

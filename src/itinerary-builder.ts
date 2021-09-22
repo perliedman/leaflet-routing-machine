@@ -1,5 +1,5 @@
 import Formatter, { FormatterOptions } from './formatter';
-import { IRoute, RouteEvent } from './common/types';
+import { IRoute, ItineraryEvents, RouteEvent } from './common/types';
 import EventHub from './eventhub';
 
 interface ISummary extends IRoute {
@@ -49,7 +49,7 @@ export default class ItineraryBuilder {
   private container?: HTMLDivElement;
   private altContainer?: HTMLDivElement;
   private altElements: HTMLElement[] = [];
-  private eventHub?: EventHub<any>;
+  private eventHub?: EventHub<ItineraryEvents>;
 
   constructor(options?: ItineraryBuilderOptions) {
     this.options = {
@@ -60,7 +60,7 @@ export default class ItineraryBuilder {
     this.formatter = this.options.formatter || new Formatter(this.options);
   }
 
-  registerEventHub(hub: EventHub<any>) {
+  registerEventHub(hub: EventHub<ItineraryEvents>) {
     this.eventHub = hub;
   }
 

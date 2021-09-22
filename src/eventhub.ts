@@ -1,11 +1,11 @@
 type EventMap = Record<string, unknown>;
 type EventKey<T extends EventMap> = string & keyof T;
-type EventReceiver<T> = (params?: T) => void;
+type EventReceiver<T> = (params: T) => void;
 
 interface IEventHub<T extends EventMap> {
   on<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): void;
   off<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): void;
-  trigger<K extends EventKey<T>>(eventName: K, params?: T[K]): void;
+  trigger<K extends EventKey<T>>(eventName: K, params: T[K]): void;
 }
 
 export default class EventHub<T extends EventMap> implements IEventHub<T> {
@@ -27,7 +27,7 @@ export default class EventHub<T extends EventMap> implements IEventHub<T> {
     this.eventTarget.dispatchEvent(new CustomEvent(eventName, { detail: params }));
   }
 
-  private customEventFunctionWrapper<K extends EventKey<T>>(fn: EventReceiver<T[K]>, params?: T[K]) {
+  private customEventFunctionWrapper<K extends EventKey<T>>(fn: EventReceiver<T[K]>, params: T[K]) {
     fn(params);
   }
 }
