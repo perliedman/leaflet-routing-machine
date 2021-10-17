@@ -12,13 +12,8 @@ import ru from './ru';
 import sk from './sk';
 import sv from './sv';
 import uk from './uk';
-import Locale from './types';
 
-interface LocaleObject {
-  [key: string]: Locale;
-}
-
-const availableLocales: LocaleObject = {
+export {
   ca,
   de,
   el,
@@ -34,5 +29,3 @@ const availableLocales: LocaleObject = {
   sv,
   uk,
 };
-
-export default availableLocales;

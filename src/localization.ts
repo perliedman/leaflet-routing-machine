@@ -8,29 +8,20 @@
    stepToText option in the OSRMv1 class.
 */
 
-import L from 'leaflet';
 import Locale from './locales/types';
-import importedLanguages from './locales';
+import { en } from './locales';
 
-const languageMap = new Map<string, Locale>();
+export default class Localization {
+  private readonly locale: Locale;
 
-export default class Localization extends L.Class {
-  constructor(langs: string | string[]) {
-    super();
-
-    const languages = (Array.isArray(langs) ? langs : [langs, 'en']);
-
-    for (const lang of languages) {
-      languageMap.set(lang, importedLanguages[lang]);
-    }
+  constructor(locale?: Locale) {
+    this.locale = locale ?? en;
   }
 
   // TODO: Fix types
-  localize(keys: string | string[], language = 'en') {
+  localize(keys: string | string[]) {
     const keyArray = (Array.isArray(keys) ? keys : [keys]);
-    const lang = languageMap.get(language) || languageMap.get('en');
-
-    let intermediate: any = lang;
+    let intermediate: any = this.locale;
 
     for (const key of keyArray) {
       intermediate = intermediate[key];
