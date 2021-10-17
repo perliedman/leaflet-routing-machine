@@ -1,12 +1,12 @@
 import L from 'leaflet';
 import Localization from './localization';
-import { Units } from './locales/types';
+import Locale, { Units } from './locales/types';
 import { IInstruction, ITextInstruction, IDirectionInstruction } from './common/types';
 
 export interface FormatterOptions {
   units?: 'imperial' | 'metric';
   unitNames?: keyof Units | null;
-  language?: string;
+  locale?: Locale;
   roundingSensitivity?: number;
   distanceTemplate?: string;
 }
@@ -19,7 +19,6 @@ export default class Formatters extends L.Class {
   private readonly defaultOptions = {
     units: 'metric',
     unitNames: null,
-    language: 'en',
     roundingSensitivity: 1,
     distanceTemplate: '{value} {unit}'
   };
@@ -36,12 +35,7 @@ export default class Formatters extends L.Class {
       ...options,
     }
 
-    const { language = this.defaultOptions.language } = this.options;
-    const langs = L.Util.isArray(language) ?
-      language :
-      [language, 'en'];
-
-    this.localization = new Localization(langs);
+    this.localization = new Localization(this.options.locale);
   }
 
   formatDistance(distance: number, sensitivity = 0) {
