@@ -2,3 +2,7 @@ node_modules/
 dist/*.js
 .grunt/
 .idea
+
+// esbuild generated files
+build
+meta.json
