@@ -1,6 +1,5 @@
 import L from 'leaflet';
 import RoutingControl from './control';
-import Itinerary from './itinerary';
 import Line from './line';
 import OSRMv1 from './osrm-v1';
 import Plan from './plan';
@@ -54,7 +53,6 @@ declare module 'leaflet' {
 
   let Routing: {
     Control: typeof RoutingControl;
-    Itinerary: typeof Itinerary;
     Line: typeof Line;
     OSRMv1: typeof OSRMv1;
     Plan: typeof Plan;
@@ -67,7 +65,6 @@ declare module 'leaflet' {
     Mapbox: typeof Mapbox;
 
     control: (...args: ConstructorParameters<typeof RoutingControl>) => RoutingControl;
-    itinerary: (...args: ConstructorParameters<typeof Itinerary>) => Itinerary;
     line: (...args: ConstructorParameters<typeof Line>) => Line;
     plan: (...args: ConstructorParameters<typeof Plan>) => Plan;
     waypoint: (...args: ConstructorParameters<typeof Waypoint>) => Waypoint;
@@ -84,7 +81,6 @@ declare module 'leaflet' {
 
 L.Routing = {
   Control: RoutingControl,
-  Itinerary: Itinerary,
   Line: Line,
   OSRMv1: OSRMv1,
   Plan: Plan,
@@ -97,9 +93,6 @@ L.Routing = {
   Mapbox: Mapbox,
 
   control: function (options) { return new RoutingControl(options); },
-  itinerary: function (options) {
-    return new Itinerary(options);
-  },
   line: function (route, options) {
     return new Line(route, options);
   },

@@ -96,8 +96,7 @@ export interface IRouter {
 }
 
 export interface RouteEvent {
-	route: IRoute;
-	alternatives: IRoute[];
+	routeIndex: number;
 }
 
 export interface RoutingErrorEvent {
@@ -133,4 +132,11 @@ export interface WaypointDragEvent {
 	target: any;
 	index: number;
 	latlng: L.LatLng;
+}
+
+export type ItineraryEvents = {
+	altRowMouseOver: L.LatLng;
+	altRowClick: L.LatLng;
+	altRowMouseOut: L.LatLng;
+	routeselected: RouteEvent;
 }
