@@ -1,4 +1,4 @@
-import L from 'leaflet';
+import * as L from 'leaflet';
 import RoutingControl from './control';
 import Line from './line';
 import OSRMv1 from './osrm-v1';
@@ -21,6 +21,33 @@ import {
   LineTouchedEvent,
   WaypointDragEvent
 } from './common/types';
+
+type RoutingHandler = {
+  Control: typeof RoutingControl;
+  Line: typeof Line;
+  OSRMv1: typeof OSRMv1;
+  Plan: typeof Plan;
+  Waypoint: typeof Waypoint;
+  Autocomplete: typeof Autocomplete;
+  Formatter: typeof Formatter;
+  GeocoderElement: typeof GeocoderElement;
+  Localization: typeof Localization;
+  ItineraryBuilder: typeof ItineraryBuilder;
+  Mapbox: typeof Mapbox;
+
+  control: (...args: ConstructorParameters<typeof RoutingControl>) => RoutingControl;
+  line: (...args: ConstructorParameters<typeof Line>) => Line;
+  plan: (...args: ConstructorParameters<typeof Plan>) => Plan;
+  waypoint: (...args: ConstructorParameters<typeof Waypoint>) => Waypoint;
+  osrmv1: (...args: ConstructorParameters<typeof OSRMv1>) => OSRMv1;
+  localization: (...args: ConstructorParameters<typeof Localization>) => Localization;
+  formatter: (...args: ConstructorParameters<typeof Formatter>) => Formatter;
+  geocoderElement: (...args: ConstructorParameters<typeof GeocoderElement>) => GeocoderElement;
+  itineraryBuilder: (...args: ConstructorParameters<typeof ItineraryBuilder>) => ItineraryBuilder;
+  mapbox: (...args: ConstructorParameters<typeof Mapbox>) => Mapbox;
+  errorControl: (...args: ConstructorParameters<typeof ErrorControl>) => ErrorControl;
+  autocomplete: (...args: ConstructorParameters<typeof Autocomplete>) => Autocomplete;
+};
 
 declare module 'leaflet' {
   interface Evented {
@@ -51,35 +78,10 @@ declare module 'leaflet' {
     off(type: 'linetouched', fn: (e: LineTouchedEvent) => void, context?: any): this;
   }
 
-  let Routing: {
-    Control: typeof RoutingControl;
-    Line: typeof Line;
-    OSRMv1: typeof OSRMv1;
-    Plan: typeof Plan;
-    Waypoint: typeof Waypoint;
-    Autocomplete: typeof Autocomplete;
-    Formatter: typeof Formatter;
-    GeocoderElement: typeof GeocoderElement;
-    Localization: typeof Localization;
-    ItineraryBuilder: typeof ItineraryBuilder;
-    Mapbox: typeof Mapbox;
-
-    control: (...args: ConstructorParameters<typeof RoutingControl>) => RoutingControl;
-    line: (...args: ConstructorParameters<typeof Line>) => Line;
-    plan: (...args: ConstructorParameters<typeof Plan>) => Plan;
-    waypoint: (...args: ConstructorParameters<typeof Waypoint>) => Waypoint;
-    osrmv1: (...args: ConstructorParameters<typeof OSRMv1>) => OSRMv1;
-    localization: (...args: ConstructorParameters<typeof Localization>) => Localization;
-    formatter: (...args: ConstructorParameters<typeof Formatter>) => Formatter;
-    geocoderElement: (...args: ConstructorParameters<typeof GeocoderElement>) => GeocoderElement;
-    itineraryBuilder: (...args: ConstructorParameters<typeof ItineraryBuilder>) => ItineraryBuilder;
-    mapbox: (...args: ConstructorParameters<typeof Mapbox>) => Mapbox;
-    errorControl: (...args: ConstructorParameters<typeof ErrorControl>) => ErrorControl;
-    autocomplete: (...args: ConstructorParameters<typeof Autocomplete>) => Autocomplete;
-  };
+  let Routing: RoutingHandler;
 }
 
-L.Routing = {
+const Routing: RoutingHandler = {
   Control: RoutingControl,
   Line: Line,
   OSRMv1: OSRMv1,
@@ -127,3 +129,6 @@ L.Routing = {
     return new Autocomplete(elem, callback, options);
   }
 };
+
+const Leaflet = L || window.L;
+Leaflet.Routing = Routing;

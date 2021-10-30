@@ -25,15 +25,16 @@ console.log(`Found ${tsFiles.length} files to compile`);
 
 const baseConfig = {
   entryPoints: tsFiles,
-  bundle: true,
 };
 
 const configs = {
   umd: {
     ...baseConfig,
     ...{
+      bundle: true,
       entryPoints: ['./src/index.ts'],
       outfile: 'build/umd/index.js',
+      globalName: 'L.Routing'
     }
   },
   esm: {
@@ -44,7 +45,7 @@ const configs = {
       plugins: [nodeExternalsPlugin()]
     }
   },
-  esm: {
+  cjs: {
     ...baseConfig,
     ...{
       format: 'cjs',
