@@ -4,7 +4,7 @@ import 'leaflet-control-geocoder';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 
-import '../../build/esm/index';
+import { RoutingControl, ErrorControl } from '../../build/esm/index';
 
 var map = L.map('map').setView([51.505, -0.09], 13);
 
@@ -12,7 +12,7 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-var control = window.L.Routing.control({
+var control = new RoutingControl({
 	waypoints: [
 		L.latLng(57.74, 11.94),
 		L.latLng(57.6792, 11.949)
@@ -32,4 +32,4 @@ var control = window.L.Routing.control({
 	}
 }).addTo(map);
 
-window.L.Routing.errorControl(control).addTo(map);
+new ErrorControl(control).addTo(map);
