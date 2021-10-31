@@ -1,10 +1,13 @@
 import * as L from 'leaflet';
 import 'leaflet-control-geocoder';
 
-import 'leaflet/dist/leaflet.css';
+import 'leaflet/../leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 
 import { RoutingControl, ErrorControl } from '../../build/esm/index';
+
+import instructionStub from 'osrm-text-instructions';
+const osrmTextInstructions = instructionStub('v5');
 
 var map = L.map('map').setView([51.505, -0.09], 13);
 
@@ -19,6 +22,9 @@ var control = new RoutingControl({
 	],
 	planOptions: {
 		geocoder: L.Control.Geocoder.nominatim(),
+	},
+	routerOptions: {
+		stepToText: (l, s, o) => osrmTextInstructions.compile(l, s, o),
 	},
 	routeWhileDragging: true,
 	reverseWaypoints: true,
