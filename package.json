@@ -49,7 +49,6 @@
   "dependencies": {
     "@googlemaps/polyline-codec": "^1.0.6",
     "leaflet": "^1.7.1",
-    "leaflet-control-geocoder": "^2.3.0",
-    "osrm-text-instructions": "^0.13.2"
+    "leaflet-control-geocoder": "^2.3.0"
   }
 }

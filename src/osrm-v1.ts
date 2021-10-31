@@ -1,10 +1,7 @@
 import L from 'leaflet';
 import { decode } from '@googlemaps/polyline-codec';
-import instructionsStub from 'osrm-text-instructions';
 import Waypoint from './waypoint';
 import { Direction, RoutingOptions, IRouter, IRoute, IRoutingError, InstructionType } from './common/types';
-
-const osrmTextInstructions = instructionsStub('v5');
 
 export interface OSRMv1Options {
   serviceUrl?: string;
@@ -16,7 +13,7 @@ export interface OSRMv1Options {
   suppressDemoServerWarning?: boolean;
   language?: string;
   requestParameters?: any;
-  stepToText?: (step: OSRMStep, properties: { legCount: number, legIndex: number }) => string;
+  stepToText?: (language: string | undefined, step: OSRMStep, properties: { legCount: number, legIndex: number }) => string;
 }
 
 interface OSRMWaypoint {
@@ -249,6 +246,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
       routesIndex: 0
     };
 
+    const { language = this.defaultOptions.language, stepToText } = this.options;
     const legNames: string[] = [];
     const waypointIndices: number[] = [];
     const legCount = responseRoute.legs.length;
@@ -269,10 +267,8 @@ export default class OSRMv1 extends L.Class implements IRouter {
         const modifier = this.maneuverToModifier(step.maneuver);
         let text = '';
 
-        if (this.options.stepToText) {
-          text = this.options.stepToText(step, { legCount, legIndex });
-        } else {
-          text = osrmTextInstructions.compile(this.options.language, step, { legCount, legIndex });
+        if (stepToText) {
+          text = stepToText(language, step, { legCount, legIndex });
         }
 
         if (type) {
