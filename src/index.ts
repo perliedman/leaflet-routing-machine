@@ -108,7 +108,11 @@ const Routing: RoutingHandler = {
   autocomplete,
 };
 
-const Leaflet = L || window.L;
+if (typeof window !== "undefined" && window.L) {
+  window.L.Routing = Routing;
+}
+
+const Leaflet = L;
 Leaflet.Routing = Routing;
 
 export {
