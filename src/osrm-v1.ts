@@ -414,3 +414,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
     }
   }
 }
+
+export function osrmv1(options?: OSRMv1Options) {
+  return new OSRMv1(options);
+}

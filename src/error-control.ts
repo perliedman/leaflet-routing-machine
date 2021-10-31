@@ -28,7 +28,7 @@ export default class ErrorControl extends L.Control {
 
   private element?: HTMLDivElement;
 
-  constructor(routingControl: Control, options: ErrorControlOptions) {
+  constructor(routingControl: Control, options?: ErrorControlOptions) {
     super(options);
 
     this.options = {
@@ -67,4 +67,8 @@ export default class ErrorControl extends L.Control {
   onRemove() {
     delete this.element;
   }
+}
+
+export function errorControl(routingControl: Control, options?: ErrorControlOptions) {
+  return new ErrorControl(routingControl, options);
 }

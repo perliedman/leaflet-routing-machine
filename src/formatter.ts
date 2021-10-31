@@ -15,7 +15,7 @@ function isTextInstruction(instruction: ITextInstruction | IDirectionInstruction
   return (instruction as ITextInstruction).text !== undefined;
 }
 
-export default class Formatters extends L.Class {
+export default class Formatter extends L.Class {
   private readonly defaultOptions = {
     units: 'metric',
     unitNames: null,
@@ -178,4 +178,8 @@ export default class Formatters extends L.Class {
 
     return strings[0] + (strings.length > 1 && instruction.road ? strings[1] : '');
   }
+}
+
+export function formatter(options?: FormatterOptions) {
+  return new Formatter(options);
 }

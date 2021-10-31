@@ -85,7 +85,7 @@ export default class GeocoderElement extends EventedControl {
   private element: GeocoderElementCollection;
   private waypoint: Waypoint;
 
-  constructor(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options: GeocoderElementsOptions) {
+  constructor(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options?: GeocoderElementsOptions) {
     super();
 
     this.options = {
@@ -200,4 +200,8 @@ export default class GeocoderElement extends EventedControl {
       input.select();
     }
   }
+}
+
+export function geocoderElement(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options?: GeocoderElementsOptions) {
+  return new GeocoderElement(waypoint, waypointIndex, numberOfWaypoints, options);
 }

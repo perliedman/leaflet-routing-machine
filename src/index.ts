@@ -1,16 +1,16 @@
 import * as L from 'leaflet';
-import RoutingControl from './control';
-import Line from './line';
-import OSRMv1 from './osrm-v1';
-import Plan from './plan';
-import Waypoint from './waypoint';
-import Autocomplete from './autocomplete';
-import Formatter from './formatter';
-import GeocoderElement from './geocoder-element';
-import Localization from './localization';
-import ItineraryBuilder from './itinerary-builder';
-import ErrorControl from './error-control';
-import Mapbox from './mapbox';
+import RoutingControl, { routingControl } from './control';
+import Line, { line } from './line';
+import OSRMv1, { osrmv1 } from './osrm-v1';
+import Plan, { plan } from './plan';
+import Waypoint, { waypoint } from './waypoint';
+import Autocomplete, { autocomplete } from './autocomplete';
+import Formatter, { formatter } from './formatter';
+import GeocoderElement, { geocoderElement } from './geocoder-element';
+import Localization, { localization } from './localization';
+import ItineraryBuilder, { itineraryBuilder } from './itinerary-builder';
+import ErrorControl, { errorControl } from './error-control';
+import Mapbox, { mapbox } from './mapbox';
 import {
   RouteEvent,
   RoutingErrorEvent,
@@ -94,41 +94,46 @@ const Routing: RoutingHandler = {
   ItineraryBuilder: ItineraryBuilder,
   Mapbox: Mapbox,
 
-  control: function (options) { return new RoutingControl(options); },
-  line: function (route, options) {
-    return new Line(route, options);
-  },
-  plan: function (waypoints, options) {
-    return new Plan(waypoints, options);
-  },
-  waypoint: function (latLng, name, options) {
-    return new Waypoint(latLng, name, options);
-  },
-  osrmv1: function (options) {
-    return new OSRMv1(options);
-  },
-  localization: function (options) {
-    return new Localization(options);
-  },
-  formatter: function (options) {
-    return new Formatter(options);
-  },
-  geocoderElement: function (wp, i, nWps, plan) {
-    return new GeocoderElement(wp, i, nWps, plan);
-  },
-  itineraryBuilder: function (options) {
-    return new ItineraryBuilder(options);
-  },
-  mapbox: function (accessToken, options) {
-    return new Mapbox(accessToken, options);
-  },
-  errorControl: function (routingControl, options) {
-    return new ErrorControl(routingControl, options);
-  },
-  autocomplete: function (elem, callback, options) {
-    return new Autocomplete(elem, callback, options);
-  }
+  control: routingControl,
+  line,
+  plan,
+  waypoint,
+  osrmv1,
+  localization,
+  formatter,
+  geocoderElement,
+  itineraryBuilder,
+  mapbox,
+  errorControl,
+  autocomplete,
 };
 
 const Leaflet = L || window.L;
 Leaflet.Routing = Routing;
+
+export {
+  RoutingControl,
+  routingControl,
+  Line,
+  line,
+  Plan,
+  plan,
+  Waypoint,
+  waypoint,
+  OSRMv1,
+  osrmv1,
+  Localization,
+  localization,
+  Formatter,
+  formatter,
+  GeocoderElement,
+  geocoderElement,
+  ItineraryBuilder,
+  itineraryBuilder,
+  Mapbox,
+  mapbox,
+  ErrorControl,
+  errorControl,
+  Autocomplete,
+  autocomplete,
+};

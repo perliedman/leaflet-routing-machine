@@ -8,10 +8,14 @@ export default class Mapbox extends OSRMv1 {
     requestParameters: {},
   }
 
-  constructor(accessToken: string, options: OSRMv1Options) {
+  constructor(accessToken: string, options?: OSRMv1Options) {
     super(options);
 
     this.options.requestParameters = this.options.requestParameters || {};
     this.options.requestParameters.access_token = accessToken;
   }
+}
+
+export function mapbox(accessToken: string, options?: OSRMv1Options) {
+  return new Mapbox(accessToken, options);
 }

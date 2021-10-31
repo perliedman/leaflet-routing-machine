@@ -33,3 +33,7 @@ export default class Localization {
     return intermediate;
   }
 }
+
+export function localization(locale?: Locale) {
+  return new Localization(locale);
+}

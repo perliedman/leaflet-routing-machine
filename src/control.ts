@@ -473,3 +473,7 @@ export default class Control extends RoutingControl {
     }
   }
 }
+
+export function routingControl(options?: ControlOptions) { 
+  return new Control(options); 
+}
