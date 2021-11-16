@@ -213,7 +213,9 @@ export default class OSRMv1 extends L.Class implements IRouter {
       return false;
     }
 
-    return route.inputWaypoints.some((waypoint) => !bounds.contains(waypoint.latLng));
+    return route.inputWaypoints
+      .filter((waypoint) => waypoint.latLng)
+      .some((waypoint) => !bounds.contains(waypoint.latLng!));
   }
 
   private routeDone(response: OSRMResult, inputWaypoints: Waypoint[], options?: RoutingOptions) {
@@ -381,8 +383,8 @@ export default class OSRMv1 extends L.Class implements IRouter {
     const locations: string[] = [];
     const hints: string[] = [];
 
-    for (const waypoint of waypoints) {
-      const locationKey = this.locationKey(waypoint.latLng);
+    for (const waypoint of waypoints.filter((waypoint) => waypoint.latLng)) {
+      const locationKey = this.locationKey(waypoint.latLng!);
       locations.push(locationKey);
       hints.push(this.hints.locations[locationKey] || '');
     }
@@ -404,9 +406,11 @@ export default class OSRMv1 extends L.Class implements IRouter {
     this.hints = {
       locations: {}
     };
+
+    const validWaypoints = waypoints.filter((waypoint) => waypoint.latLng);
     for (let i = actualWaypoints.length - 1; i >= 0; i--) {
-      const { latLng } = waypoints[i];
-      this.hints.locations[this.locationKey(latLng)] = actualWaypoints[i].hint;
+      const { latLng } = validWaypoints[i];
+      this.hints.locations[this.locationKey(latLng!)] = actualWaypoints[i].hint;
     }
   }
 }

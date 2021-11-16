@@ -38,7 +38,7 @@ export default class Plan extends L.Layer {
         draggable: this.options.draggableWaypoints
       };
 
-      return L.marker(waypoint.latLng, options);
+      return L.marker(waypoint.latLng ?? [0, 0], options);
     },
     geocodersClassName: ''
   };
@@ -99,8 +99,6 @@ export default class Plan extends L.Layer {
 
   onRemove() {
     this.removeMarkers();
-
-    delete this._map;
 
     return this;
   }
@@ -224,7 +222,7 @@ export default class Plan extends L.Layer {
 
   private hookWaypointEvents(marker: L.Marker, waypointIndex: number, trackMouseMove = false) {
     const eventLatLng = (e: LeafletHookedEvent) => {
-      return trackMouseMove ? e.latlng : e.target.getLatLng();
+      return trackMouseMove ? (e as L.LeafletMouseEvent).latlng : (e as L.LeafletEvent).target.getLatLng();
     };
     const dragStart = (e: LeafletHookedEvent) => {
       this.fire('waypointdragstart', { index: waypointIndex, latlng: eventLatLng(e) });
@@ -258,7 +256,7 @@ export default class Plan extends L.Layer {
       this._map.dragging.disable();
       this._map.on('mousemove', mouseMove, this);
       this._map.on('mouseup', mouseUp, this);
-      dragStart({ latlng: this.waypoints[waypointIndex].latLng });
+      dragStart({ latlng: this.waypoints.filter((waypoint) => waypoint.latLng)[waypointIndex].latLng! });
     } else {
       marker.on('dragstart', dragStart, this);
       marker.on('drag', drag, this);
@@ -278,8 +276,9 @@ export default class Plan extends L.Layer {
 
   private _dragNewWaypoint(newWaypointIndex: number, initialLatLng: L.LatLng) {
     const waypoint = new Waypoint(initialLatLng);
-    const previousWaypoint = this.waypoints[newWaypointIndex - 1];
-    const nextWaypoint = this.waypoints[newWaypointIndex];
+    const validWaypoints = this.waypoints.filter((waypoint) => waypoint.latLng);
+    const previousWaypoint = validWaypoints[newWaypointIndex - 1];
+    const nextWaypoint = validWaypoints[newWaypointIndex];
     const { createMarker = this.defaultOptions.createMarker } = this.options;
     const marker = createMarker(newWaypointIndex, waypoint, this.waypoints.length + 1);
     const lines: L.Polyline[] = [];
@@ -319,7 +318,7 @@ export default class Plan extends L.Layer {
 
     const { dragStyles = this.defaultOptions.dragStyles } = this.options;
     for (const dragStyle of dragStyles) {
-      lines.push(L.polyline([previousWaypoint.latLng, initialLatLng, nextWaypoint.latLng], dragStyle).addTo(this._map));
+      lines.push(L.polyline([previousWaypoint.latLng!, initialLatLng, nextWaypoint.latLng!], dragStyle).addTo(this._map));
     }
 
     if (draggingEnabled) {

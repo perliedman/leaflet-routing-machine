@@ -15,6 +15,10 @@ function isTextInstruction(instruction: ITextInstruction | IDirectionInstruction
   return (instruction as ITextInstruction).text !== undefined;
 }
 
+function isDirectionInstruction(instruction: ITextInstruction | IDirectionInstruction): instruction is IDirectionInstruction {
+  return (instruction as IDirectionInstruction).type !== undefined;
+}
+
 export default class Formatter extends L.Class {
   private readonly defaultOptions = {
     units: 'metric',
@@ -125,7 +129,11 @@ export default class Formatter extends L.Class {
     }
   }
 
-  getIconName(instruction: IDirectionInstruction, index: number) {
+  getIconName(instruction: IInstruction, index: number) {
+    if (!isDirectionInstruction(instruction)) {
+      return '';
+    }
+
     switch (instruction.type) {
     case 'Head':
       if (index === 0) {

@@ -210,7 +210,7 @@ export default class Control extends RoutingControl {
       return false;
     }
 
-    const waypoints = this.getWaypoints();
+    const waypoints = this.getWaypoints().filter((waypoint) => waypoint.latLng);
     const { lat, lng } = this.map.getCenter();
     let bounds: L.Bounds = L.bounds([this.map.latLngToLayerPoint([lat, lng])]);
 
@@ -218,7 +218,7 @@ export default class Control extends RoutingControl {
       const mapSize = this.map.getSize();
 
       for (const waypoint of waypoints) {
-        const point = this.map.latLngToLayerPoint(waypoint.latLng);
+        const point = this.map.latLngToLayerPoint(waypoint.latLng!);
 
         if (bounds) {
           bounds.extend(point);
@@ -241,7 +241,9 @@ export default class Control extends RoutingControl {
 
     try {
       const mapBounds = this.map.getBounds();
-      return this.getWaypoints().some((waypoint) => mapBounds.contains(waypoint.latLng));
+      return this.getWaypoints()
+      .filter((waypoint) => waypoint.latLng)
+      .some((waypoint) => mapBounds.contains(waypoint.latLng!));
     } catch (e) {
       return false;
     }

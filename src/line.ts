@@ -65,7 +65,9 @@ export default class Line extends L.LayerGroup {
   }
 
   private findWaypointIndices() {
-    return this.route.inputWaypoints.map((waypoint) => this.findClosestRoutePoint(waypoint.latLng));
+    return this.route.inputWaypoints
+      .filter((waypoint) => waypoint.latLng)
+      .map((waypoint) => this.findClosestRoutePoint(waypoint.latLng!));
   }
 
   private findClosestRoutePoint(latlng: L.LatLng) {
@@ -95,8 +97,8 @@ export default class Line extends L.LayerGroup {
       missingRouteStyles = this.defaultOptions.missingRouteStyles
     } = this.options;
 
-    for (const waypoint of this.route.inputWaypoints) {
-      waypointLatLng = waypoint.latLng;
+    for (const waypoint of this.route.inputWaypoints.filter((waypoint) => waypoint.latLng)) {
+      waypointLatLng = waypoint.latLng!;
       const currentIndex = this.route.inputWaypoints.indexOf(waypoint);
       routeCoordinates = L.latLng(this.route.coordinates[waypointIndices[currentIndex]]);
       if (waypointLatLng.distanceTo(routeCoordinates) > missingRouteTolerance) {
