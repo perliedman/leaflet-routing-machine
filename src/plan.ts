@@ -338,3 +338,7 @@ export default class Plan extends L.Layer {
     }
   }
 }
+
+export function plan(waypoints: (Waypoint | L.LatLng)[], options?: PlanOptions) {
+  return new Plan(waypoints, options);
+}

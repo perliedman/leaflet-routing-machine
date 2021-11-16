@@ -36,15 +36,15 @@ export default class Autocomplete {
   private lastCompletedText = '';
   private selection?: Element | null = null;
 
-  constructor(element: HTMLInputElement, callback: (result: GeocodingResult) => void | Promise<void>, options: AutocompleteOptions) {
+  constructor(element: HTMLInputElement, callback: (result: GeocodingResult) => void | Promise<void>, options?: AutocompleteOptions) {
     this.options = {
       ...this.defaultOptions,
       ...options,
     }
 
     this.element = element;
-    this.resultFn = options.resultFn;
-    this.autocomplete = options.autocompleteFn;
+    this.resultFn = options?.resultFn;
+    this.autocomplete = options?.autocompleteFn;
     this.selectFn = callback;
     this.container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result');
     this.resultTable = L.DomUtil.create('table', '', this.container);
@@ -227,4 +227,8 @@ export default class Autocomplete {
       this.setResults(this.results);
     }
   }
+}
+
+export function autocomplete(element: HTMLInputElement, callback: (result: GeocodingResult) => void | Promise<void>, options?: AutocompleteOptions) {
+  return new Autocomplete(element, callback, options);
 }

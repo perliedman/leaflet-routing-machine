@@ -1,6 +1,7 @@
 import L from 'leaflet';
 import { IGeocoder, GeocodingResult } from 'leaflet-control-geocoder/dist/geocoders/api';
 import Autocomplete, { AutocompleteOptions } from './autocomplete';
+import Locale from './locales/types';
 import Localization from './localization';
 import Waypoint from './waypoint';
 
@@ -15,7 +16,7 @@ export interface GeocoderElementsOptions extends L.ControlOptions {
   createGeocoder?: (waypointIndex: number, numberOfWaypoints: number, options: GeocoderElementsOptions) => GeocoderElementCollection;
   geocoderPlaceholder?: (waypointIndex: number, numberOfWaypoints: number, geocoderElement: any) => string;
   geocoderClass?: (waypointIndex?: number, numberOfWaypoints?: number) => string;
-  language?: string,
+  locale?: Locale,
   maxGeocoderTolerance?: number,
   waypointNameFallback?: (latLng: L.LatLng) => string;
   formatGeocoderResult?: (result: GeocodingResult) => string;
@@ -49,7 +50,7 @@ export default class GeocoderElement extends EventedControl {
     },
 
     geocoderPlaceholder: (waypointIndex: number, numberWaypoints: number, geocoderElement: GeocoderElement) => {
-      const l = new Localization(geocoderElement.options.language ?? 'en').localize('ui');
+      const l = new Localization(geocoderElement.options.locale).localize('ui');
 
       if (waypointIndex === 0) {
         return l.startPlaceholder;
@@ -84,7 +85,7 @@ export default class GeocoderElement extends EventedControl {
   private element: GeocoderElementCollection;
   private waypoint: Waypoint;
 
-  constructor(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options: GeocoderElementsOptions) {
+  constructor(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options?: GeocoderElementsOptions) {
     super();
 
     this.options = {
@@ -199,4 +200,8 @@ export default class GeocoderElement extends EventedControl {
       input.select();
     }
   }
+}
+
+export function geocoderElement(waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, options?: GeocoderElementsOptions) {
+  return new GeocoderElement(waypoint, waypointIndex, numberOfWaypoints, options);
 }

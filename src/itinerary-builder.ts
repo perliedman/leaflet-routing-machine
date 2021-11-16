@@ -271,3 +271,7 @@ export default class ItineraryBuilder {
     return row;
   }
 }
+
+export function itineraryBuilder(options?: ItineraryBuilderOptions) {
+  return new ItineraryBuilder(options);
+}

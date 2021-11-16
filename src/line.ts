@@ -40,7 +40,7 @@ export default class Line extends L.LayerGroup {
   private route: IRoute;
   private waypointIndices: number[] = [];
 
-  constructor(route: IRoute, options: LineOptions) {
+  constructor(route: IRoute, options?: LineOptions) {
     super();
 
     this.options = {
@@ -141,4 +141,8 @@ export default class Line extends L.LayerGroup {
 
     return this.waypointIndices;
   }
+}
+
+export function line(route: IRoute, options?: LineOptions) {
+  return new Line(route, options);
 }
