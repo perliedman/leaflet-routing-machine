@@ -99,14 +99,26 @@ export interface RouteEvent {
 	routeIndex: number;
 }
 
+/**
+ * An error occured while calculating the route between waypoints
+ * @event
+ */
 export interface RoutingErrorEvent {
 	error: any
 }
 
+/**
+ * Fires when the control starts calculating a route; followed by either a [[RoutesFoundEvent]] or [[RoutingErrorEvent]] event
+ * @event
+ */
 export interface RoutingStartEvent {
 	waypoints: Waypoint[];
 }
 
+/**
+ * One or more routes where found
+ * @event
+ */
 export interface RoutesFoundEvent extends RoutingStartEvent {
 	routes: IRoute[];
 }

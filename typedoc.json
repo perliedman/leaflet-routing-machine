@@ -1,4 +1,9 @@
 {
   "entryPoints": ["src/index.ts"],
-  "out": "docs"
+  "out": "docs",
+  "name": "Leaflet Routing Machine API",
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeProtected": true
 }
