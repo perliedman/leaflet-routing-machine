@@ -33,29 +33,60 @@ export enum Direction {
 }
 
 export interface IRouteSummary {
+	/**
+	 * estimated time for the route, in seconds
+	 */
 	totalTime: number;
+	/**
+	 * distance for the route, in meters
+	 */
 	totalDistance: number;
 }
 
 export interface IInstructionBase {
+	/**
+	 * distance in meters for this segment
+	 */
 	distance: number;
+	/**
+	 * estimated time in seconds for this segment
+	 */
 	time: number;
 	index: number;
 	mode: string;
 }
 
 export interface ITextInstruction {
+	/**
+	 * explicit instruction text
+	 */
 	text: string;
 }
 
 export interface IDirectionInstruction {
+	/**
+	 *  	one of the enumerated instruction types (see below)
+	 */
 	type: InstructionType;
+	/**
+	 * name of road for this segment, if available
+	 */
 	road: string;
+	/**
+	 * aproximate compass direction: N, NE, E, SE, S, SW, W, NW
+	 */
 	direction: Direction;
+	/**
+	 * for roundabouts, designates the number of the exit to take
+	 */
 	exit: number;
 	modifier: InstructionType;
 }
 
+/**
+ * Describes a part of a route’s itinerary, such as a turn.
+ * Can be of two types: either a text property containing the exact text to be shown to the user, a number of properties that describe the instruction in an abstract form; the latter can later be translated to different languages, while explicit text can’t.
+ */
 export type IInstruction = IInstructionBase & (ITextInstruction | IDirectionInstruction);
 
 export interface RoutingOptions {
@@ -83,10 +114,25 @@ export interface RoutingOptions {
 }
 
 export interface IRoute {
+	/**
+	 * a descriptive name for this route
+	 */
 	name: string;
+	/**
+	 * summary of the route
+	 */
 	summary: IRouteSummary;
+	/**
+	 * an array of [L.LatLng](https://leafletjs.com/reference.html#latlng)s that can be used to visualize the route; the level of detail should be high, since Leaflet will simplify the line appropriately when it is displayed
+	 */
 	coordinates: L.LatLng[];
+	/**
+	 * the waypoints for this route
+	 */
 	waypoints: Waypoint[];
+	/**
+	 * instructions for this route
+	 */
 	instructions: IInstruction[];
 	inputWaypoints: Waypoint[];
 	waypointIndices?: number[];
