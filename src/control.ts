@@ -8,23 +8,77 @@ import ItineraryBuilder, { ItineraryBuilderOptions } from './itinerary-builder';
 import EventHub from './eventhub';
 
 interface ControlOptions extends L.ControlOptions {
+  /**
+   * Style for the CircleMarkers used when hovering an itinerary instruction
+   * @default { radius: 5, color: '#03f', fillColor: 'white', opacity: 1, fillOpacity: 0.7 }
+   */
   pointMarkerStyle?: L.CircleMarkerOptions;
+  /**
+   * How the map’s view is fitted to a selected route result: smart will fit only if no waypoint is within the current view, or if the result covers a very small part of the view; other truthy values will always fit the map, falsy will never fit the map
+   * @default 'smart'
+   */
   fitSelectedRoutes?: 'smart' | boolean;
+  /**
+   * Function to create the map line when a route is presented on the map
+   */
   routeLine?: (route: IRoute, options: LineOptions) => Line;
+  /**
+   * If true, route will automatically be calculated every time waypoints change, otherwise route() has to be called by the app
+   * @default true
+   */
   autoRoute?: boolean;
+  /**
+   * If true, routes will continually be calculated while the user drags waypoints, giving immediate feedback
+   * @default false
+   */
   routeWhileDragging?: boolean;
+  /**
+   * The minimum number of milliseconds between route calculations when waypoints are dragged
+   * @default 500
+   */
   routeDragInterval?: number;
+  /**
+   * Set to either connect (waypoints are connected by a line to the closest point on the calculated route) or snap (waypoints are moved to the closest point on the calculated route)
+   * @default 'connect'
+   */
   waypointMode?: 'connect' | 'snap';
+  /**
+   * If true, alternative polyline[s] will be shown on the map when available at the same time as the primary polyline
+   * @default false
+   */
   showAlternatives?: boolean;
   defaultErrorHandler?: (e: any) => void;
+  /**
+   * The router to use to calculate routes between waypoints
+   * @default [[OSRMv1]]
+   */
   router?: IRouter;
   routerOptions?: OSRMv1Options;
+  /**
+   * The plan to use to store and edit the route’s waypoints
+   * @default [[Plan]]
+   */
   plan?: Plan;
   planOptions?: PlanOptions;
+
+  /**
+   * Initial waypoints for the control
+   * @default []
+   */
   waypoints?: Waypoint[];
   addWaypoints?: boolean;
+  /**
+   * If true, route will be recalculated when the map is zoomed
+   * @default false
+   */
   useZoomParameter?: boolean;
+  /**
+   * Options passed when creating a new [[Line]] for showing alternative line[s], when showAlternatives is set to true. If not set and showAlternatives is true, alternative lines will be styled using [[ControlOptions.lineOptions]]
+   */
   altLineOptions?: LineOptions;
+  /**
+   * Options passed when creating a new [[Line]], for example styling
+   */
   lineOptions?: LineOptions;
   itineraryBuilder?: ItineraryBuilder;
   itineraryBuilderOptions?: ItineraryBuilderOptions;
@@ -46,6 +100,25 @@ interface RoutingControl extends L.Control, L.Evented {
 L.Util.extend(RoutingControl.prototype, L.Control.prototype);
 L.Util.extend(RoutingControl.prototype, L.Evented.prototype);
 
+/**
+ * Combining the other classes into a full routing user interface. The main class of the plugin. Extends [L.Control](https://leafletjs.com/reference.html#control).
+ * ## Usage example
+ * 
+ * ```typescript
+ * var map = L.map('map');
+ *
+ * L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+ *  attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+ * }).addTo(map);
+ *
+ * L.Routing.control({
+ *  waypoints: [
+ *    L.latLng(57.74, 11.94),
+ *    L.latLng(57.6792, 11.949)
+ *  ]
+ * }).addTo(map);
+ * ```
+ */
 export default class Control extends RoutingControl {
   private readonly defaultOptions = {
     pointMarkerStyle: {
@@ -84,7 +157,6 @@ export default class Control extends RoutingControl {
     request: Promise<IRoute[]>;
     abortController?: AbortController;
   } | null = null;
-
 
   constructor(options?: ControlOptions) {
     super(options);
@@ -157,23 +229,38 @@ export default class Control extends RoutingControl {
     }
   }
 
+  /**
+   * @returns The waypoints of the control’s plan
+   */
   getWaypoints() {
     return this.plan.getWaypoints();
   }
 
+  /**
+   * Sets the waypoints of the control’s plan
+   */
   setWaypoints(waypoints: Waypoint[]) {
     this.plan.setWaypoints(waypoints);
     return this;
   }
 
+  /**
+   * Allows adding, removing or replacing waypoints in the control’s plan. Syntax is the same as in [Array#splice](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice).
+   */
   spliceWaypoints(startIndex: number, deleteCount = 0, ...newWaypoints: Waypoint[]) {
     this.plan.spliceWaypoints(startIndex, deleteCount, ...newWaypoints);
   }
 
+  /**
+   * @returns The plan instance used by the control
+   */
   getPlan() {
     return this.plan;
   }
 
+  /**
+   * @returns The router used by the control
+   */
   getRouter() {
     return this.router;
   }
@@ -210,7 +297,7 @@ export default class Control extends RoutingControl {
       return false;
     }
 
-    const waypoints = this.getWaypoints();
+    const waypoints = this.getWaypoints().filter((waypoint) => waypoint.latLng);
     const { lat, lng } = this.map.getCenter();
     let bounds: L.Bounds = L.bounds([this.map.latLngToLayerPoint([lat, lng])]);
 
@@ -218,7 +305,7 @@ export default class Control extends RoutingControl {
       const mapSize = this.map.getSize();
 
       for (const waypoint of waypoints) {
-        const point = this.map.latLngToLayerPoint(waypoint.latLng);
+        const point = this.map.latLngToLayerPoint(waypoint.latLng!);
 
         if (bounds) {
           bounds.extend(point);
@@ -241,7 +328,9 @@ export default class Control extends RoutingControl {
 
     try {
       const mapBounds = this.map.getBounds();
-      return this.getWaypoints().some((waypoint) => mapBounds.contains(waypoint.latLng));
+      return this.getWaypoints()
+      .filter((waypoint) => waypoint.latLng)
+      .some((waypoint) => mapBounds.contains(waypoint.latLng!));
     } catch (e) {
       return false;
     }
@@ -354,6 +443,9 @@ export default class Control extends RoutingControl {
     );
   }
 
+  /**
+   * Calculates the route between the current waypoints and presents in the itinerary, displaying the first result on the map
+   */
   async route(options?: ControlRoutingOptions) {
     const ts = ++this.requestCount;
 
@@ -474,6 +566,9 @@ export default class Control extends RoutingControl {
   }
 }
 
+/**
+ * Instantiates a new routing control with the provided options; unless specific router and/or plan instances are provided, options are also passed to their constructors
+ */
 export function routingControl(options?: ControlOptions) { 
   return new Control(options); 
 }

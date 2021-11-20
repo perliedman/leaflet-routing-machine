@@ -1,4 +1,4 @@
-import Locale from './types';
+import { Locale } from './types';
 
 const esLocale: Locale = {
   directions: {

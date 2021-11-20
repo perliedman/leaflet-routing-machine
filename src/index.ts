@@ -19,7 +19,8 @@ import {
   WaypointGeocodedEvent,
   GeocodedEvent,
   LineTouchedEvent,
-  WaypointDragEvent
+  WaypointDragEvent,
+  WaypointsSplicedEvent
 } from './common/types';
 
 type RoutingHandler = {
@@ -60,6 +61,7 @@ declare module 'leaflet' {
     on(type: 'waypointdragstart', fn: (e: WaypointDragEvent) => void, context?: any): this;
     on(type: 'waypointdragend', fn: (e: WaypointDragEvent) => void, context?: any): this;
     on(type: 'waypointschanged', fn: (e: RoutingStartEvent) => void, context?: any): this;
+    on(type: 'waypointsspliced', fn: (e: WaypointsSplicedEvent) => void, context?: any): this;
     on(type: 'geocoded', fn: (e: GeocodedEvent) => void, context?: any): this;
     on(type: 'reversegeocoded', fn: (e: GeocodedEvent) => void, context?: any): this;
     on(type: 'linetouched', fn: (e: LineTouchedEvent) => void, context?: any): this;
@@ -73,6 +75,7 @@ declare module 'leaflet' {
     off(type: 'waypointdragstart', fn: (e: WaypointDragEvent) => void, context?: any): this;
     off(type: 'waypointdragend', fn: (e: WaypointDragEvent) => void, context?: any): this;
     off(type: 'waypointschanged', fn: (e: RoutingStartEvent) => void, context?: any): this;
+    off(type: 'waypointsspliced', fn: (e: WaypointsSplicedEvent) => void, context?: any): this;
     off(type: 'geocoded', fn: (e: GeocodedEvent) => void, context?: any): this;
     off(type: 'reversegeocoded', fn: (e: GeocodedEvent) => void, context?: any): this;
     off(type: 'linetouched', fn: (e: LineTouchedEvent) => void, context?: any): this;

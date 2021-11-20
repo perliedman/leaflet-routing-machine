@@ -1,13 +1,33 @@
 import L from 'leaflet';
 import Localization from './localization';
-import Locale, { Units } from './locales/types';
+import { Locale, Units } from './locales/types';
 import { IInstruction, ITextInstruction, IDirectionInstruction } from './common/types';
 
 export interface FormatterOptions {
+  /**
+   * Units to use
+   * @default 'metric'
+   */
   units?: 'imperial' | 'metric';
-  unitNames?: keyof Units | null;
+  /**
+   * Hash of unit names to use
+   * @default { meters: 'm', kilometers: 'km', yards: 'yd', miles: 'mi', hours: 'h', minutes: 'mín', seconds: 's' }
+   */
+  unitNames?: Units | null;
+  /**
+   * Locale to use to convert instructions to text. Either use a provided one or bring your own
+   * @default English
+   */
   locale?: Locale;
+  /**
+   * How much rounding should be applied to distances: positive values use smart rounding, where higher means more accurate, lower less accurate; negative values means fixed precision, where the number of decimals is -roundingSensitivity
+   * @default 1
+   */
   roundingSensitivity?: number;
+  /**
+   * String template to use for formatting distances as a string; passed properties value and unit
+   * @default '{value} {unit}'
+   */
   distanceTemplate?: string;
 }
 
@@ -15,10 +35,25 @@ function isTextInstruction(instruction: ITextInstruction | IDirectionInstruction
   return (instruction as ITextInstruction).text !== undefined;
 }
 
+function isDirectionInstruction(instruction: ITextInstruction | IDirectionInstruction): instruction is IDirectionInstruction {
+  return (instruction as IDirectionInstruction).type !== undefined;
+}
+
+/**
+ * Implements functions to convert distances and times to strings, as well as converting an [[IInstruction]] to a string. Override or implement your own if you need to customize formatting.
+ */
 export default class Formatter extends L.Class {
   private readonly defaultOptions = {
     units: 'metric',
-    unitNames: null,
+    unitNames: {
+      meters: 'm',
+      kilometers: 'km',
+      yards: 'yd',
+      miles: 'mi',
+      hours: 'h',
+      minutes: 'mín',
+      seconds: 's'
+    },
     roundingSensitivity: 1,
     distanceTemplate: '{value} {unit}'
   };
@@ -38,6 +73,9 @@ export default class Formatter extends L.Class {
     this.localization = new Localization(this.options.locale);
   }
 
+  /**
+   * Formats a distance given in meters to a string with the given (or suitable if not provided) precision and unit
+   */
   formatDistance(distance: number, sensitivity = 0) {
     const { distanceTemplate = this.defaultOptions.distanceTemplate } = this.options;
     const unitNames = this.options.unitNames || this.localization.localize('units');
@@ -91,6 +129,9 @@ export default class Formatter extends L.Class {
     return Math.round(distance / p) * p;
   }
 
+  /**
+   * Formats a time duration, given in seconds, to a string with suitable precision and unit
+   */
   formatTime(time: number) {
     const unitNames = this.options.unitNames || this.localization.localize('units');
     // More than 30 seconds precision looks ridiculous
@@ -110,6 +151,9 @@ export default class Formatter extends L.Class {
     }
   }
 
+  /**
+   * Formats an instruction to a human readable text
+   */
   formatInstruction(instruction: IInstruction, index: number) {
     if (!isTextInstruction(instruction)) {
       return this.capitalize(L.Util.template(this.getInstructionTemplate(instruction, index),
@@ -125,39 +169,47 @@ export default class Formatter extends L.Class {
     }
   }
 
-  getIconName(instruction: IDirectionInstruction, index: number) {
+  /**
+   * Returns an icon name depending on the instruction type or modifier
+   * If it's a simple text instruction, no icon is returned by default
+   */
+  getIconName(instruction: IInstruction, index: number) {
+    if (!isDirectionInstruction(instruction)) {
+      return '';
+    }
+
     switch (instruction.type) {
-    case 'Head':
-      if (index === 0) {
-        return 'depart';
-      }
-      break;
-    case 'WaypointReached':
-      return 'via';
-    case 'Roundabout':
-      return 'enter-roundabout';
-    case 'DestinationReached':
-      return 'arrive';
+      case 'Head':
+        if (index === 0) {
+          return 'depart';
+        }
+        break;
+      case 'WaypointReached':
+        return 'via';
+      case 'Roundabout':
+        return 'enter-roundabout';
+      case 'DestinationReached':
+        return 'arrive';
     }
 
     switch (instruction.modifier) {
-    case 'Straight':
-      return 'continue';
-    case 'SlightRight':
-      return 'bear-right';
-    case 'Right':
-      return 'turn-right';
-    case 'SharpRight':
-      return 'sharp-right';
-    case 'TurnAround':
-    case 'Uturn':
-      return 'u-turn';
-    case 'SharpLeft':
-      return 'sharp-left';
-    case 'Left':
-      return 'turn-left';
-    case 'SlightLeft':
-      return 'bear-left';
+      case 'Straight':
+        return 'continue';
+      case 'SlightRight':
+        return 'bear-right';
+      case 'Right':
+        return 'turn-right';
+      case 'SharpRight':
+        return 'sharp-right';
+      case 'TurnAround':
+      case 'Uturn':
+        return 'u-turn';
+      case 'SharpLeft':
+        return 'sharp-left';
+      case 'Left':
+        return 'turn-left';
+      case 'SlightLeft':
+        return 'bear-left';
     }
   }
 
@@ -180,6 +232,9 @@ export default class Formatter extends L.Class {
   }
 }
 
+/**
+ * Instantiates a new formatter with the provided options
+ */
 export function formatter(options?: FormatterOptions) {
   return new Formatter(options);
 }

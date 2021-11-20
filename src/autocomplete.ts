@@ -3,22 +3,37 @@ import { GeocodingResult, GeocodingCallback } from 'leaflet-control-geocoder/dis
 
 type GeocoderQuery = (query: string, callback: GeocodingCallback) => void;
 
-interface GeocoderOptions {
-  resultFn?: GeocoderQuery;
-  autocompleteFn?: GeocoderQuery;
-}
-
-export interface AutocompleteOptions extends GeocoderOptions {
+/**
+ * Provides autocompletion for search entered into the geocoder. Uses [leaflet-control-geocoder](https://github.com/perliedman/leaflet-control-geocoder) by default
+ */
+export interface AutocompleteOptions {
+  /**
+   * Timeout in milliseconds before cancelling a running request
+   * @default 500
+   */
   timeout?: number;
-  blurTimeout?: number;
+  /**
+   * Message to display when no results are found
+   * @default 'No results found.'
+   */
   noResultsMessage?: string;
+  /**
+   * Function that handles formatting a geocode result to a string
+   */
   formatGeocoderResult?: (result: GeocodingResult) => string;
+  /**
+   * Equivalent to leaflet-control-geocoder.geocode
+   */
+  resultFn?: GeocoderQuery;
+  /**
+   * Equivalent to leaflet-control-geocoder.suggest
+   */
+  autocompleteFn?: GeocoderQuery;
 }
 
 export default class Autocomplete {
   private readonly defaultOptions = {
     timeout: 500,
-    blurTimeout: 100,
     noResultsMessage: 'No results found.'
   };
 

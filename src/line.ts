@@ -2,10 +2,30 @@ import L from 'leaflet';
 import { IRoute } from './common/types'
 
 export interface LineOptions extends L.LayerOptions {
+  /**
+   * Can new waypoints be added by dragging the line
+   * @default true
+   */
   addWaypoints?: boolean;
+  /**
+   * The maximum distance between two waypoints before a non-routable line needs to be drawn
+   * @default 10
+   */
   missingRouteTolerance?: number;
+  /**
+   * If true, connects all waypoints, even if the route has a missing part
+   * @default true
+   */
   extendToWaypoints?: boolean;
+  /**
+   * Styles used for the line or lines drawn to represent the line
+   * @default [{ color: 'black', opacity: 0.15, weight: 9 }, { color: 'white', opacity: 0.8, weight: 6 }, { color: 'red', opacity: 1, weight: 2 }]
+   */
   styles?: L.PathOptions[];
+  /**
+   * Styles used for the line or lines drawn to connect waypoints to the closest point on the calculated route (the non-routable part)
+   * @default [{ color: 'black', opacity: 0.15, weight: 7 } ,{ color: 'white', opacity: 0.6, weight: 4 }, { color: 'gray', opacity: 0.8, weight: 2, dashArray: '7,12' }]
+   */
   missingRouteStyles?: L.PathOptions[];
 }
 
@@ -18,6 +38,9 @@ interface EventedLayerGroup extends L.LayerGroup, L.Evented { }
 L.Util.extend(EventedLayerGroup.prototype, L.LayerGroup.prototype);
 L.Util.extend(EventedLayerGroup.prototype, L.Evented.prototype);
 
+/**
+ * Displays a route on the map, and allows adding new waypoints by dragging the line. Extends [LayerGroup](https://leafletjs.com/reference.html#layergroup).
+ */
 export default class Line extends L.LayerGroup {
   private readonly defaultOptions = {
     styles: [
@@ -60,12 +83,17 @@ export default class Line extends L.LayerGroup {
       this.options.addWaypoints);
   }
 
+  /**
+   * Returns the bounds of the line
+   */
   getBounds() {
     return L.latLngBounds(this.route.coordinates);
   }
 
   private findWaypointIndices() {
-    return this.route.inputWaypoints.map((waypoint) => this.findClosestRoutePoint(waypoint.latLng));
+    return this.route.inputWaypoints
+      .filter((waypoint) => waypoint.latLng)
+      .map((waypoint) => this.findClosestRoutePoint(waypoint.latLng!));
   }
 
   private findClosestRoutePoint(latlng: L.LatLng) {
@@ -91,12 +119,12 @@ export default class Line extends L.LayerGroup {
     let routeCoordinates: L.LatLng;
 
     const {
-      missingRouteTolerance = this.defaultOptions.missingRouteStyles,
+      missingRouteTolerance = this.defaultOptions.missingRouteTolerance,
       missingRouteStyles = this.defaultOptions.missingRouteStyles
     } = this.options;
 
-    for (const waypoint of this.route.inputWaypoints) {
-      waypointLatLng = waypoint.latLng;
+    for (const waypoint of this.route.inputWaypoints.filter((waypoint) => waypoint.latLng)) {
+      waypointLatLng = waypoint.latLng!;
       const currentIndex = this.route.inputWaypoints.indexOf(waypoint);
       routeCoordinates = L.latLng(this.route.coordinates[waypointIndices[currentIndex]]);
       if (waypointLatLng.distanceTo(routeCoordinates) > missingRouteTolerance) {
@@ -143,6 +171,9 @@ export default class Line extends L.LayerGroup {
   }
 }
 
+/**
+ * Instantiates a new line for the given route and provided options
+ */
 export function line(route: IRoute, options?: LineOptions) {
   return new Line(route, options);
 }
