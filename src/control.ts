@@ -8,6 +8,10 @@ import ItineraryBuilder, { ItineraryBuilderOptions } from './itinerary-builder';
 import EventHub from './eventhub';
 
 interface ControlOptions extends L.ControlOptions {
+  /**
+   * Style for the CircleMarkers used when hovering an itinerary instruction
+   * @default { radius: 5, color: '#03f', fillColor: 'white', opacity: 1, fillOpacity: 0.7 }
+   */
   pointMarkerStyle?: L.CircleMarkerOptions;
   /**
    * How the map’s view is fitted to a selected route result: smart will fit only if no waypoint is within the current view, or if the result covers a very small part of the view; other truthy values will always fit the map, falsy will never fit the map
@@ -562,6 +566,10 @@ export default class Control extends RoutingControl {
   }
 }
 
+/**
+ * Instantiates a new routing control with the provided options; unless specific router and/or plan instances are provided, options are also passed to their constructors
+ * @returns 
+ */
 export function routingControl(options?: ControlOptions) { 
   return new Control(options); 
 }

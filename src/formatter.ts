@@ -8,6 +8,10 @@ export interface FormatterOptions {
   unitNames?: keyof Units | null;
   locale?: Locale;
   roundingSensitivity?: number;
+  /**
+   * String template to use for formatting distances as a string; passed properties value and unit
+   * @default '{value} {unit}'
+   */
   distanceTemplate?: string;
 }
 
