@@ -61,9 +61,22 @@ export type IInstruction = IInstructionBase & (ITextInstruction | IDirectionInst
 export interface RoutingOptions {
 	alternatives?: boolean;
 	steps?: boolean;
+	/**
+	 * Current zoom level when the request was made
+	 */
 	zoom?: number;
+	/**
+	 * If U-turns are allowed in this route (might only be applicable for OSRM backend)
+	 */
 	allowUTurns?: boolean;
+	/**
+	 * If true, try to save bandwidth by just giving the route geometry; also, multiple results are not required (typically used for route preview when dragging a waypoint)
+	 * @default false
+	 */
 	geometryOnly?: boolean;
+	/**
+	 * Fileformat to return
+	 */
 	fileFormat?: string;
 	simplifyGeometry?: boolean;
 	customRouteTransform?: boolean;
@@ -91,6 +104,9 @@ export interface IRoutingError {
 }
 
 export interface IRouter {
+	/**
+	 * attempt to route through the provided waypoints, where each waypoint is a [[Waypoint]]
+	 */
 	route: (waypoints: Waypoint[], options?: RoutingOptions, abortController?: AbortController) => Promise<IRoute[]>;
 	requiresMoreDetail?: (route: IRoute, zoom: number, bounds: L.LatLngBounds) => boolean;
 }
