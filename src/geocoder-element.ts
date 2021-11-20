@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { IGeocoder, GeocodingResult } from 'leaflet-control-geocoder/dist/geocoders/api';
+import { IGeocoder } from 'leaflet-control-geocoder/dist/geocoders/api';
 import Autocomplete, { AutocompleteOptions } from './autocomplete';
 import { Locale } from './locales/types';
 import Localization from './localization';
@@ -35,7 +35,6 @@ export interface GeocoderElementsOptions extends L.ControlOptions {
    * When a waypoint’s name can’t be reverse geocoded, this function will be called to generate a name. Default will give a name based on the waypoint’s latitude and longitude.
    */
   waypointNameFallback?: (latLng: L.LatLng) => string;
-  formatGeocoderResult?: (result: GeocodingResult) => string;
   /**
    * The geocoder to use (both address lookup and reverse geocoding when dragging waypoints)
    */
@@ -141,14 +140,6 @@ export default class GeocoderElement extends EventedControl {
       L.DomEvent.addListener(closeButton, 'click', () => {
         this.fire('delete', { waypoint: this.waypoint });
       }, this);
-    }
-
-    if (typeof this.options.formatGeocoderResult == 'function') {
-      if (!this.options.autocompleteOptions) {
-        this.options.autocompleteOptions = {};
-      }
-
-      this.options.autocompleteOptions.formatGeocoderResult = this.options.formatGeocoderResult;
     }
 
     new Autocomplete(geocoderInput, (r) => {

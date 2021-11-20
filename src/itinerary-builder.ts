@@ -108,6 +108,9 @@ export default class ItineraryBuilder {
     this.eventHub = hub;
   }
 
+  /**
+   * Builds the itinerary container that will be added to the map together with the control
+   */
   buildItinerary(collapse: boolean) {
     const { collapsible, show, containerClassName, collapseBtn = this.defaultOptions.collapseBtn } = this.options;
     const isCollapsible = collapsible || collapse;
@@ -129,6 +132,9 @@ export default class ItineraryBuilder {
     return this.container;
   }
 
+  /**
+   * Creates the alternatives container, so it can be added to the DOM
+   */
   createAlternativesContainer() {
     return document.createRange()
       .createContextualFragment('<div class="leaflet-routing-alternatives-container"></div>')
@@ -214,6 +220,9 @@ export default class ItineraryBuilder {
     return template;
   }
 
+  /**
+   * Removes all alternative routes from the container
+   */
   clearAlts() {
     const el = this.altContainer;
     while (el && el.firstChild) {

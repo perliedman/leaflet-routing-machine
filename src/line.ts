@@ -7,7 +7,15 @@ export interface LineOptions extends L.LayerOptions {
    * @default true
    */
   addWaypoints?: boolean;
+  /**
+   * The maximum distance between two waypoints before a non-routable line needs to be drawn
+   * @default 10
+   */
   missingRouteTolerance?: number;
+  /**
+   * If true, connects all waypoints, even if the route has a missing part
+   * @default true
+   */
   extendToWaypoints?: boolean;
   /**
    * Styles used for the line or lines drawn to represent the line
@@ -111,7 +119,7 @@ export default class Line extends L.LayerGroup {
     let routeCoordinates: L.LatLng;
 
     const {
-      missingRouteTolerance = this.defaultOptions.missingRouteStyles,
+      missingRouteTolerance = this.defaultOptions.missingRouteTolerance,
       missingRouteStyles = this.defaultOptions.missingRouteStyles
     } = this.options;
 

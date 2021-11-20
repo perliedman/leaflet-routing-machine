@@ -154,6 +154,9 @@ export interface IRouter {
 	 * attempt to route through the provided waypoints, where each waypoint is a [[Waypoint]]
 	 */
 	route: (waypoints: Waypoint[], options?: RoutingOptions, abortController?: AbortController) => Promise<IRoute[]>;
+	/**
+	 * Indicates whether a route would become incomplete because some waypoints are out of bounds due to zoom. If true, triggers a reroute
+	 */
 	requiresMoreDetail?: (route: IRoute, zoom: number, bounds: L.LatLngBounds) => boolean;
 }
 

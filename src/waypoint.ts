@@ -8,6 +8,9 @@ interface WaypointOptions {
   allowUTurn?: boolean;
 }
 
+/**
+ * A specific waypoint on a route
+ */
 export default class Waypoint extends L.Class {
   options: WaypointOptions = {
     allowUTurn: false
@@ -29,6 +32,9 @@ export default class Waypoint extends L.Class {
   }
 }
 
+/**
+ * Utility function to create a new waypoint
+ */
 export function waypoint(latLng?: L.LatLngExpression, name?: string, options?: WaypointOptions) {
   return new Waypoint(latLng, name, options);
 }

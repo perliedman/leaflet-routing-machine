@@ -169,6 +169,10 @@ export default class Formatter extends L.Class {
     }
   }
 
+  /**
+   * Returns an icon name depending on the instruction type or modifier
+   * If it's a simple text instruction, no icon is returned by default
+   */
   getIconName(instruction: IInstruction, index: number) {
     if (!isDirectionInstruction(instruction)) {
       return '';

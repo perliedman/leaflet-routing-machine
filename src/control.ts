@@ -568,7 +568,6 @@ export default class Control extends RoutingControl {
 
 /**
  * Instantiates a new routing control with the provided options; unless specific router and/or plan instances are provided, options are also passed to their constructors
- * @returns 
  */
 export function routingControl(options?: ControlOptions) { 
   return new Control(options); 

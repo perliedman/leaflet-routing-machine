@@ -38,6 +38,10 @@ export interface PlanOptions extends GeocoderElementsOptions {
    * @default ''
    */
   geocodersClassName?: string;
+  /**
+   * Provides a function to create a custom geocoder element
+   * @default [[GeocoderElement]]
+   */
   createGeocoderElement?: (waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, plan: GeocoderElementsOptions) => GeocoderElement;
   /**
    * Creates a marker to use for a waypoint. If return value is falsy, no marker is added for the waypoint
