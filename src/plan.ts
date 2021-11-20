@@ -4,19 +4,52 @@ import GeocoderElement, { GeocoderElementsOptions } from './geocoder-element';
 import Waypoint from './waypoint';
 
 export interface PlanOptions extends GeocoderElementsOptions {
+  /**
+   * Styles used for the line or lines drawn when dragging a waypoint
+   * @default [{ color: 'black', opacity: 0.15, weight: 7 }, { color: 'white', opacity: 0.8, weight: 4 }, { color: 'orange', opacity: 1, weight: 2, dashArray: '7,12' }]
+   */
   dragStyles?: L.PathOptions[];
+  /**
+   * Can waypoints be dragged in the map
+   * @default true
+   */
   draggableWaypoints?: boolean;
+  /**
+   * If true, the route is continously recalculated while waypoint markers are dragged
+   * @default false
+   */
   routeWhileDragging?: boolean;
+  /**
+   * Can new waypoints be added by the user
+   * @default true
+   */
   addWaypoints?: boolean;
+  /**
+   * If true, a button to reverse the order of the waypoints is enabled
+   * @default false
+   */
   reverseWaypoints?: boolean;
+  /**
+   * HTML classname to assign to the add waypoint button
+   */
   addButtonClassName?: string;
+  /**
+   * HTML classname to assign to geocoders container
+   * @default ''
+   */
   geocodersClassName?: string;
   createGeocoderElement?: (waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, plan: GeocoderElementsOptions) => GeocoderElement;
+  /**
+   * Creates a marker to use for a waypoint. If return value is falsy, no marker is added for the waypoint
+   */
   createMarker?: (waypointIndex: number, waypoint: Waypoint, numberOfWaypoints?: number) => L.Marker;
 }
 
 type LeafletHookedEvent = L.LeafletEvent | { latlng: L.LatLng };
 
+/**
+ * User interface to edit the plan for a route (an ordered list of waypoints). Implements [Layer](https://leafletjs.com/reference.html#layer).
+ */
 export default class Plan extends L.Layer {
   private readonly defaultOptions = {
     dragStyles: [
@@ -62,6 +95,9 @@ export default class Plan extends L.Layer {
     this.setWaypoints(waypoints.map((waypoint) => waypoint instanceof Waypoint ? waypoint : new Waypoint(waypoint)));
   }
 
+  /**
+   * Returns true if the plan is ready to be routed, meaning it has at least a start and end waypoint, and both have coordinates
+   */
   isReady() {
     return this.waypoints.every((waypoint) => {
       const { latLng } = waypoint;
@@ -69,15 +105,24 @@ export default class Plan extends L.Layer {
     });
   }
 
+  /**
+   * Returns the plan’s waypoints
+   */
   getWaypoints() {
     return [...this.waypoints];
   }
 
+  /**
+   * Sets the plan’s waypoints
+   */
   setWaypoints(waypoints: Waypoint[]) {
     this.spliceWaypoints(0, this.waypoints.length, ...waypoints);
     return this;
   }
 
+  /**
+   * Allows adding, removing or replacing the plan’s waypoints. Syntax is the same as in Array#splice
+   */
   spliceWaypoints(startIndex: number, deleteCount = 0, ...newWaypoints: Waypoint[]) {
     this.waypoints.splice(startIndex, deleteCount, ...newWaypoints)
 
@@ -103,6 +148,9 @@ export default class Plan extends L.Layer {
     return this;
   }
 
+  /**
+   * Creates and returns an HTML widget with geocoder input fields for editing waypoints by address
+   */
   createGeocoders() {
     const container = L.DomUtil.create('div', `leaflet-routing-geocoders ${this.options.geocodersClassName}`);
 
@@ -338,6 +386,9 @@ export default class Plan extends L.Layer {
   }
 }
 
+/**
+ * Instantiates a new plan with given waypoint locations and options
+ */
 export function plan(waypoints: (Waypoint | L.LatLng)[], options?: PlanOptions) {
   return new Plan(waypoints, options);
 }

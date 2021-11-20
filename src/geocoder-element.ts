@@ -13,13 +13,32 @@ interface GeocoderElementCollection {
 
 export interface GeocoderElementsOptions extends L.ControlOptions {
   autocompleteOptions?: AutocompleteOptions,
+  /**
+   * Create a geocoder for a waypoint
+   */
   createGeocoder?: (waypointIndex: number, numberOfWaypoints: number, options: GeocoderElementsOptions) => GeocoderElementCollection;
+  /**
+   * Function to generate placeholder text for a waypoint geocoder. By default, gives text “Start” for first waypoint, “End” for last, and “Via x” in between
+   */
   geocoderPlaceholder?: (waypointIndex: number, numberOfWaypoints: number, geocoderElement: any) => string;
+  /**
+   * A function that returns the HTML classname to assign to individual geocoder inputs
+   */
   geocoderClass?: (waypointIndex?: number, numberOfWaypoints?: number) => string;
   locale?: Locale,
+  /**
+   * Maximum distance in meters from a reverse geocoding result to a waypoint, to consider the address valid
+   * @default 200
+   */
   maxGeocoderTolerance?: number,
+  /**
+   * When a waypoint’s name can’t be reverse geocoded, this function will be called to generate a name. Default will give a name based on the waypoint’s latitude and longitude.
+   */
   waypointNameFallback?: (latLng: L.LatLng) => string;
   formatGeocoderResult?: (result: GeocodingResult) => string;
+  /**
+   * The geocoder to use (both address lookup and reverse geocoding when dragging waypoints)
+   */
   geocoder?: IGeocoder;
   addWaypoints?: boolean;
 }

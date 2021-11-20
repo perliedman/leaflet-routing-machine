@@ -109,6 +109,7 @@ export interface RoutingErrorEvent {
 
 /**
  * Fires when the control starts calculating a route; followed by either a [[RoutesFoundEvent]] or [[RoutingErrorEvent]] event
+ * Fired when one or more waypoints change (added, deleted, moved)
  * @event
  */
 export interface RoutingStartEvent {
@@ -127,6 +128,9 @@ export interface WaypointEvent {
 	waypoint: Waypoint;
 }
 
+/**
+ * Fired when a waypoint is geocoded or reverse geocoded
+ */
 export interface WaypointGeocodedEvent extends WaypointEvent {
 	waypointIndex: number;
 }
@@ -144,6 +148,15 @@ export interface WaypointDragEvent {
 	target: any;
 	index: number;
 	latlng: L.LatLng;
+}
+
+/**
+ * Also fired when waypoints changed, but includes more finegrained details on actual changes, like a call to [Array.splice](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice)
+ */
+export interface WaypointsSplicedEvent {
+	index: number;
+	nRemoved: number;
+	added: Waypoint[];
 }
 
 export type ItineraryEvents = {
