@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { IGeocoder, GeocodingResult } from 'leaflet-control-geocoder/dist/geocoders/api';
 import Autocomplete, { AutocompleteOptions } from './autocomplete';
-import Locale from './locales/types';
+import { Locale } from './locales/types';
 import Localization from './localization';
 import Waypoint from './waypoint';
 

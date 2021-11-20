@@ -50,7 +50,7 @@ export interface Units {
   seconds: string;
 }
 
-export default interface Locale {
+export interface Locale {
   directions: Directions;
   instructions: Instructions;
   formatOrder: (n: number) => string,

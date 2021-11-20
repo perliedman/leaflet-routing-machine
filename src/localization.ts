@@ -8,7 +8,7 @@
    stepToText option in the OSRMv1 class.
 */
 
-import Locale from './locales/types';
+import { Locale } from './locales/types';
 import { en } from './locales';
 
 export default class Localization {
