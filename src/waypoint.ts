@@ -1,6 +1,10 @@
 import L from 'leaflet';
 
 interface WaypointOptions {
+  /**
+   * When using OSRM for routing, allow U-turn at this waypoint
+   * @default false
+   */
   allowUTurn?: boolean;
 }
 
