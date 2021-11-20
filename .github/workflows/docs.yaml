@@ -1,0 +1,26 @@
+name: Publish docs
+
+on:
+  push:
+    branches: [typescript]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build TypeDoc
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - run: npm ci
+      - run: npm run docs
+      - name: Deploy TypeDoc
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          destination_dir: docs
+          keep_files: true
+          enable_jekyll: true
