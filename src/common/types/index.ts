@@ -130,6 +130,7 @@ export interface WaypointEvent {
 
 /**
  * Fired when a waypoint is geocoded or reverse geocoded
+ * @event
  */
 export interface WaypointGeocodedEvent extends WaypointEvent {
 	waypointIndex: number;
@@ -139,6 +140,10 @@ export interface GeocodedEvent extends WaypointEvent {
 	value: string;
 }
 
+/**
+ * Fires when the line is touched (tapped or clicked)
+ * @event
+ */
 export interface LineTouchedEvent extends L.LeafletEvent {
 	afterIndex: number;
 	latlng: L.LatLng;
@@ -152,6 +157,7 @@ export interface WaypointDragEvent {
 
 /**
  * Also fired when waypoints changed, but includes more finegrained details on actual changes, like a call to [Array.splice](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice)
+ * @event
  */
 export interface WaypointsSplicedEvent {
 	index: number;

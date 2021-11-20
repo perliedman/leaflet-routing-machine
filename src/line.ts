@@ -2,10 +2,22 @@ import L from 'leaflet';
 import { IRoute } from './common/types'
 
 export interface LineOptions extends L.LayerOptions {
+  /**
+   * Can new waypoints be added by dragging the line
+   * @default true
+   */
   addWaypoints?: boolean;
   missingRouteTolerance?: number;
   extendToWaypoints?: boolean;
+  /**
+   * Styles used for the line or lines drawn to represent the line
+   * @default [{ color: 'black', opacity: 0.15, weight: 9 }, { color: 'white', opacity: 0.8, weight: 6 }, { color: 'red', opacity: 1, weight: 2 }]
+   */
   styles?: L.PathOptions[];
+  /**
+   * Styles used for the line or lines drawn to connect waypoints to the closest point on the calculated route (the non-routable part)
+   * @default [{ color: 'black', opacity: 0.15, weight: 7 } ,{ color: 'white', opacity: 0.6, weight: 4 }, { color: 'gray', opacity: 0.8, weight: 2, dashArray: '7,12' }]
+   */
   missingRouteStyles?: L.PathOptions[];
 }
 
@@ -18,6 +30,9 @@ interface EventedLayerGroup extends L.LayerGroup, L.Evented { }
 L.Util.extend(EventedLayerGroup.prototype, L.LayerGroup.prototype);
 L.Util.extend(EventedLayerGroup.prototype, L.Evented.prototype);
 
+/**
+ * Displays a route on the map, and allows adding new waypoints by dragging the line. Extends [LayerGroup](https://leafletjs.com/reference.html#layergroup).
+ */
 export default class Line extends L.LayerGroup {
   private readonly defaultOptions = {
     styles: [
@@ -60,6 +75,9 @@ export default class Line extends L.LayerGroup {
       this.options.addWaypoints);
   }
 
+  /**
+   * Returns the bounds of the line
+   */
   getBounds() {
     return L.latLngBounds(this.route.coordinates);
   }
@@ -145,6 +163,9 @@ export default class Line extends L.LayerGroup {
   }
 }
 
+/**
+ * Instantiates a new line for the given route and provided options
+ */
 export function line(route: IRoute, options?: LineOptions) {
   return new Line(route, options);
 }
