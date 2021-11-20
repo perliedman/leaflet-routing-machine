@@ -1,0 +1,56 @@
+<!DOCTYPE html><html class="default"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Leaflet Routing Machine API</title><meta name="description" content="Documentation for Leaflet Routing Machine API"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script async src="assets/search.js" id="search-script"></script></head><body><script>document.body.classList.add(localStorage.getItem("tsd-theme") || "os")</script><header><div class="tsd-page-toolbar"><div class="container"><div class="table-wrap"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget search no-caption">Search</label><input type="text" id="tsd-search-field"/></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">Leaflet Routing Machine API</a></div><div class="table-cell" id="tsd-widgets"><div id="tsd-filter"><a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a><div class="tsd-filter-group"><div class="tsd-select" id="tsd-filter-visibility"><span class="tsd-select-label">All</span><ul class="tsd-select-list"><li data-value="public">Public</li><li data-value="protected">Public/Protected</li><li data-value="private" class="selected">All</li></ul></div> <input type="checkbox" id="tsd-filter-inherited" checked/><label class="tsd-widget" for="tsd-filter-inherited">Inherited</label></div></div><a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a></div></div></div></div><div class="tsd-page-title"><div class="container"><h1>Leaflet Routing Machine API</h1></div></div></header><div class="container container-main"><div class="row"><div class="col-8 col-content"><div class="tsd-panel tsd-typography">
+<a href="#leaflet-routing-machine---" id="leaflet-routing-machine---" style="color: inherit; text-decoration: none;">
+  <h1><a href="(https://www.liedman.net/leaflet-routing-machine/)">Leaflet Routing Machine</a> <a href="https://www.npmjs.com/package/leaflet-routing-machine"><img src="https://img.shields.io/npm/v/leaflet-routing-machine.svg" alt="NPM version"></a> <img src="https://img.shields.io/badge/Leaflet%201.0-%E2%9C%93-1EB300.svg?style=flat" alt="Leaflet 1.0 compatible!"> <a href="https://gitter.im/leaflet-routing-machine/Lobby?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/leaflet-routing-machine/Lobby.svg" alt="Join the chat at https://gitter.im/leaflet-routing-machine/Lobby"></a></h1>
+</a>
+<p>Find the way from A to B on a Leaflet map. The plugin supports multiple backends:</p>
+<ul>
+<li><a href="http://project-osrm.org/">OSRM</a> - builtin and used by default (version 5)</li>
+<li><a href="https://www.mapbox.com/developers/api/directions/">Mapbox Directions API</a> - builtin with the class <code>L.Routing.Mapbox</code></li>
+<li><a href="https://graphhopper.com/">GraphHopper</a> - through plugin <a href="https://github.com/perliedman/lrm-graphhopper">lrm-graphopper</a></li>
+<li><a href="https://mapzen.com/projects/valhalla/">Mapzen Valhalla</a> - through plugin <a href="https://github.com/valhalla/lrm-valhalla">lrm-valhalla</a></li>
+<li><a href="http://developer.tomtom.com/io-docs">TomTom Online Routing API</a> - through plugin <a href="https://github.com/mrohnstock/lrm-tomtom">lrm-tomtom</a> by <a href="https://github.com/mrohnstock">Mathias Rohnstock</a></li>
+<li>Legacy support for OSRM version 4 through plugin <a href="https://github.com/perliedman/lrm-osrm4">lrm-osrm4</a></li>
+<li>Esri - through plugin <a href="https://github.com/jgravois/lrm-esri">lrm-esri</a></li>
+</ul>
+
+<a href="#features" id="features" style="color: inherit; text-decoration: none;">
+  <h2>Features</h2>
+</a>
+<ul>
+<li>Standard Leaflet control, with Leaflet look and feel</li>
+<li>Routing from start to destination, with possibility of via points</li>
+<li>Add, edit and remove waypoints through both address input and using the map</li>
+<li>Multiple language support</li>
+<li>Highly customizable for advanced use</li>
+<li>Customizable look (theming / skins)</li>
+<li>Open Source released under ISC License (more or less equivalent with the MIT license)</li>
+</ul>
+<p><strong>Go to the <a href="https://www.liedman.net/leaflet-routing-machine/">Leaflet Routing Machine site</a> for more information, demos, tutorials and more.</strong></p>
+
+<a href="#support-and-new-features" id="support-and-new-features" style="color: inherit; text-decoration: none;">
+  <h2>Support and New Features</h2>
+</a>
+<p>Leaflet Routing Machine is in many ways already a feature complete routing UI. Most likely, your requirements are already covered and require very little adaptation.</p>
+<p>For questions and discussions, you might want to look at <a href="https://gitter.im/leaflet-routing-machine/Lobby">the Leaflet Routing Machine gitter</a>.</p>
+
+<a href="#building" id="building" style="color: inherit; text-decoration: none;">
+  <h2>Building</h2>
+</a>
+<pre><code class="language-sh"><span class="hl-0">npm install</span>
+</code></pre>
+<p>This requires <a href="http://nodejs.org/">Node and npm</a>.</p>
+
+<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+  <h1>Usage</h1>
+</a>
+<p>Download <a href="https://github.com/perliedman/leaflet-routing-machine/releases">latest release</a>, or obtain the latest release via <a href="https://unpkg.com/">unpkg.com</a>.</p>
+<pre><code class="language-html"><span class="hl-1">&lt;</span><span class="hl-2">link</span><span class="hl-0"> </span><span class="hl-3">rel</span><span class="hl-0">=</span><span class="hl-4">&quot;stylesheet&quot;</span><span class="hl-0"> </span><span class="hl-3">href</span><span class="hl-0">=</span><span class="hl-4">&quot;https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css&quot;</span><span class="hl-0"> </span><span class="hl-1">/&gt;</span><br/><span class="hl-1">&lt;</span><span class="hl-2">script</span><span class="hl-5"> </span><span class="hl-3">src</span><span class="hl-5">=</span><span class="hl-4">&quot;https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js&quot;</span><span class="hl-1">&gt;&lt;/</span><span class="hl-2">script</span><span class="hl-1">&gt;</span>
+</code></pre>
+<p>or via npm:</p>
+<pre><code class="language-sh"><span class="hl-0">npm install --save leaflet-routing-machine</span>
+</code></pre>
+<pre><code class="language-javascript"><span class="hl-6">var</span><span class="hl-0"> </span><span class="hl-7">L</span><span class="hl-0"> = </span><span class="hl-8">require</span><span class="hl-0">(</span><span class="hl-9">&#39;leaflet&#39;</span><span class="hl-0">);</span><br/><span class="hl-8">require</span><span class="hl-0">(</span><span class="hl-9">&#39;leaflet-routing-machine&#39;</span><span class="hl-0">);</span><br/><br/><span class="hl-0">...</span>
+</code></pre>
+<p>LRM attaches itself onto <code>L</code>.</p>
+<p><strong>Go to the <a href="http://www.liedman.net/leaflet-routing-machine/">Leaflet Routing Machine site</a> for more information, demos, tutorials and more.</strong></p>
+</div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li><li class=" tsd-kind-namespace"><a href="modules/_internal_.html">&lt;internal&gt;</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-class"><a href="classes/Autocomplete.html" class="tsd-kind-icon">Autocomplete</a></li><li class="tsd-kind-class"><a href="classes/ErrorControl.html" class="tsd-kind-icon">Error<wbr/>Control</a></li><li class="tsd-kind-class"><a href="classes/Formatter.html" class="tsd-kind-icon">Formatter</a></li><li class="tsd-kind-class"><a href="classes/GeocoderElement.html" class="tsd-kind-icon">Geocoder<wbr/>Element</a></li><li class="tsd-kind-class"><a href="classes/ItineraryBuilder.html" class="tsd-kind-icon">Itinerary<wbr/>Builder</a></li><li class="tsd-kind-class"><a href="classes/Line.html" class="tsd-kind-icon">Line</a></li><li class="tsd-kind-class"><a href="classes/Localization.html" class="tsd-kind-icon">Localization</a></li><li class="tsd-kind-class"><a href="classes/Mapbox.html" class="tsd-kind-icon">Mapbox</a></li><li class="tsd-kind-class"><a href="classes/OSRMv1.html" class="tsd-kind-icon">OSRMv1</a></li><li class="tsd-kind-class"><a href="classes/Plan.html" class="tsd-kind-icon">Plan</a></li><li class="tsd-kind-class"><a href="classes/RoutingControl.html" class="tsd-kind-icon">Routing<wbr/>Control</a></li><li class="tsd-kind-class"><a href="classes/Waypoint.html" class="tsd-kind-icon">Waypoint</a></li><li class="tsd-kind-function"><a href="modules.html#autocomplete" class="tsd-kind-icon">autocomplete</a></li><li class="tsd-kind-function"><a href="modules.html#errorControl" class="tsd-kind-icon">error<wbr/>Control</a></li><li class="tsd-kind-function"><a href="modules.html#formatter" class="tsd-kind-icon">formatter</a></li><li class="tsd-kind-function"><a href="modules.html#geocoderElement" class="tsd-kind-icon">geocoder<wbr/>Element</a></li><li class="tsd-kind-function"><a href="modules.html#itineraryBuilder" class="tsd-kind-icon">itinerary<wbr/>Builder</a></li><li class="tsd-kind-function"><a href="modules.html#line" class="tsd-kind-icon">line</a></li><li class="tsd-kind-function"><a href="modules.html#localization" class="tsd-kind-icon">localization</a></li><li class="tsd-kind-function"><a href="modules.html#mapbox" class="tsd-kind-icon">mapbox</a></li><li class="tsd-kind-function"><a href="modules.html#osrmv1" class="tsd-kind-icon">osrmv1</a></li><li class="tsd-kind-function"><a href="modules.html#plan" class="tsd-kind-icon">plan</a></li><li class="tsd-kind-function"><a href="modules.html#routingControl" class="tsd-kind-icon">routing<wbr/>Control</a></li><li class="tsd-kind-function"><a href="modules.html#waypoint" class="tsd-kind-icon">waypoint</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li><li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li><li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
