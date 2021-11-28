@@ -1,6 +1,6 @@
 ## ISC License
 
-Copyright (c) 2014, Per Liedman (per@liedman.net)
+Copyright (c) 2014-2021, Per Liedman (per@liedman.net) and contributors
 Turn instruction icons Copyright (c) 2014, Mapbox (mapbox.com)
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
