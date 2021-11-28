@@ -34,7 +34,7 @@ const configs = {
     ...{
       bundle: true,
       entryPoints: ['./src/index.ts'],
-      outfile: 'build/umd/index.js',
+      outfile: 'dist/umd/index.js',
       globalName: 'L.Routing'
     }
   },
@@ -42,7 +42,7 @@ const configs = {
     ...baseConfig,
     ...{
       format: 'esm',
-      outdir: 'build/esm',
+      outdir: 'dist/esm',
       plugins: [nodeExternalsPlugin()]
     }
   },
@@ -50,7 +50,7 @@ const configs = {
     ...baseConfig,
     ...{
       format: 'cjs',
-      outdir: 'build/cjs',
+      outdir: 'dist/cjs',
       plugins: [nodeExternalsPlugin()]
     }
   },

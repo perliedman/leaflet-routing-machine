@@ -63,7 +63,7 @@
     // "noEmitHelpers": true,                            /* Disable generating custom helper functions like `__extends` in compiled output. */
     // "noEmitOnError": true,                            /* Disable emitting files if any type checking errors are reported. */
     // "preserveConstEnums": true,                       /* Disable erasing `const enum` declarations in generated code. */
-    "declarationDir": "./build/types",                           /* Specify the output directory for generated declaration files. */
+    "declarationDir": "./dist/types",                           /* Specify the output directory for generated declaration files. */
 
     /* Interop Constraints */
     // "isolatedModules": true,                          /* Ensure that each file can be safely transpiled without relying on other imports. */

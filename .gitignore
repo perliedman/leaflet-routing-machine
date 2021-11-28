@@ -6,6 +6,7 @@ examples/**/dist/**
 
 // esbuild generated files
 build
+dist
 meta.json
 
 // typedoc files
