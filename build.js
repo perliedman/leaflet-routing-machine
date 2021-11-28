@@ -1,6 +1,7 @@
 const esbuild = require('esbuild');
 const { nodeExternalsPlugin } = require('esbuild-node-externals');
 const fs = require('fs');
+const { exec } = require('child_process');
 
 const tsFiles = [];
 
@@ -54,6 +55,14 @@ const configs = {
     }
   },
 };
+
+exec('tsc', (error) => {
+  if (error) {
+    console.log(error.stack);
+    console.log('Error code: '+error.code);
+    console.log('Signal received: '+error.signal);
+  }
+});
 
 for (const config of Object.values(configs)) {
   esbuild.build(config).catch(() => process.exit(1));
