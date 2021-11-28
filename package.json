@@ -37,7 +37,9 @@
     "url": "https://github.com/perliedman/leaflet-routing-machine/issues"
   },
   "homepage": "https://github.com/perliedman/leaflet-routing-machine",
-  "main": "./dist/leaflet-routing-machine.js",
+  "main": "./build/cjs/index.js",
+  "module": "./build/esm/index.js",
+  "types": "./build/types/index.d.ts",
   "devDependencies": {
     "@types/leaflet": "^1.7.6",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
