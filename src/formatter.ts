@@ -217,7 +217,7 @@ export default class Formatter extends L.Class {
     return s.charAt(0).toUpperCase() + s.substring(1);
   }
 
-  private getInstructionTemplate(instruction: IDirectionInstruction, index: number) {
+  getInstructionTemplate(instruction: IDirectionInstruction, index: number) {
     const type = instruction.type === 'Straight' ? (index === 0 ? 'Head' : 'Continue') : instruction.type;
     let strings = this.localization.localize(['instructions', type]);
 

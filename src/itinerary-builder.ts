@@ -170,11 +170,11 @@ export default class ItineraryBuilder {
     this.container?.classList.add('leaflet-routing-container-hide');
   }
 
-  private toggle() {
+  toggle() {
     this.container?.classList.toggle('leaflet-routing-container-hide');
   }
 
-  private createAlternative(alt: IRoute, index: number) {
+  createAlternative(alt: IRoute, index: number) {
     const {
       minimizedClassName,
       alternativeClassName,
@@ -195,7 +195,7 @@ export default class ItineraryBuilder {
     return altDiv;
   }
 
-  private createSummaryTemplate(alt: IRoute) {
+  createSummaryTemplate(alt: IRoute) {
     const { summaryTemplate: defaultTemplate } = this.defaultOptions;
     const { summaryTemplate, totalDistanceRoundingSensitivity } = this.options;
     let template = summaryTemplate ?? defaultTemplate;
@@ -232,7 +232,7 @@ export default class ItineraryBuilder {
     this.altElements = [];
   }
 
-  private createItineraryContainer(route: IRoute) {
+  createItineraryContainer(route: IRoute) {
     const container = this.createContainer();
     const steps = this.createStepsContainer();
 
@@ -253,7 +253,7 @@ export default class ItineraryBuilder {
     return container;
   }
 
-  private addRowListeners(row: HTMLTableRowElement, coordinate: L.LatLng) {
+  addRowListeners(row: HTMLTableRowElement, coordinate: L.LatLng) {
     row.addEventListener('mouseover', () => {
       this.eventHub?.trigger('altRowMouseOver', coordinate);
     });
@@ -265,7 +265,7 @@ export default class ItineraryBuilder {
     });
   }
 
-  private onAltClicked(e: MouseEvent) {
+  onAltClicked(e: MouseEvent) {
     const altElem = (e.target as HTMLElement).closest<HTMLElement>('.leaflet-routing-alt');
     if (!altElem) {
       return;
@@ -276,7 +276,7 @@ export default class ItineraryBuilder {
     });
   }
 
-  private selectAlt(e: RouteEvent) {
+  selectAlt(e: RouteEvent) {
     const altElem = this.altElements[e.routeIndex];
     if (altElem.classList.contains('leaflet-routing-alt-minimized')) {
       for (const altElement of this.altElements) {

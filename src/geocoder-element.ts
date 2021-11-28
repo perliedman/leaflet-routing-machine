@@ -195,13 +195,13 @@ export default class GeocoderElement extends EventedControl {
     this.selectInputText(input);
   }
 
-  private setReverseGeocodeResult() {
+  setReverseGeocodeResult() {
     const value = this.waypoint?.name ?? '';
     this.setValue(value);
     this.fire('reversegeocoded', { waypoint: this.waypoint, value });
   }
 
-  private selectInputText(input: HTMLInputElement) {
+  selectInputText(input: HTMLInputElement) {
     if (input.setSelectionRange) {
       // On iOS, select() doesn't work
       input.setSelectionRange(0, 9999);

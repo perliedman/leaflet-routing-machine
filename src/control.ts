@@ -265,7 +265,7 @@ export default class Control extends RoutingControl {
     return this.router;
   }
 
-  private routeSelected(e: RouteEvent) {
+  routeSelected(e: RouteEvent) {
     const { routeIndex } = e;
     const selectRoute = this.routes.find((r) => r.routesIndex === routeIndex);
     if (!selectRoute) {
@@ -292,7 +292,7 @@ export default class Control extends RoutingControl {
     }
   }
 
-  private waypointsVisible() {
+  waypointsVisible() {
     if (!this.map) {
       return false;
     }
@@ -321,7 +321,7 @@ export default class Control extends RoutingControl {
     }
   }
 
-  private waypointsInViewport() {
+  waypointsInViewport() {
     if (!this.map) {
       return false;
     }
@@ -329,14 +329,14 @@ export default class Control extends RoutingControl {
     try {
       const mapBounds = this.map.getBounds();
       return this.getWaypoints()
-      .filter((waypoint) => waypoint.latLng)
-      .some((waypoint) => mapBounds.contains(waypoint.latLng!));
+        .filter((waypoint) => waypoint.latLng)
+        .some((waypoint) => mapBounds.contains(waypoint.latLng!));
     } catch (e) {
       return false;
     }
   }
 
-  private updateLines(route: IRoute, alternatives: IRoute[]) {
+  updateLines(route: IRoute, alternatives: IRoute[]) {
     const { routeLine = this.defaultOptions.routeLine } = this.controlOptions;
     const addWaypoints = this.controlOptions.addWaypoints ?? true;
     this.clearLines();
@@ -355,6 +355,7 @@ export default class Control extends RoutingControl {
       if (!this.map) {
         return;
       }
+
       this.alternatives[i].addTo(this.map);
       this.hookAltEvents(this.alternatives[i]);
     });
@@ -371,11 +372,12 @@ export default class Control extends RoutingControl {
     if (!this.map) {
       return;
     }
+
     this.line.addTo(this.map);
     this.hookEvents(this.line);
   }
 
-  private hookEvents(l: Line) {
+  hookEvents(l: Line) {
     l.on('linetouched', (e) => {
       if (e.afterIndex < this.getWaypoints().length - 1) {
         this.plan.dragNewWaypoint(e);
@@ -383,13 +385,13 @@ export default class Control extends RoutingControl {
     });
   }
 
-  private hookAltEvents(l: Line) {
+  hookAltEvents(l: Line) {
     l.on('linetouched', (e) => {
       this.eventHub.trigger('routeselected', { routeIndex: e.target.route.routesIndex });
     });
   }
 
-  private async onWaypointsChanged(e: RoutingStartEvent) {
+  async onWaypointsChanged(e: RoutingStartEvent) {
     if (this.controlOptions.autoRoute) {
       await this.route({});
     }
@@ -402,7 +404,7 @@ export default class Control extends RoutingControl {
     this.fire('waypointschanged', { waypoints: e.waypoints });
   }
 
-  private setupRouteDragging() {
+  setupRouteDragging() {
     let timer = 0;
 
     this.plan.on('waypointdrag', (e) => {
@@ -422,15 +424,17 @@ export default class Control extends RoutingControl {
         }, this.controlOptions.routeDragInterval);
       }
     });
+
     this.plan.on('waypointdragend', async () => {
       if (timer) {
         clearTimeout(timer);
       }
+
       await this.route();
     });
   }
 
-  private updateLineCallback(routes: IRoute[]) {
+  updateLineCallback(routes: IRoute[]) {
     if (!this.selectedRoute) {
       return;
     }
@@ -509,7 +513,7 @@ export default class Control extends RoutingControl {
     return [];
   }
 
-  private clearLines() {
+  clearLines() {
     if (this.line) {
       this.map?.removeLayer(this.line);
       delete this.line;
@@ -530,7 +534,7 @@ export default class Control extends RoutingControl {
     return this;
   }
 
-  private selectRoute(e: RouteEvent) {
+  selectRoute(e: RouteEvent) {
     if (this.marker) {
       this.map?.removeLayer(this.marker);
       delete this.marker;
@@ -538,7 +542,7 @@ export default class Control extends RoutingControl {
     this.eventHub.trigger('routeselected', e);
   }
 
-  private async onZoomEnd() {
+  async onZoomEnd() {
     if (!this.selectedRoute || !this.router.requiresMoreDetail || !this.map) {
       return;
     }

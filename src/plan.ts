@@ -184,7 +184,7 @@ export default class Plan extends L.Layer {
     return container;
   }
 
-  private createGeocoder(waypointIndex: number) {
+  createGeocoder(waypointIndex: number) {
     const { createGeocoderElement = this.defaultOptions.createGeocoderElement } = this.options;
     const geocoder = createGeocoderElement(this.waypoints[waypointIndex], waypointIndex, this.waypoints.length, this.options);
     geocoder.on('delete', () => {
@@ -211,7 +211,7 @@ export default class Plan extends L.Layer {
     return geocoder;
   }
 
-  private updateGeocoders() {
+  updateGeocoders() {
     for (const geocoderElement of this.geocoderElements) {
       this.geocoderContainer?.removeChild(geocoderElement.getContainer());
     }
@@ -226,7 +226,7 @@ export default class Plan extends L.Layer {
     this.geocoderElements = elements.reverse();
   }
 
-  private removeMarkers() {
+  removeMarkers() {
     if (this.markers) {
       for (const marker of this.markers) {
         this._map.removeLayer(marker);
@@ -236,7 +236,7 @@ export default class Plan extends L.Layer {
     this.markers = [];
   }
 
-  private updateMarkers() {
+  updateMarkers() {
     if (!this._map) {
       return;
     }
@@ -260,7 +260,7 @@ export default class Plan extends L.Layer {
     }
   }
 
-  private fireChanged(startIndex?: number, deleteCount?: number, ...newWaypoints: Waypoint[]) {
+  fireChanged(startIndex?: number, deleteCount?: number, ...newWaypoints: Waypoint[]) {
     this.fire('waypointschanged', { waypoints: this.getWaypoints() });
 
     if (startIndex) {
@@ -272,7 +272,7 @@ export default class Plan extends L.Layer {
     }
   }
 
-  private hookWaypointEvents(marker: L.Marker, waypointIndex: number, trackMouseMove = false) {
+  hookWaypointEvents(marker: L.Marker, waypointIndex: number, trackMouseMove = false) {
     const eventLatLng = (e: LeafletHookedEvent) => {
       return trackMouseMove ? (e as L.LeafletMouseEvent).latlng : (e as L.LeafletEvent).target.getLatLng();
     };
@@ -381,7 +381,7 @@ export default class Plan extends L.Layer {
     this._map.on('mouseup', mouseUp, this);
   }
 
-  private focusGeocoder(index: number) {
+  focusGeocoder(index: number) {
     if (this.geocoderElements[index]) {
       this.geocoderElements[index].focus();
     } else {

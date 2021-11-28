@@ -83,7 +83,7 @@ export default class Autocomplete {
     this.isOpen = false;
   }
 
-  private open() {
+  open() {
     const rect = this.element.getBoundingClientRect();
     if (!this.container.parentElement) {
       this.container.style.left = `${(rect.left + window.scrollX)}px`;
@@ -96,7 +96,7 @@ export default class Autocomplete {
     this.isOpen = true;
   }
 
-  private setResults(results: GeocodingResult[]) {
+  setResults(results: GeocodingResult[]) {
     delete this.selection;
     this.results = results;
 
@@ -134,19 +134,19 @@ export default class Autocomplete {
     }
   }
 
-  private createClickListener(route: GeocodingResult) {
+  createClickListener(route: GeocodingResult) {
     this.element.blur();
     this.resultSelected(route);
   }
 
-  private resultSelected(route: GeocodingResult) {
+  resultSelected(route: GeocodingResult) {
     this.close();
     this.element.value = route.name;
     this.lastCompletedText = route.name;
     this.selectFn(route);
   }
 
-  private keyPressed(e: Event) {
+  keyPressed(e: Event) {
     const { keyCode } = e as KeyboardEvent
     if (this.isOpen && keyCode === 13 && this.selection) {
       const index = parseInt(this.selection.getAttribute('data-result-index') ?? '0', 10);
@@ -174,7 +174,7 @@ export default class Autocomplete {
     this.unselect();
   }
 
-  private select(dir: number) {
+  select(dir: number) {
     let selection = this.selection;
     if (selection) {
       L.DomUtil.removeClass(selection.firstElementChild as HTMLElement, 'leaflet-routing-geocoder-selected');
@@ -190,14 +190,15 @@ export default class Autocomplete {
     }
   }
 
-  private unselect() {
+  unselect() {
     if (this.selection) {
       L.DomUtil.removeClass(this.selection.firstElementChild as HTMLElement, 'leaflet-routing-geocoder-selected');
     }
+
     delete this.selection;
   }
 
-  private keyDown(e: Event) {
+  keyDown(e: Event) {
     const { keyCode } = e as KeyboardEvent;
     if (this.isOpen) {
       switch (keyCode) {
@@ -220,7 +221,7 @@ export default class Autocomplete {
     }
   }
 
-  private complete(completeFn?: GeocoderQuery, trySelect = false) {
+  complete(completeFn?: GeocoderQuery, trySelect = false) {
     const { value } = this.element;
 
     if (!value || !completeFn) {
@@ -235,7 +236,7 @@ export default class Autocomplete {
     }
   }
 
-  private completeResults() {
+  completeResults() {
     if (this.results.length === 1) {
       this.resultSelected(this.results[0]);
     } else {

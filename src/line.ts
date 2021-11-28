@@ -90,13 +90,13 @@ export default class Line extends L.LayerGroup {
     return L.latLngBounds(this.route.coordinates);
   }
 
-  private findWaypointIndices() {
+  findWaypointIndices() {
     return this.route.inputWaypoints
       .filter((waypoint) => waypoint.latLng)
       .map((waypoint) => this.findClosestRoutePoint(waypoint.latLng!));
   }
 
-  private findClosestRoutePoint(latlng: L.LatLng) {
+  findClosestRoutePoint(latlng: L.LatLng) {
     let minDist = Number.MAX_VALUE;
     let minIndex = 0;
     let distance: number;
@@ -113,7 +113,7 @@ export default class Line extends L.LayerGroup {
     return minIndex;
   }
 
-  private extendToWaypoints() {
+  extendToWaypoints() {
     const waypointIndices = this.getWaypointIndices();
     let waypointLatLng: L.LatLng;
     let routeCoordinates: L.LatLng;
@@ -133,7 +133,7 @@ export default class Line extends L.LayerGroup {
     }
   }
 
-  private addSegment(coords: L.LatLng[], styles: L.PathOptions[], mouselistener?: boolean) {
+  addSegment(coords: L.LatLng[], styles: L.PathOptions[], mouselistener?: boolean) {
     for (const style of styles) {
       const polyline = L.polyline(coords, style);
       this.addLayer(polyline);
@@ -143,7 +143,7 @@ export default class Line extends L.LayerGroup {
     }
   }
 
-  private findNearestWaypointBefore(index: number) {
+  findNearestWaypointBefore(index: number) {
     const waypointIndices = this.getWaypointIndices();
     let j = waypointIndices.length - 1;
     while (j >= 0 && waypointIndices[j] > index) {
@@ -153,7 +153,7 @@ export default class Line extends L.LayerGroup {
     return j;
   }
 
-  private onLineTouched(e: L.LeafletMouseEvent) {
+  onLineTouched(e: L.LeafletMouseEvent) {
     const afterIndex = this.findNearestWaypointBefore(this.findClosestRoutePoint(e.latlng));
     this.fire('linetouched', {
       afterIndex: afterIndex,
@@ -162,7 +162,7 @@ export default class Line extends L.LayerGroup {
     L.DomEvent.stop(e);
   }
 
-  private getWaypointIndices() {
+  getWaypointIndices() {
     if (!this.waypointIndices.length) {
       this.waypointIndices = this.route.waypointIndices || this.findWaypointIndices();
     }
