@@ -58,6 +58,7 @@ const configs = {
 
 exec('tsc', (error) => {
   if (error) {
+    console.log(error.message);
     console.log(error.stack);
     console.log('Error code: '+error.code);
     console.log('Signal received: '+error.signal);
