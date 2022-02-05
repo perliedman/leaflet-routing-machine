@@ -51,7 +51,7 @@ export default class Formatter extends L.Class {
       yards: 'yd',
       miles: 'mi',
       hours: 'h',
-      minutes: 'mín',
+      minutes: 'min',
       seconds: 's'
     },
     roundingSensitivity: 1,
@@ -115,11 +115,7 @@ export default class Formatter extends L.Class {
     return L.Util.template(distanceTemplate, data);
   }
 
-  private round(distance: number, sensitivity: number) {
-    if (sensitivity <= 0) {
-      return distance;
-    }
-
+  round(distance: number, sensitivity?: number ) {
     const { roundingSensitivity = this.defaultOptions.roundingSensitivity } = this.options;
     const s = sensitivity || roundingSensitivity;
     const pow10 = Math.pow(10, (Math.floor(distance / s) + '').length - 1);

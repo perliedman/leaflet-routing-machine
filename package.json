@@ -10,7 +10,7 @@
     "prepare": "node build.js",
     "publish": "scripts/publish.sh",
     "lint": "eslint --ext .ts src --fix",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "docs": "typedoc"
   },
   "repository": {
@@ -41,17 +41,20 @@
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
   "devDependencies": {
+    "@types/jest": "^27.0.3",
     "@types/leaflet": "^1.7.6",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",
     "esbuild": "^0.13.15",
     "esbuild-node-externals": "^1.4.0",
     "eslint": "^8.3.0",
+    "jest": "^27.3.1",
+    "ts-jest": "^27.0.7",
     "typedoc": "^0.22.10",
+    "typedoc-plugin-leaflet-docs": "^1.0.0",
     "typedoc-plugin-mdn-links": "^1.0.4",
     "typedoc-plugin-missing-exports": "^0.22.6",
-    "typescript": "^4.5.2",
-    "typedoc-plugin-leaflet-docs": "^1.0.0"
+    "typescript": "^4.5.2"
   },
   "dependencies": {
     "@googlemaps/polyline-codec": "^1.0.11",
