@@ -41,8 +41,8 @@
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
   "devDependencies": {
-    "@types/jest": "^27.0.3",
-    "@types/leaflet": "^1.7.6",
+    "@types/jest": "^27.4.0",
+    "@types/leaflet": "^1.7.9",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "esbuild": "^0.14.18",
