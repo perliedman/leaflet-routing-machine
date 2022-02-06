@@ -7,9 +7,9 @@
     "dist": "dist"
   },
   "scripts": {
-    "prepare": "node build.js",
+    "build": "node build.js",
     "publish": "scripts/publish.sh",
-    "lint": "eslint --ext .ts src --fix",
+    "lint": "eslint --ext .ts src",
     "test": "jest",
     "docs": "typedoc"
   },

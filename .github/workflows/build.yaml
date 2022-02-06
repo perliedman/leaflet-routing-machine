@@ -1,0 +1,28 @@
+name: Perform Build
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 16.x
+      uses: actions/setup-node@v2
+      with:
+        node-version: 16.x
+        cache: 'npm'
+    - id: Install dependencies
+      run: npm ci
+    - id: Lint
+      run: npm run lint
+    - id: Build
+      run: npm run build
+    - id: Test
+      run: npm run test
