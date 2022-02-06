@@ -338,26 +338,26 @@ export default class OSRMv1 extends L.Class implements IRouter {
 
   private maneuverToInstructionType(maneuver: OSRMManeuver, lastLeg: boolean) {
     switch (maneuver.type) {
-    case 'new name':
-      return InstructionType.Continue;
-    case 'depart':
-      return InstructionType.Head;
-    case 'arrive':
-      return lastLeg ? InstructionType.DestinationReached : InstructionType.WaypointReached;
-    case 'roundabout':
-    case 'rotary':
-      return InstructionType.Roundabout;
-    case 'merge':
-    case 'fork':
-    case 'on ramp':
-    case 'off ramp':
-    case 'end of road':
-      return this.camelCase(maneuver.type) as InstructionType;
-      // These are all reduced to the same instruction in the current model
-      //case 'turn':
-      //case 'ramp': // deprecated in v5.1
-    default:
-      return this.camelCase(maneuver.modifier) as InstructionType;
+      case 'new name':
+        return InstructionType.Continue;
+      case 'depart':
+        return InstructionType.Head;
+      case 'arrive':
+        return lastLeg ? InstructionType.DestinationReached : InstructionType.WaypointReached;
+      case 'roundabout':
+      case 'rotary':
+        return InstructionType.Roundabout;
+      case 'merge':
+      case 'fork':
+      case 'on ramp':
+      case 'off ramp':
+      case 'end of road':
+        return this.camelCase(maneuver.type) as InstructionType;
+        // These are all reduced to the same instruction in the current model
+        //case 'turn':
+        //case 'ramp': // deprecated in v5.1
+      default:
+        return this.camelCase(maneuver.modifier) as InstructionType;
     }
   }
 
@@ -365,12 +365,12 @@ export default class OSRMv1 extends L.Class implements IRouter {
     let modifier = maneuver.modifier;
 
     switch (maneuver.type) {
-    case 'merge':
-    case 'fork':
-    case 'on ramp':
-    case 'off ramp':
-    case 'end of road':
-      modifier = this.leftOrRight(modifier);
+      case 'merge':
+      case 'fork':
+      case 'on ramp':
+      case 'off ramp':
+      case 'end of road':
+        modifier = this.leftOrRight(modifier);
     }
 
     return modifier && this.camelCase(modifier) as InstructionType;

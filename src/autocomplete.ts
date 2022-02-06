@@ -203,20 +203,20 @@ export default class Autocomplete {
     if (this.isOpen) {
       switch (keyCode) {
       // Escape
-      case 27:
-        this.close();
-        L.DomEvent.preventDefault(e);
-        return;
-        // Up
-      case 38:
-        this.select(-1);
-        L.DomEvent.preventDefault(e);
-        return;
-        // Down
-      case 40:
-        this.select(1);
-        L.DomEvent.preventDefault(e);
-        return;
+        case 27:
+          this.close();
+          L.DomEvent.preventDefault(e);
+          return;
+          // Up
+        case 38:
+          this.select(-1);
+          L.DomEvent.preventDefault(e);
+          return;
+          // Down
+        case 40:
+          this.select(1);
+          L.DomEvent.preventDefault(e);
+          return;
       }
     }
   }

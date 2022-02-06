@@ -13,6 +13,8 @@
     "@typescript-eslint/no-empty-interface": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "prefer-arrow-callback": "warn",
-    "indent": ["error", 2]
+    "indent": ["error", 2, {
+      "SwitchCase": 1
+    }]
   }
 }
