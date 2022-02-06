@@ -221,6 +221,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
             message = data.message;
           }
         } catch (ex) {
+          message = 'Error parsing error response';
         }
       }
 
