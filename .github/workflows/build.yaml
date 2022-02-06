@@ -18,7 +18,7 @@ jobs:
       with:
         node-version: 16.x
         cache: 'npm'
-    - id: Install dependencies
+    - id: Install
       run: npm ci
     - id: Lint
       run: npm run lint
