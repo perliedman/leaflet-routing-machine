@@ -47,6 +47,11 @@ export interface PlanOptions extends GeocoderElementsOptions {
    * Creates a marker to use for a waypoint. If return value is falsy, no marker is added for the waypoint
    */
   createMarker?: (waypointIndex: number, waypoint: Waypoint, numberOfWaypoints?: number) => L.Marker;
+  /**
+   * determines whether waypoint names should be cleared after dragging
+   * @default true
+   */
+  clearWaypointNameOnDragEnd?: boolean;
 }
 
 type LeafletHookedEvent = L.LeafletEvent | { latlng: L.LatLng };
@@ -65,6 +70,7 @@ export default class Plan extends L.Layer {
     routeWhileDragging: false,
     addWaypoints: true,
     reverseWaypoints: false,
+    clearWaypointNameOnDragEnd: true,
     addButtonClassName: '',
     language: 'en',
     createGeocoderElement: (waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, plan: GeocoderElementsOptions) => {
@@ -286,7 +292,10 @@ export default class Plan extends L.Layer {
     };
     const dragEnd = (e: LeafletHookedEvent) => {
       this.waypoints[waypointIndex].latLng = eventLatLng(e);
-      this.waypoints[waypointIndex].name = '';
+      if (this.options.clearWaypointNameOnDragEnd) {
+        this.waypoints[waypointIndex].name = '';
+      }
+
       if (this.geocoderElements) {
         this.geocoderElements[waypointIndex].update(true);
       }
