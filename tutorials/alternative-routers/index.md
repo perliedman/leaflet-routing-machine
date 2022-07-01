@@ -7,7 +7,7 @@ title: GraphHopper, Mapbox, Valhalla and other routing software
 
 Behind the UI, Leaflet Routing Machine queries [OSRM](http://project-osrm.org)'s
 demo servers each time the route is recalculated, unless you tell it to use something else.
-This is great for a demo, but not for production: the service is free but comes with a [usage policy](https://github.com/Project-OSRM/osrm-backend/wiki/Api-usage-policy) and without any warranties or SLA. 
+This is great for a demo, but not for production: the service is free but comes with a [usage policy](https://github.com/Project-OSRM/osrm-backend/wiki/Api-usage-policy) and without any warranties or SLA.
 For production use, or for any use case were you need control over how routes are calculated (like other means of transport, like bike or foot), you need to use another server, be it OSRM or some other software. This tutorial tells you about the different options.
 
 ### Using your own OSRM server
@@ -19,8 +19,9 @@ telling it where the server is located:
 
 <pre><code class="language-javascript">
 L.Routing.control({
-    [...]
+    waypoints: [...],
     serviceUrl: 'http://my-osrm/route/v1'
+    // your other options go here
 });
 </code></pre>
 
@@ -31,10 +32,11 @@ You can also, more explicitly, hand the router instance to use directly to the c
 
 <pre><code class="language-javascript">
 L.Routing.control({
-    [...]
+    waypoints: [...],
     router: L.Routing.osrmv1({
         serviceUrl: 'http://my-osrm/route/v1'
     })
+    // your other options go here
 });
 </code></pre>
 
@@ -53,8 +55,9 @@ you just need to specify that you want to use the Mapbox router:
 
 <pre><code class="language-javascript">
 L.Routing.control({
-    [...]
+    waypoints: [...],
     router: L.Routing.mapbox('your-access-token-here')
+    // your other options go here
 });
 </code></pre>
 
@@ -77,8 +80,9 @@ Now you need to give the GraphHopper router to Leaflet Routing Machine's control
 
 <pre><code class="language-javascript">
 L.Routing.control({
-    [...]
-    router: L.Routing.graphHopper('apiKey');
+    waypoints: [...],
+    router: L.Routing.graphHopper('apiKey')
+    // your other options go here
 });
 </code></pre>
 
@@ -91,10 +95,11 @@ address of your server:
 
 <pre><code class="language-javascript">
 L.Routing.control({
-    [...]
+    waypoints: [...],
     router: L.Routing.graphHopper(undefined /* no api key */, {
         serviceUrl: 'http://my-graphhopper/api/v1/route'
-    });
+    })
+    // your other options go here
 });
 </code></pre>
 
@@ -117,8 +122,9 @@ require('leaflet-routing-machine'); // Adds L.Routing onto L
 require('lrm-graphhopper'); // Adds L.Routing.GraphHopper onto L.Routing
 
 L.Routing.control({
-    [...]
-    router: L.Routing.graphHopper('api-key');
+    waypoints: [...],
+    router: L.Routing.graphHopper('api-key')
+    // your other options go here
 });
 </code></pre>
 
