@@ -43,7 +43,21 @@ jobs:
           name: "Release v${{ env.RELEASE_VERSION }}"
           body: "${{ needs.generate-changelog.outputs.release_body }}"
 
-    publish:
+    publish-to-github:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+      - run: npm test
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          registry: "https://npm.pkg.github.com"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+    publish-to-npm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
