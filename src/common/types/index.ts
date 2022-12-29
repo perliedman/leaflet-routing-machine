@@ -151,7 +151,7 @@ export interface IRoutingError {
 
 export interface IRouter {
 	/**
-	 * attempt to route through the provided waypoints, where each waypoint is a [[Waypoint]]
+	 * attempt to route through the provided waypoints, where each waypoint is a {@link Waypoint}
 	 */
 	route: (waypoints: Waypoint[], options?: RoutingOptions, abortController?: AbortController) => Promise<IRoute[]>;
 	/**
@@ -173,20 +173,20 @@ export interface RoutingErrorEvent {
 }
 
 /**
- * Fires when the control starts calculating a route; followed by either a [[RoutesFoundEvent]] or [[RoutingErrorEvent]] event
+ * One or more routes were found
+ * @event
+ */
+export interface RoutesFoundEvent extends RoutingStartEvent {
+	routes: IRoute[];
+}
+
+/**
+ * Fires when the control starts calculating a route; followed by either a {@link RoutesFoundEvent} or {@link RoutingErrorEvent} event
  * Fired when one or more waypoints change (added, deleted, moved)
  * @event
  */
 export interface RoutingStartEvent {
 	waypoints: Waypoint[];
-}
-
-/**
- * One or more routes where found
- * @event
- */
-export interface RoutesFoundEvent extends RoutingStartEvent {
-	routes: IRoute[];
 }
 
 export interface WaypointEvent {

@@ -1,9 +1,37 @@
 {
-  "entryPoints": ["src/index.ts"],
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/index.ts",
+  ],
   "out": "docs",
   "name": "Leaflet Routing Machine API",
-  "excludeInternal": true,
   "excludeExternals": true,
-  "excludePrivate": true,
-  "excludeProtected": true
+  "internalModule": "globals",
+  "externalSymbolLinkMappings": {
+    "@types/leaflet": {
+      "CircleMarkerOptions": "https://leafletjs.com/reference.html#circlemarker",
+      "Class": "https://leafletjs.com/reference.html#class",
+      "Control": "https://leafletjs.com/reference.html#control",
+      "ControlOptions": "https://leafletjs.com/reference.html#control",
+      "Evented": "https://leafletjs.com/reference.html#evented",
+      "LatLng": "https://leafletjs.com/reference.html#latlng",
+      "LatLngBounds": "https://leafletjs.com/reference.html#latlngbounds",
+      "LatLngExpression": "https://leafletjs.com/reference.html#latlng",
+      "Layer": "https://leafletjs.com/reference.html#layer",
+      "LayerGroup": "https://leafletjs.com/reference.html#layergroup",
+      "LayerOptions": "https://leafletjs.com/reference.html#layer",
+      "LeafletEvent": "https://leafletjs.com/reference.html#event-objects",
+      "LeafletMouseEvent": "https://leafletjs.com/reference.html#event-objects",
+      "Map": "https://leafletjs.com/reference.html#map",
+      "Marker": "https://leafletjs.com/reference.html#marker",
+      "PathOptions": "https://leafletjs.com/reference.html#path",
+      "*": "https://leafletjs.com/reference.html#"
+    },
+    "leaflet-control-geocoder": {
+      "GeocodingCallback": "https://www.liedman.net/leaflet-control-geocoder/docs/globals.html#geocodingcallback",
+      "GeocodingResult": "https://www.liedman.net/leaflet-control-geocoder/docs/interfaces/geocodingresult.html",
+      "IGeocoder": "https://www.liedman.net/leaflet-control-geocoder/docs/interfaces/igeocoder.html",
+      "*": "https://www.liedman.net/leaflet-control-geocoder/docs/",
+    }
+  }
 }

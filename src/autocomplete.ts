@@ -166,7 +166,7 @@ export default class Autocomplete {
         clearTimeout(this.timer);
       }
 
-      this.timer = setTimeout(() => this.complete(this.autocomplete),
+      this.timer = window.setTimeout(() => this.complete(this.autocomplete),
         this.options.timeout);
       return;
     }

@@ -96,7 +96,7 @@ interface OSRMResult {
 }
 
 /**
- * Handles communication with the OSRM backend, building the request and parsing the response. Implements [[IRouter]].
+ * Handles communication with the OSRM backend, building the request and parsing the response. Implements {@link IRouter}.
  * Note that this class supports the OSRM HTTP API v1, that is included with OSRM version 5 and up. OSRM 4 used another API that is not supported by this class.
  * See [OSRM HTTP API](https://github.com/Project-OSRM/osrm-backend/blob/master/docs/http.md) for the specification this implementation is built on.
  */
@@ -174,7 +174,7 @@ export default class OSRMv1 extends L.Class implements IRouter {
       const timeout = this.options.timeout ?? this.defaultOptions.timeout;
       const response = await Promise.race([
         request,
-        new Promise<undefined>((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        new Promise<undefined>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), timeout))
       ]);
 
       if (response?.ok) {

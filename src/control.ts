@@ -50,13 +50,13 @@ interface ControlOptions extends L.ControlOptions {
   defaultErrorHandler?: (e: any) => void;
   /**
    * The router to use to calculate routes between waypoints
-   * @default [[OSRMv1]]
+   * @default {@link OSRMv1}
    */
   router?: IRouter;
   routerOptions?: OSRMv1Options;
   /**
    * The plan to use to store and edit the route’s waypoints
-   * @default [[Plan]]
+   * @default {@link Plan}
    */
   plan?: Plan;
   planOptions?: PlanOptions;
@@ -73,11 +73,11 @@ interface ControlOptions extends L.ControlOptions {
    */
   useZoomParameter?: boolean;
   /**
-   * Options passed when creating a new [[Line]] for showing alternative line[s], when showAlternatives is set to true. If not set and showAlternatives is true, alternative lines will be styled using [[ControlOptions.lineOptions]]
+   * Options passed when creating a new {@link Line} for showing alternative line[s], when showAlternatives is set to true. If not set and showAlternatives is true, alternative lines will be styled using {@link ControlOptions.lineOptions}
    */
   altLineOptions?: LineOptions;
   /**
-   * Options passed when creating a new [[Line]], for example styling
+   * Options passed when creating a new {@link Line}, for example styling
    */
   lineOptions?: LineOptions;
   itineraryBuilder?: ItineraryBuilder;
@@ -411,7 +411,7 @@ export default class Control extends RoutingControl {
       const { waypoints } = e.target;
 
       if (!timer) {
-        timer = setTimeout(async () => {
+        timer = window.setTimeout(async () => {
           const routes = await this.route({
             waypoints: waypoints,
             geometryOnly: true,
