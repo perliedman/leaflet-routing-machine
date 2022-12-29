@@ -1,0 +1,57 @@
+name: Create release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  generate-changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.release.outputs.release_body }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v2
+        id: git-cliff
+        with:
+          config: config/cliff.toml
+          args: -vv --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+      - name: Set the release body
+        id: release
+        shell: bash
+        run: |
+          r=$(cat ${{ steps.git-cliff.outputs.changelog }})
+          r="$(printf "$r" | tail -n +3)"
+          r="${r//'%'/'%25'}"
+          r="${r//$'\n'/'%0A'}"
+          r="${r//$'\r'/'%0D'}"
+          echo 'RELEASE_BODY<<EOF' >> $GITHUB_ENV
+          echo "$r" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref }}
+          name: "Release v${{ env.RELEASE_VERSION }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+
+    publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+      - run: npm test
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}

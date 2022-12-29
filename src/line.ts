@@ -19,7 +19,9 @@ export interface LineOptions extends L.LayerOptions {
   extendToWaypoints?: boolean;
   /**
    * Styles used for the line or lines drawn to represent the line
-   * @default [{ color: 'black', opacity: 0.15, weight: 9 }, { color: 'white', opacity: 0.8, weight: 6 }, { color: 'red', opacity: 1, weight: 2 }]
+   * @defaultValue ```
+   * [{ color: 'black', opacity: 0.15, weight: 9 }, { color: 'white', opacity: 0.8, weight: 6 }, { color: 'red', opacity: 1, weight: 2 }]
+   * ```
    */
   styles?: L.PathOptions[];
   /**
@@ -39,7 +41,7 @@ L.Util.extend(EventedLayerGroup.prototype, L.LayerGroup.prototype);
 L.Util.extend(EventedLayerGroup.prototype, L.Evented.prototype);
 
 /**
- * Displays a route on the map, and allows adding new waypoints by dragging the line. Extends [LayerGroup](https://leafletjs.com/reference.html#layergroup).
+ * Displays a route on the map, and allows adding new waypoints by dragging the line.
  */
 export default class Line extends L.LayerGroup {
   private readonly defaultOptions = {

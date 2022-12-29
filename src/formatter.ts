@@ -40,7 +40,7 @@ function isDirectionInstruction(instruction: ITextInstruction | IDirectionInstru
 }
 
 /**
- * Implements functions to convert distances and times to strings, as well as converting an [[IInstruction]] to a string. Override or implement your own if you need to customize formatting.
+ * Implements functions to convert distances and times to strings, as well as converting an {@link IInstruction} to a string. Override or implement your own if you need to customize formatting.
  */
 export default class Formatter extends L.Class {
   private readonly defaultOptions = {

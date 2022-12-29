@@ -40,7 +40,7 @@ export interface PlanOptions extends GeocoderElementsOptions {
   geocodersClassName?: string;
   /**
    * Provides a function to create a custom geocoder element
-   * @default [[GeocoderElement]]
+   * @default {@link GeocoderElement}
    */
   createGeocoderElement?: (waypoint: Waypoint, waypointIndex: number, numberOfWaypoints: number, plan: GeocoderElementsOptions) => GeocoderElement;
   /**
@@ -57,7 +57,7 @@ export interface PlanOptions extends GeocoderElementsOptions {
 type LeafletHookedEvent = L.LeafletEvent | { latlng: L.LatLng };
 
 /**
- * User interface to edit the plan for a route (an ordered list of waypoints). Implements [Layer](https://leafletjs.com/reference.html#layer).
+ * User interface to edit the plan for a route (an ordered list of waypoints).
  */
 export default class Plan extends L.Layer {
   private readonly defaultOptions = {

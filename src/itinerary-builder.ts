@@ -60,7 +60,7 @@ export interface ItineraryBuilderOptions extends FormatterOptions {
   collapseBtnClass?: string;
   /**
    * The formatter to use when converting itinerary instructions, distances and times to strings
-   * @default [[Formatter]]
+   * @default {@link Formatter}
    */
   formatter?: Formatter;
 }
