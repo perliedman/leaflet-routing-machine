@@ -63,6 +63,10 @@ export interface ItineraryBuilderOptions extends FormatterOptions {
    * @default {@link Formatter}
    */
   formatter?: Formatter;
+  /**
+   * Message to display when no route was found
+   */
+  noRouteFoundMessage?: string;
 }
 
 /**
@@ -141,11 +145,30 @@ export default class ItineraryBuilder {
       .firstElementChild as HTMLDivElement;
   }
 
+  createNoRoutesFound() {
+    const {
+      alternativeClassName,
+      noRouteFoundMessage
+    } = this.options;
+    const altDiv = document.createRange()
+      .createContextualFragment(`
+        <div class="leaflet-routing-alt ${alternativeClassName}">
+          <h2 class="routing-summary-header"><span>${noRouteFoundMessage}</span></h2>
+        </div>
+      `)
+      .firstElementChild as HTMLDivElement;
+    return altDiv;
+  }
+
   /**
    * Sets the routing alternatives to display itineraries for
    */
   setAlternatives(routes: IRoute[]) {
     this.clearAlts();
+
+    if (!routes.length && this.options.noRouteFoundMessage) {
+      this.altContainer?.appendChild(this.createNoRoutesFound());
+    }
 
     for (const alt of routes) {
       const altDiv = this.createAlternative(alt, routes.indexOf(alt));
