@@ -12,6 +12,13 @@ interface GeocoderElementCollection {
 }
 
 export interface GeocoderElementsOptions extends L.ControlOptions {
+  /**
+   * Creates a custom instance of AutoComplete for suggestions
+   */
+  createAutocomplete?: (geocoderInput: HTMLInputElement, context: GeocoderElement) => Autocomplete;
+  /**
+   * Specify options for the default AutoComplete
+   */
   autocompleteOptions?: AutocompleteOptions,
   /**
    * Create a geocoder for a waypoint
@@ -53,6 +60,20 @@ L.Util.extend(EventedControl.prototype, L.Evented.prototype);
 
 export default class GeocoderElement extends EventedControl {
   private readonly defaultOptions = {
+    createAutocomplete: (geocoderInput: HTMLInputElement, context: GeocoderElement) => {
+      return new Autocomplete(geocoderInput, (r) => {
+        geocoderInput.value = r.name;
+        context.waypoint.name = r.name;
+        context.waypoint.latLng = r.center;
+        context.fire('geocoded', { waypoint: context.waypoint, value: r });
+      }, {
+        ...{
+          resultFn: context.options.geocoder?.geocode,
+          autocompleteFn: context.options.geocoder?.suggest,
+        },
+        ...context.options.autocompleteOptions
+      });
+    },
     createGeocoder: (_: number, numberOfWaypoints: number, options: GeocoderElementsOptions) => {
       const container = L.DomUtil.create('div', 'leaflet-routing-geocoder');
       const input = L.DomUtil.create('input', '', container);
@@ -112,6 +133,7 @@ export default class GeocoderElement extends EventedControl {
     }
 
     const {
+      createAutocomplete = this.defaultOptions.createAutocomplete,
       createGeocoder = this.defaultOptions.createGeocoder,
       geocoderPlaceholder = this.defaultOptions.geocoderPlaceholder,
       geocoderClass = this.defaultOptions.geocoderClass,
@@ -133,7 +155,7 @@ export default class GeocoderElement extends EventedControl {
     geocoderInput.value = waypoint.name ?? '';
 
     L.DomEvent.addListener(geocoderInput, 'click', (e) => {
-      this.selectInputText(e.currentTarget as HTMLInputElement);
+      (e.currentTarget as HTMLInputElement).select();
     }, this);
 
     if (closeButton) {
@@ -142,18 +164,7 @@ export default class GeocoderElement extends EventedControl {
       }, this);
     }
 
-    new Autocomplete(geocoderInput, (r) => {
-      geocoderInput.value = r.name;
-      this.waypoint.name = r.name;
-      this.waypoint.latLng = r.center;
-      this.fire('geocoded', { waypoint: this.waypoint, value: r });
-    }, {
-      ...{
-        resultFn: this.options.geocoder?.geocode,
-        autocompleteFn: this.options.geocoder?.suggest,
-      },
-      ...this.options.autocompleteOptions
-    });
+    createAutocomplete(geocoderInput, this);
   }
 
   getContainer() {
@@ -192,23 +203,13 @@ export default class GeocoderElement extends EventedControl {
   focus() {
     const { input } = this.element;
     input.focus();
-    this.selectInputText(input);
+    input.select();
   }
 
   setReverseGeocodeResult() {
     const value = this.waypoint?.name ?? '';
     this.setValue(value);
     this.fire('reversegeocoded', { waypoint: this.waypoint, value });
-  }
-
-  selectInputText(input: HTMLInputElement) {
-    if (input.setSelectionRange) {
-      // On iOS, select() doesn't work
-      input.setSelectionRange(0, 9999);
-    } else {
-      // On at least IE8, setSeleectionRange doesn't exist
-      input.select();
-    }
   }
 }
 
