@@ -4,7 +4,7 @@ import 'leaflet-control-geocoder';
 import 'leaflet/../leaflet.css';
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 
-import { RoutingControl, ErrorControl } from '../../build/esm/index';
+import { RoutingControl, ErrorControl } from '../../dist/esm/index';
 
 import instructionStub from 'osrm-text-instructions';
 const osrmTextInstructions = instructionStub('v5');
