@@ -139,7 +139,7 @@ export default class Formatter extends L.Class {
       return `${Math.round(t / 3600)} ${unitNames.hours} ${Math.round((t % 3600) / 60)} ${unitNames.minutes}`;
     } else if (t > 300) {
       return `${Math.round(t / 60)} ${unitNames.minutes}`;
-    } else if (t > 60) {
+    } else if (t >= 60) {
       const seconds = (t % 60 !== 0 ? `${t % 60} ${unitNames.seconds}` : '');
       return `${Math.round(t / 60)} ${unitNames.minutes}${seconds}`;
     } else {

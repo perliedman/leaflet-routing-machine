@@ -2,12 +2,16 @@ import L from 'leaflet';
 import Line, { LineOptions } from './line';
 import Plan, { PlanOptions } from './plan';
 import OSRMv1, { OSRMv1Options } from './osrm-v1';
-import { IRoute, IRouter, ItineraryEvents, RouteEvent, RoutingErrorEvent, RoutingOptions, RoutingStartEvent } from './common/types';
+import { IRoute, IRouter, ItineraryEvents, RouteEvent, RoutesFoundEvent, RoutingErrorEvent, RoutingOptions, RoutingStartEvent } from './common/types';
 import Waypoint from './waypoint';
 import ItineraryBuilder, { ItineraryBuilderOptions } from './itinerary-builder';
 import EventHub from './eventhub';
 
 interface ControlOptions extends L.ControlOptions {
+  /**
+   * Determines whether the first route should automatically be selected
+   */
+  autoSelectFirstRoute?: boolean;
   /**
    * Style for the CircleMarkers used when hovering an itinerary instruction
    * @default { radius: 5, color: '#03f', fillColor: 'white', opacity: 1, fillOpacity: 0.7 }
@@ -135,6 +139,7 @@ export default class Control extends RoutingControl {
     routeDragInterval: 500,
     waypointMode: 'connect',
     showAlternatives: false,
+    autoSelectFirstRoute: true,
     defaultErrorHandler: (e: RoutingErrorEvent) => {
       console.error('Routing error:', e.error);
     }
@@ -188,6 +193,7 @@ export default class Control extends RoutingControl {
     this.map.addLayer(this.plan);
     this.map.on('zoomend', this.onZoomEnd, this);
     this.eventHub.on('routeselected', (e) => this.routeSelected(e));
+    this.eventHub.on('routesfound', (e) => this.routesFound(e));
     this.eventHub.on('altRowMouseOver', (coordinate) => {
       if (this.map) {
         this.marker = L.circleMarker(coordinate,
@@ -265,6 +271,19 @@ export default class Control extends RoutingControl {
     return this.router;
   }
 
+  routesFound(e: RoutesFoundEvent) {
+    const routes = this.controlOptions.showAlternatives ? e.routes : [];
+
+    this.updateLines(this.selectedRoute, routes);
+    this.fitLineBounds();
+
+    if (this.controlOptions.waypointMode === 'snap') {
+      this.plan.off('waypointschanged', this.onWaypointsChanged, this);
+      this.setWaypoints(e.waypoints);
+      this.plan.on('waypointschanged', this.onWaypointsChanged, this);
+    }
+  }
+
   routeSelected(e: RouteEvent) {
     const { routeIndex } = e;
     const selectRoute = this.routes.find((r) => r.routesIndex === routeIndex);
@@ -274,21 +293,25 @@ export default class Control extends RoutingControl {
 
     const route = this.selectedRoute = selectRoute;
     const alternatives = this.controlOptions.showAlternatives ? this.routes.filter((r) => r.routesIndex !== routeIndex) : [];
-    const fitMode = this.controlOptions.fitSelectedRoutes;
-    const fitBounds =
-      (fitMode === 'smart' && !this.waypointsVisible()) ||
-      (fitMode !== 'smart' && fitMode);
 
     this.updateLines(route, alternatives);
 
-    if (fitBounds && this.map && this.line) {
-      this.map.fitBounds(this.line.getBounds());
-    }
+    this.fitLineBounds();
 
     if (this.controlOptions.waypointMode === 'snap') {
       this.plan.off('waypointschanged', this.onWaypointsChanged, this);
       this.setWaypoints(route.waypoints);
       this.plan.on('waypointschanged', this.onWaypointsChanged, this);
+    }
+  }
+
+  fitLineBounds() {
+    const fitMode = this.controlOptions.fitSelectedRoutes;
+    const fitBounds = (fitMode === 'smart' && !this.waypointsVisible()) || (fitMode !== 'smart' && fitMode);
+
+    if (fitBounds && (this.line || this.alternatives.length)) {
+      const bounds = (this.line ? [this.line] : []).concat(this.alternatives || []).map((l) => l.getBounds().getCenter());
+      this.map?.fitBounds(L.latLngBounds(bounds));
     }
   }
 
@@ -336,7 +359,7 @@ export default class Control extends RoutingControl {
     }
   }
 
-  updateLines(route: IRoute, alternatives: IRoute[]) {
+  updateLines(route?: IRoute, alternatives: IRoute[] = []) {
     const { routeLine = this.defaultOptions.routeLine } = this.controlOptions;
     const addWaypoints = this.controlOptions.addWaypoints ?? true;
     this.clearLines();
@@ -360,6 +383,10 @@ export default class Control extends RoutingControl {
       this.hookAltEvents(this.alternatives[i]);
     });
 
+    if (!route || !this.map) {
+      return;
+    }
+
     this.line = routeLine(route,
       {
         ...{
@@ -368,10 +395,6 @@ export default class Control extends RoutingControl {
         },
         ...this.controlOptions.lineOptions
       });
-
-    if (!this.map) {
-      return;
-    }
 
     this.line.addTo(this.map);
     this.hookEvents(this.line);
@@ -529,7 +552,9 @@ export default class Control extends RoutingControl {
     this.routes = routes;
 
     this.itineraryBuilder.setAlternatives(this.routes);
-    this.selectRoute({ routeIndex: this.routes[0].routesIndex });
+    if (this.controlOptions.autoSelectFirstRoute) {
+      this.selectRoute({ routeIndex: this.routes[0].routesIndex });
+    }
 
     return this;
   }

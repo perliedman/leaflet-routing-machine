@@ -235,4 +235,5 @@ export type ItineraryEvents = {
 	altRowClick: L.LatLng;
 	altRowMouseOut: L.LatLng;
 	routeselected: RouteEvent;
+	routesfound: RoutesFoundEvent;
 }
