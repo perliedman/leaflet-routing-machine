@@ -18,6 +18,10 @@ export interface AutocompleteOptions {
    */
   noResultsMessage?: string;
   /**
+   * Should the first suggestion be automatically selected?
+   */
+  autoSelectFirstResult?: boolean;
+  /**
    * Function that handles formatting a geocode result to a string
    */
   formatGeocoderResult?: (result: GeocodingResult) => string;
@@ -34,7 +38,8 @@ export interface AutocompleteOptions {
 export default class Autocomplete {
   private readonly defaultOptions = {
     timeout: 500,
-    noResultsMessage: 'No results found.'
+    noResultsMessage: 'No results found.',
+    autoSelectFirstResult: true,
   };
 
   options: AutocompleteOptions = this.defaultOptions;
@@ -122,13 +127,13 @@ export default class Autocomplete {
     }
 
     if (!results.length) {
-      const tr = L.DomUtil.create('tr', '', this.resultTable);
+      const tr = L.DomUtil.create('tr', 'leaflet-routing-geocoder-no-results-row', this.resultTable);
       const td = L.DomUtil.create('td', 'leaflet-routing-geocoder-no-results', tr);
       td.innerHTML = this.options.noResultsMessage ?? this.defaultOptions.noResultsMessage;
     }
 
     this.open();
-    if (results.length > 0) {
+    if (results.length > 0 && this.options.autoSelectFirstResult) {
       // Select the first entry
       this.select(1);
     }
@@ -156,8 +161,12 @@ export default class Autocomplete {
     }
 
     if (keyCode === 13) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+
       L.DomEvent.preventDefault(e);
-      this.complete(this.resultFn, true);
+      this.complete((query, callback) => this.resultFn?.(query, callback), true);
       return;
     }
 
@@ -177,7 +186,7 @@ export default class Autocomplete {
   select(dir: number) {
     let selection = this.selection;
     if (selection) {
-      L.DomUtil.removeClass(selection.firstElementChild as HTMLElement, 'leaflet-routing-geocoder-selected');
+      L.DomUtil.removeClass(selection as HTMLElement, 'leaflet-routing-geocoder-selected');
       selection = selection[dir > 0 ? 'nextElementSibling' : 'previousElementSibling'];
     }
     if (!selection) {
@@ -185,14 +194,14 @@ export default class Autocomplete {
     }
 
     if (selection) {
-      L.DomUtil.addClass(selection.firstElementChild as HTMLElement, 'leaflet-routing-geocoder-selected');
+      L.DomUtil.addClass(selection as HTMLElement, 'leaflet-routing-geocoder-selected');
       this.selection = selection;
     }
   }
 
   unselect() {
     if (this.selection) {
-      L.DomUtil.removeClass(this.selection.firstElementChild as HTMLElement, 'leaflet-routing-geocoder-selected');
+      L.DomUtil.removeClass(this.selection as HTMLElement, 'leaflet-routing-geocoder-selected');
     }
 
     delete this.selection;
@@ -229,7 +238,7 @@ export default class Autocomplete {
     }
 
     if (value !== this.lastCompletedText) {
-      completeFn(value, this.completeResults);
+      completeFn(value, () => this.completeResults());
     } else if (trySelect) {
       this.lastCompletedText = value;
       this.completeResults();
