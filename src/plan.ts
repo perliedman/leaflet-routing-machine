@@ -3,7 +3,7 @@ import { LineTouchedEvent } from './common/types';
 import GeocoderElement, { GeocoderElementsOptions } from './geocoder-element';
 import Waypoint from './waypoint';
 
-export interface PlanOptions extends GeocoderElementsOptions {
+export interface PlanOptions extends GeocoderElementsOptions, L.LayerOptions {
   /**
    * Styles used for the line or lines drawn when dragging a waypoint
    * @default [{ color: 'black', opacity: 0.15, weight: 7 }, { color: 'white', opacity: 0.8, weight: 4 }, { color: 'orange', opacity: 1, weight: 2, dashArray: '7,12' }]
