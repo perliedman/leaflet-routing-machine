@@ -23,8 +23,7 @@
 			// TODO: looks a bit like a kludge to register same for input and keypress -
 			// browsers supporting both will get duplicate events; just registering
 			// input will not catch enter, though.
-			L.DomEvent.addListener(this._elem, 'input', this._keyPressed, this);
-			L.DomEvent.addListener(this._elem, 'keypress', this._keyPressed, this);
+			L.DomEvent.addListener(this._elem, 'input', this._keyDown, this);
 			L.DomEvent.addListener(this._elem, 'keydown', this._keyDown, this);
 			L.DomEvent.addListener(this._elem, 'blur', function() {
 				if (this._isOpen) {
@@ -119,34 +118,6 @@
 			}, this);
 		},
 
-		_keyPressed: function(e) {
-			var index;
-
-			if (this._isOpen && e.keyCode === 13 && this._selection) {
-				index = parseInt(this._selection.getAttribute('data-result-index'), 10);
-				this._resultSelected(this._results[index])();
-				L.DomEvent.preventDefault(e);
-				return;
-			}
-
-			if (e.keyCode === 13) {
-				L.DomEvent.preventDefault(e);
-				this._complete(this._resultFn, true);
-				return;
-			}
-
-			if (this._autocomplete && document.activeElement === this._elem) {
-				if (this._timer) {
-					clearTimeout(this._timer);
-				}
-				this._timer = setTimeout(L.Util.bind(function() { this._complete(this._autocomplete); }, this),
-					this.options.timeout);
-				return;
-			}
-
-			this._unselect();
-		},
-
 		_select: function(dir) {
 			var sel = this._selection;
 			if (sel) {
@@ -190,6 +161,32 @@
 					return;
 				}
 			}
+
+			var index;
+
+			if (this._isOpen && e.keyCode === 13 && this._selection) {
+				index = parseInt(this._selection.getAttribute('data-result-index'), 10);
+				this._resultSelected(this._results[index])();
+				L.DomEvent.preventDefault(e);
+				return;
+			}
+
+			if (e.keyCode === 13) {
+				L.DomEvent.preventDefault(e);
+				this._complete(this._resultFn, true);
+				return;
+			}
+
+			if (this._autocomplete && document.activeElement === this._elem) {
+				if (this._timer) {
+					clearTimeout(this._timer);
+				}
+				this._timer = setTimeout(L.Util.bind(function() { this._complete(this._autocomplete); }, this),
+					this.options.timeout);
+				return;
+			}
+
+			this._unselect();
 		},
 
 		_complete: function(completeFn, trySelect) {
