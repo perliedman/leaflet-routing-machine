@@ -6,6 +6,7 @@
     "example": "examples",
     "dist": "dist"
   },
+  "types": "types/index.d.ts",
   "scripts": {
     "prepare": "browserify -t browserify-shim -p browserify-derequire -o dist/leaflet-routing-machine.js src/index.js && uglifyjs dist/leaflet-routing-machine.js >dist/leaflet-routing-machine.min.js",
     "publish": "scripts/publish.sh",
