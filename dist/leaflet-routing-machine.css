@@ -146,6 +146,7 @@
     overflow: hidden;
     transition: all 0.5s ease;
     z-index: 1000; /* Arbitrary, but try to be above "most" things. */
+    visibility: hidden;
 }
 
 .leaflet-routing-geocoder-result table {
@@ -158,6 +159,7 @@
 
 .leaflet-routing-geocoder-result-open {
     max-height: 800px;
+    visibility: visible;
 }
 
 .leaflet-routing-geocoder-selected, .leaflet-routing-geocoder-result tr:hover {
