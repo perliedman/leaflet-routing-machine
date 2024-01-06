@@ -7,7 +7,8 @@
 		options: {
 			timeout: 500,
 			blurTimeout: 100,
-			noResultsMessage: 'No results found.'
+			noResultsMessage: 'No results found.',
+			attachResultsToContainer: false,
 		},
 
 		initialize: function(elem, callback, context, options) {
@@ -17,7 +18,7 @@
 			this._resultFn = options.resultFn ? L.Util.bind(options.resultFn, options.resultContext) : null;
 			this._autocomplete = options.autocompleteFn ? L.Util.bind(options.autocompleteFn, options.autocompleteContext) : null;
 			this._selectFn = L.Util.bind(callback, context);
-			this._container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result');
+			this._container = L.DomUtil.create('div', 'leaflet-routing-geocoder-result', options.attachResultsToContainer ? this._elem.parentElement : undefined);
 			this._resultTable = L.DomUtil.create('table', '', this._container);
 
 			// TODO: looks a bit like a kludge to register same for input and keypress -
@@ -35,6 +36,9 @@
 
 		close: function() {
 			L.DomUtil.removeClass(this._container, 'leaflet-routing-geocoder-result-open');
+			if (this.options.attachResultsToContainer) {
+				this._container.style.position = 'absolute';
+			}
 			this._isOpen = false;
 		},
 
@@ -51,6 +55,8 @@
 				this._container.style.top = (rect.bottom + scrollY) + 'px';
 				this._container.style.width = (rect.right - rect.left) + 'px';
 				document.body.appendChild(this._container);
+			} else if (this.options.attachResultsToContainer) {
+				this._container.style.position = 'relative';
 			}
 
 			L.DomUtil.addClass(this._container, 'leaflet-routing-geocoder-result-open');
