@@ -122,7 +122,7 @@
 
 		_getWaypointIndices: function() {
 			if (!this._wpIndices) {
-				this._wpIndices = this._route.waypointIndices || this._findWaypointIndices();
+				this._wpIndices = this._findWaypointIndices();
 			}
 
 			return this._wpIndices;

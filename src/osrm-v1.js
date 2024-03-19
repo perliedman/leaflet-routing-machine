@@ -18,11 +18,19 @@
 	 */
 	module.exports = L.Class.extend({
 		options: {
+			optimised: false,
 			serviceUrl: 'https://router.project-osrm.org/route/v1',
 			profile: 'driving',
 			timeout: 30 * 1000,
 			routingOptions: {
 				alternatives: true,
+				steps: true
+			},
+			tripOptions: {
+				roundtrip:true,
+				source:"first",
+				geometries: "polyline",
+				destination:"last",
 				steps: true
 			},
 			polylinePrecision: 5,
@@ -62,7 +70,7 @@
 				i,
 				xhr;
 
-			options = L.extend({}, this.options.routingOptions, options);
+			options = L.extend({}, this.options.optimised ? this.options.routingOptions : this.options.tripOptions, options) ;
 			url = this.buildRouteUrl(waypoints, options);
 			if (this.options.requestParameters) {
 				url += L.Util.getParamString(this.options.requestParameters, url);
@@ -158,12 +166,23 @@
 
 			actualWaypoints = this._toWaypoints(inputWaypoints, response.waypoints);
 
-			for (i = 0; i < response.routes.length; i++) {
-				route = this._convertRoute(response.routes[i]);
-				route.inputWaypoints = inputWaypoints;
-				route.waypoints = actualWaypoints;
-				route.properties = {isSimplified: !options || !options.geometryOnly || options.simplifyGeometry};
-				alts.push(route);
+			if (this.options.optimised) {
+				for (i = 0; i < response.trips.length; i++) {
+					route = this._convertRoute(response.trips[i]);
+					route.inputWaypoints = inputWaypoints;
+					route.waypoints = actualWaypoints;
+					route.properties = { isSimplified: !options || !options.geometryOnly || options.simplifyGeometry };
+					alts.push(route);
+				}
+			}
+			else {
+				for (i = 0; i < response.routes.length; i++) {
+					route = this._convertRoute(response.routes[i]);
+					route.inputWaypoints = inputWaypoints;
+					route.waypoints = actualWaypoints;
+					route.properties = {isSimplified: !options || !options.geometryOnly || options.simplifyGeometry};
+					alts.push(route);
+				}
 			}
 
 			this._saveHintData(response.waypoints, inputWaypoints);
@@ -334,9 +353,7 @@
 			var locs = [],
 				hints = [],
 				wp,
-				latLng,
-			    computeInstructions,
-			    computeAlternative = true;
+				latLng;
 
 			for (var i = 0; i < waypoints.length; i++) {
 				wp = waypoints[i];
@@ -345,14 +362,21 @@
 				hints.push(this._hints.locations[this._locationKey(latLng)] || '');
 			}
 
-			computeInstructions =
-				true;
-
-			return this.options.serviceUrl + '/' + this.options.profile + '/' +
-				locs.join(';') + '?' +
+			if (this.options.optimised)
+				return this.options.serviceUrl + '/' + this.options.profile + '/' +
+				locs.join(';') + '?' + 
 				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
-				'&alternatives=' + computeAlternative.toString() +
-				'&steps=' + computeInstructions.toString() +
+				'&geometries='+ this.options.tripOptions.geometries + 
+				'&steps=' + this.options.tripOptions.steps.toString() + 
+				'&source=' + this.options.tripOptions.source + 
+				'&destination=' + this.options.tripOptions.destination + 
+				'&roundtrip=' + this.options.tripOptions.roundtrip;
+			else
+				return this.options.serviceUrl + '/' + this.options.profile + '/' +
+				locs.join(';') + '?' + 
+				(options.geometryOnly ? (options.simplifyGeometry ? '' : 'overview=full') : 'overview=false') +
+				'&alternatives=' + this.options.routingOptions.alternatives.toString() +
+				'&steps=' + this.options.routingOptions.steps.toString() +
 				(this.options.useHints ? '&hints=' + hints.join(';') : '') +
 				(options.allowUTurns ? '&continue_straight=' + !options.allowUTurns : '');
 		},
