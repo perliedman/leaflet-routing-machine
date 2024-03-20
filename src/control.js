@@ -324,7 +324,7 @@
 
 						routes.forEach(function(route, i) { route.routesIndex = i; });
 
-						if (!options.geometryOnly) {
+						if (!this.options.geometryOnly) {
 							this.fire('routesfound', {waypoints: wps, routes: routes});
 							this.setAlternatives(routes);
 						} else {
