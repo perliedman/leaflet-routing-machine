@@ -8,6 +8,9 @@ Find the way from A to B on a Leaflet map. The plugin supports multiple backends
 * [OSRM](http://project-osrm.org/) - builtin and used by default (version 5)
 * [Mapbox Directions API](https://www.mapbox.com/developers/api/directions/) - builtin with the class `L.Routing.Mapbox`
 * [GraphHopper](https://graphhopper.com/) - through plugin [lrm-graphopper](https://github.com/perliedman/lrm-graphhopper)
+* [OpenRoute Service](https://openrouteservice.org/dev/#/api-docs/v2/directions/{profile}/get) - through plugins
+  * https://framagit.org/gegeweb/leaflet-routing-machine-openroute/
+  * https://github.com/willmorejg/lrm-openrouteservice 
 * [Mapzen Valhalla](https://mapzen.com/projects/valhalla/) - through plugin [lrm-valhalla](https://github.com/valhalla/lrm-valhalla)
 * [TomTom Online Routing API](http://developer.tomtom.com/io-docs) - through plugin [lrm-tomtom](https://github.com/mrohnstock/lrm-tomtom) by [Mathias Rohnstock](https://github.com/mrohnstock)
 * Legacy support for OSRM version 4 through plugin [lrm-osrm4](https://github.com/perliedman/lrm-osrm4)
