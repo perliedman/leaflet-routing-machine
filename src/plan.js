@@ -248,7 +248,7 @@
 				}, this),
 				dragEnd = L.bind(function(e) {
 					this._waypoints[i].latLng = eventLatLng(e);
-					this._waypoints[i].name = '';
+					this._waypoints[i].name ||= '';
 					if (this._geocoderElems) {
 						this._geocoderElems[i].update(true);
 					}
